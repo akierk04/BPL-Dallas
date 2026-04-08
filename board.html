@@ -10,173 +10,60 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <style>
-    .board-header {
-      text-align: center;
-      padding: 24px 20px 8px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 24px;
-    }
-    .board-title {
-      font-family: var(--font-display);
-      font-size: 2.2rem;
-      letter-spacing: 0.1em;
-      color: var(--accent);
-    }
-    .board-sub {
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-top: 4px;
-    }
-    .live-dot {
-      display: inline-block;
-      width: 7px; height: 7px;
-      border-radius: 50%;
-      background: var(--green);
-      margin-right: 6px;
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-    .board-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 14px;
-      margin-bottom: 32px;
-    }
-    .board-captain-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
+    .board-header { text-align:center; padding:24px 20px 8px; border-bottom:1px solid var(--border); margin-bottom:24px; }
+    .board-title { font-family:var(--font-display); font-size:2.2rem; letter-spacing:0.1em; color:var(--accent); }
+    .board-sub { font-size:12px; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; margin-top:4px; }
+    .live-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-right:6px; animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .now-bidding {
+      background: linear-gradient(135deg, rgba(240,192,64,0.12), rgba(240,192,64,0.04));
+      border: 1px solid rgba(240,192,64,0.5);
       border-radius: var(--radius-lg);
-      overflow: hidden;
-    }
-    .board-captain-header {
-      padding: 14px 16px 10px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .board-captain-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .board-purse-wrap {
-      text-align: right;
-    }
-    .board-purse {
-      font-family: var(--font-display);
-      font-size: 1.3rem;
-      color: var(--accent);
-      letter-spacing: 0.04em;
-      line-height: 1;
-    }
-    .board-purse-label {
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .board-roster {
-      padding: 10px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    .board-player-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 13px;
-      padding: 5px 0;
-      border-bottom: 0.5px solid var(--border);
-    }
-    .board-player-row:last-child { border-bottom: none; }
-    .board-player-name { color: var(--text); }
-    .board-player-price { color: var(--accent); font-weight: 500; font-size: 12px; }
-    .board-empty { color: var(--muted); font-size: 12px; font-style: italic; padding: 8px 0; text-align: center; }
-
-    /* Player pool section */
-    .pool-filters {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-    .filter-btn {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      color: var(--muted);
-      font-family: var(--font-body);
-      font-size: 12px;
-      font-weight: 500;
-      padding: 5px 14px;
-      cursor: pointer;
-      width: auto;
-      letter-spacing: 0;
-      transition: all 0.15s;
-    }
-    .filter-btn.active, .filter-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: rgba(240,192,64,0.07);
-    }
-    .pool-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 8px;
-    }
-    .pool-player-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 10px 12px;
-      transition: border-color 0.15s;
-    }
-    .pool-player-card.is-sold {
-      border-color: rgba(62,207,142,0.3);
-      background: rgba(62,207,142,0.04);
-    }
-    .pool-player-card-name {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-    .pool-player-card-meta {
-      font-size: 11px;
-      color: var(--muted);
-    }
-    .pool-player-card-sold {
-      font-size: 11px;
-      color: var(--green);
-      font-weight: 500;
-      margin-top: 4px;
-    }
-    .stats-bar {
-      display: flex;
-      gap: 16px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 20px;
+      padding: 20px 24px;
       margin-bottom: 20px;
-      flex-wrap: wrap;
+      text-align: center;
     }
-    .stat-item { display: flex; flex-direction: column; }
-    .stat-val { font-family: var(--font-display); font-size: 1.5rem; color: var(--accent); letter-spacing: 0.04em; line-height: 1; }
-    .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
-    .stat-div { width: 1px; background: var(--border); margin: 0 4px; }
+    .now-bidding-label { font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:var(--accent); margin-bottom:6px; }
+    .now-bidding-name { font-family:var(--font-display); font-size:3rem; letter-spacing:0.06em; color:var(--text); line-height:1; }
+    .waiting-banner { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 20px; margin-bottom:20px; text-align:center; color:var(--muted); font-size:13px; }
 
-    @media (max-width: 480px) {
-      .board-grid { grid-template-columns: 1fr; }
-      .pool-grid { grid-template-columns: repeat(2, 1fr); }
-      .board-title { font-size: 1.6rem; }
+    .stats-bar { display:flex; gap:16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 20px; margin-bottom:20px; flex-wrap:wrap; }
+    .stat-item { display:flex; flex-direction:column; }
+    .stat-val { font-family:var(--font-display); font-size:1.5rem; color:var(--accent); letter-spacing:0.04em; line-height:1; }
+    .stat-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-top:2px; }
+    .stat-div { width:1px; background:var(--border); margin:0 4px; }
+
+    .board-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:14px; margin-bottom:32px; }
+    .board-captain-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+    .board-captain-header { padding:14px 16px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .board-captain-name { font-size:15px; font-weight:600; color:var(--text); }
+    .board-purse-wrap { text-align:right; }
+    .board-purse { font-family:var(--font-display); font-size:1.3rem; color:var(--accent); letter-spacing:0.04em; line-height:1; }
+    .board-purse-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+    .board-roster { padding:10px 16px; display:flex; flex-direction:column; gap:5px; }
+    .board-player-row { display:flex; align-items:center; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:0.5px solid var(--border); }
+    .board-player-row:last-child { border-bottom:none; }
+    .board-player-name { color:var(--text); }
+    .board-player-price { color:var(--accent); font-weight:500; font-size:12px; }
+    .board-empty { color:var(--muted); font-size:12px; font-style:italic; padding:8px 0; text-align:center; }
+
+    .pool-filters { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+    .filter-btn { background:var(--surface); border:1px solid var(--border); border-radius:20px; color:var(--muted); font-family:var(--font-body); font-size:12px; font-weight:500; padding:5px 14px; cursor:pointer; width:auto; letter-spacing:0; transition:all 0.15s; }
+    .filter-btn.active, .filter-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(240,192,64,0.07); }
+
+    .pool-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:8px; }
+    .pool-player-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:10px 12px; transition:border-color 0.15s; }
+    .pool-player-card.is-sold { border-color:rgba(62,207,142,0.3); background:rgba(62,207,142,0.04); }
+    .pool-player-card.is-current { border-color:var(--accent); background:rgba(240,192,64,0.07); }
+    .pool-player-card-name { font-size:13px; font-weight:500; color:var(--text); margin-bottom:4px; }
+    .pool-player-card-sold { font-size:11px; color:var(--green); font-weight:500; margin-top:4px; }
+
+    @media (max-width:480px) {
+      .board-grid { grid-template-columns:1fr; }
+      .pool-grid { grid-template-columns:repeat(2,1fr); }
+      .board-title { font-size:1.6rem; }
+      .now-bidding-name { font-size:2rem; }
     }
   </style>
 </head>
@@ -187,8 +74,15 @@
   </div>
 
   <div class="page">
-    <!-- Stats bar -->
-    <div class="stats-bar" id="statsBar">
+    <!-- Now Bidding -->
+    <div id="nowBidding" class="now-bidding" style="display:none;">
+      <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
+      <div class="now-bidding-name" id="nowBiddingName">—</div>
+    </div>
+    <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
       <div class="stat-item"><div class="stat-val" id="statSold">—</div><div class="stat-label">Players Sold</div></div>
       <div class="stat-div"></div>
       <div class="stat-item"><div class="stat-val" id="statAvail">—</div><div class="stat-label">Available</div></div>
@@ -200,12 +94,12 @@
     <div class="section-title">Captains & Teams</div>
     <div class="board-grid" id="boardCaptains"></div>
 
-    <!-- Player Pool -->
+    <!-- Pool -->
     <div class="section-title" style="margin-top:8px;">Player Pool</div>
     <div class="pool-filters">
-      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
-      <button class="filter-btn" onclick="setFilter('available', this)">Available</button>
-      <button class="filter-btn" onclick="setFilter('sold', this)">Sold</button>
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('available',this)">Available</button>
+      <button class="filter-btn" onclick="setFilter('sold',this)">Sold</button>
     </div>
     <div class="pool-grid" id="boardPool"></div>
   </div>
@@ -213,7 +107,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script>
-    let allCaptains = [], allPlayers = [], currentFilter = 'all';
+    let allCaptains=[], allPlayers=[], currentFilter='all', currentPlayerId=null;
 
     function setFilter(f, btn) {
       currentFilter = f;
@@ -223,33 +117,52 @@
     }
 
     async function loadData() {
-      const [capRes, playRes] = await Promise.all([
-        db.from('captains').select('*').order('group_name').order('name'),
-        db.from('players').select('*').order('group_name').order('name')
+      const [capRes, playRes, bidRes] = await Promise.all([
+        db.from('captains').select('*').order('name'),
+        db.from('players').select('*').order('name'),
+        db.from('bidding_state').select('*').eq('id', 1).single()
       ]);
-      allCaptains = capRes.data || [];
-      allPlayers  = playRes.data || [];
+      allCaptains     = capRes.data  || [];
+      allPlayers      = playRes.data || [];
+      currentPlayerId = bidRes.data?.player_id || null;
+      renderCurrentPlayer();
       renderStats();
       renderCaptains();
       renderPool();
     }
 
+    function renderCurrentPlayer() {
+      const nb  = document.getElementById('nowBidding');
+      const wb  = document.getElementById('waitingBanner');
+      const nm  = document.getElementById('nowBiddingName');
+      if (currentPlayerId) {
+        const p = allPlayers.find(x => x.id === currentPlayerId);
+        if (p && !p.is_sold) {
+          nm.textContent = p.name;
+          nb.style.display = 'block';
+          wb.style.display = 'none';
+          return;
+        }
+      }
+      nb.style.display = 'none';
+      wb.style.display = 'block';
+    }
+
     function renderStats() {
       const sold  = allPlayers.filter(p => p.is_sold);
-      const avail = allPlayers.filter(p => !p.is_sold);
       const spent = sold.reduce((s,p) => s+(p.sold_price||0), 0);
       document.getElementById('statSold').textContent  = sold.length;
-      document.getElementById('statAvail').textContent = avail.length;
+      document.getElementById('statAvail').textContent = allPlayers.filter(p=>!p.is_sold).length;
       document.getElementById('statSpent').textContent = spent.toLocaleString();
     }
 
     function renderCaptains() {
       const grid = document.getElementById('boardCaptains');
-      if (!allCaptains.length) { grid.innerHTML = '<div class="text-muted">Loading...</div>'; return; }
+      if (!allCaptains.length) { grid.innerHTML='<div class="text-muted">Loading...</div>'; return; }
       grid.innerHTML = allCaptains.map(c => {
         const roster = allPlayers.filter(p => p.captain_id === c.id);
         const rHtml  = roster.length
-          ? roster.map(p => `
+          ? roster.map(p=>`
               <div class="board-player-row">
                 <span class="board-player-name">${p.name}</span>
                 <span class="board-player-price">${p.sold_price} pts</span>
@@ -258,9 +171,7 @@
         return `
           <div class="board-captain-card">
             <div class="board-captain-header">
-              <div>
-                <div class="board-captain-name">${c.name}</div>
-              </div>
+              <div class="board-captain-name">${c.name}</div>
               <div class="board-purse-wrap">
                 <div class="board-purse-label">Purse</div>
                 <div class="board-purse">${c.wallet.toLocaleString()}</div>
@@ -275,28 +186,26 @@
     function renderPool() {
       const grid = document.getElementById('boardPool');
       let filtered = allPlayers;
-      if (currentFilter === 'available') filtered = allPlayers.filter(p => !p.is_sold);
-      else if (currentFilter === 'sold')  filtered = allPlayers.filter(p => p.is_sold);
-      else if (['A','B','C'].includes(currentFilter)) filtered = allPlayers.filter(p => p.group_name === currentFilter);
-
-      if (!filtered.length) { grid.innerHTML = '<div class="text-muted">No players match this filter.</div>'; return; }
+      if (currentFilter==='available') filtered = allPlayers.filter(p=>!p.is_sold);
+      else if (currentFilter==='sold') filtered = allPlayers.filter(p=>p.is_sold);
+      if (!filtered.length) { grid.innerHTML='<div class="text-muted">No players match this filter.</div>'; return; }
       grid.innerHTML = filtered.map(p => {
-        const cap = allCaptains.find(c => c.id === p.captain_id);
+        const cap       = allCaptains.find(c => c.id===p.captain_id);
+        const isCurrent = p.id===currentPlayerId && !p.is_sold;
         return `
-          <div class="pool-player-card ${p.is_sold ? 'is-sold' : ''}">
-            <div class="pool-player-card-name">${p.name}</div>
-            <div class="pool-player-card-meta">${p.base_price} pts base</div>
+          <div class="pool-player-card ${p.is_sold?'is-sold':''} ${isCurrent?'is-current':''}">
+            <div class="pool-player-card-name">${p.name}${isCurrent?' <span style="font-size:10px;color:var(--accent);">● Bidding</span>':''}</div>
             ${p.is_sold
-              ? `<div class="pool-player-card-sold">✓ ${cap ? cap.name : '?'} · ${p.sold_price} pts</div>`
-              : `<div style="font-size:11px;color:var(--muted);margin-top:4px;">Available</div>`}
+              ? `<div class="pool-player-card-sold">✓ ${cap?cap.name:'?'} · ${p.sold_price} pts</div>`
+              : `<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'':'Available'}</div>`}
           </div>`;
       }).join('');
     }
 
-    // Realtime
     db.channel('bpl-board')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'bidding_state'},loadData)
       .subscribe();
 
     loadData();
