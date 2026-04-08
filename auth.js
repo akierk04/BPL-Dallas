@@ -19,24 +19,39 @@ async function handleLogin() {
     return;
   }
 
-  // Captain check
-  const { data, error } = await supabase
-    .from('captains')
-    .select('*')
-    .eq('username', username)
-    .eq('password', password)
-    .single();
+  try {
+    // Fetch all captains and match client-side to avoid query issues
+    const { data, error } = await supabase
+      .from('captains')
+      .select('*');
 
-  if (error || !data) {
-    err.textContent = 'Invalid username or password.';
+    if (error) {
+      err.textContent = 'Connection error: ' + error.message;
+      btn.disabled = false;
+      btn.textContent = 'Enter';
+      return;
+    }
+
+    const match = (data || []).find(
+      c => c.username === username && c.password === password
+    );
+
+    if (!match) {
+      err.textContent = 'Invalid username or password.';
+      btn.disabled = false;
+      btn.textContent = 'Enter';
+      return;
+    }
+
+    sessionStorage.setItem('bpl_role', 'captain');
+    sessionStorage.setItem('bpl_user', JSON.stringify(match));
+    window.location.href = 'captain.html';
+
+  } catch (e) {
+    err.textContent = 'Unexpected error. Try again.';
     btn.disabled = false;
     btn.textContent = 'Enter';
-    return;
   }
-
-  sessionStorage.setItem('bpl_role', 'captain');
-  sessionStorage.setItem('bpl_user', JSON.stringify(data));
-  window.location.href = 'captain.html';
 }
 
 // Allow Enter key
