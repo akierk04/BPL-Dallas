@@ -100,8 +100,8 @@
 
     async function loadData() {
       const [{ data: captains }, { data: players }] = await Promise.all([
-        supabase.from('captains').select('*').order('name'),
-        supabase.from('players').select('*').eq('is_sold', true)
+        db.from('captains').select('*').order('name'),
+        db.from('players').select('*').eq('is_sold', true)
       ]);
 
       const me = captains.find(c => c.id === user.id);
@@ -113,7 +113,7 @@
     loadData();
 
     // Realtime
-    supabase.channel('bpl-realtime')
+    db.channel('bpl-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
       .subscribe();

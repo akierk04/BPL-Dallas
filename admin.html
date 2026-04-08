@@ -91,8 +91,8 @@
 
     async function loadData() {
       const [capRes, playRes] = await Promise.all([
-        supabase.from('captains').select('*').order('group_name').order('name'),
-        supabase.from('players').select('*').order('group_name').order('name')
+        db.from('captains').select('*').order('group_name').order('name'),
+        db.from('players').select('*').order('group_name').order('name')
       ]);
       if (capRes.error) { document.getElementById('overviewMsg').textContent = 'DB error: ' + capRes.error.message; return; }
       allCaptains = capRes.data || [];
@@ -189,7 +189,7 @@
       const msg   = document.getElementById('playerMsg');
       if (!name) { msg.textContent = 'Enter a player name.'; return; }
       const basePrice = group === 'A' ? 200 : group === 'B' ? 100 : 50;
-      const { error } = await supabase.from('players').insert({ name, group_name: group, base_price: basePrice });
+      const { error } = await db.from('players').insert({ name, group_name: group, base_price: basePrice });
       if (error) { msg.textContent = 'Error: ' + error.message; return; }
       document.getElementById('playerName').value = '';
       msg.textContent = `${name} added to Group ${group}.`;
@@ -199,7 +199,7 @@
 
     async function deletePlayer(id) {
       if (!confirm('Delete this player?')) return;
-      await supabase.from('players').delete().eq('id', id);
+      await db.from('players').delete().eq('id', id);
       loadData();
     }
 
@@ -227,8 +227,8 @@
       if (!playerId || !captainId || isNaN(price) || price < 0) { msg.textContent = 'Fill all fields.'; return; }
       const captain = allCaptains.find(c => c.id === captainId);
       if (price > captain.wallet) { msg.textContent = `${captain.name} only has ${captain.wallet} pts left.`; return; }
-      await supabase.from('players').update({ captain_id: captainId, sold_price: price, is_sold: true }).eq('id', playerId);
-      await supabase.from('captains').update({ wallet: captain.wallet - price }).eq('id', captainId);
+      await db.from('players').update({ captain_id: captainId, sold_price: price, is_sold: true }).eq('id', playerId);
+      await db.from('captains').update({ wallet: captain.wallet - price }).eq('id', captainId);
       document.getElementById('consolePlayer').value = '';
       document.getElementById('consoleCaptain').value = '';
       document.getElementById('consolePrice').value = '';
@@ -240,12 +240,12 @@
     async function unassignPlayer(playerId, captainId, soldPrice) {
       if (!confirm('Unassign this player and refund the points?')) return;
       const captain = allCaptains.find(c => c.id === captainId);
-      await supabase.from('players').update({ captain_id: null, sold_price: null, is_sold: false }).eq('id', playerId);
-      await supabase.from('captains').update({ wallet: captain.wallet + soldPrice }).eq('id', captainId);
+      await db.from('players').update({ captain_id: null, sold_price: null, is_sold: false }).eq('id', playerId);
+      await db.from('captains').update({ wallet: captain.wallet + soldPrice }).eq('id', captainId);
       loadData();
     }
 
-    supabase.channel('bpl-admin')
+    db.channel('bpl-admin')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
       .subscribe();

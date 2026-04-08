@@ -227,8 +227,8 @@
 
     async function loadData() {
       const [capRes, playRes] = await Promise.all([
-        supabase.from('captains').select('*').order('group_name').order('name'),
-        supabase.from('players').select('*').order('group_name').order('name')
+        db.from('captains').select('*').order('group_name').order('name'),
+        db.from('players').select('*').order('group_name').order('name')
       ]);
       allCaptains = capRes.data || [];
       allPlayers  = playRes.data || [];
@@ -303,7 +303,7 @@
     }
 
     // Realtime
-    supabase.channel('bpl-board')
+    db.channel('bpl-board')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
       .subscribe();
