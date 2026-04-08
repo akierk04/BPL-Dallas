@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BPL Dallas – Admin</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <span class="nav-brand">BPL Dallas <span style="font-size:1rem;color:var(--muted);font-family:var(--font-body);letter-spacing:0">Admin</span></span>
+    <div class="nav-user">
+      <button class="btn-logout" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('overview')">Overview</button>
+      <button class="tab" onclick="switchTab('players')">Players</button>
+      <button class="tab" onclick="switchTab('assign')">Assign</button>
+    </div>
+
+    <!-- ── Tab: Overview ── -->
+    <div id="tab-overview">
+      <div class="section-title">Captains & Purses</div>
+      <div class="captains-grid" id="adminCaptainsGrid"></div>
+    </div>
+
+    <!-- ── Tab: Players ── -->
+    <div id="tab-players" style="display:none;">
+      <div class="section-title">Add Player</div>
+      <div class="form-card">
+        <div class="form-row">
+          <input type="text" id="playerName" placeholder="Player name" />
+          <select id="playerGroup">
+            <option value="A">Group A (200 pts base)</option>
+            <option value="B">Group B (100 pts base)</option>
+            <option value="C">Group C (50 pts base)</option>
+          </select>
+          <button class="btn-primary" onclick="addPlayer()">Add</button>
+        </div>
+        <p id="playerMsg" class="text-muted mt-8"></p>
+      </div>
+
+      <div class="section-title">Player Pool</div>
+      <div id="playersList" class="players-list"></div>
+    </div>
+
+    <!-- ── Tab: Assign ── -->
+    <div id="tab-assign" style="display:none;">
+      <div class="section-title">Assign Player to Captain</div>
+      <div class="form-card">
+        <div class="form-row">
+          <select id="assignPlayer">
+            <option value="">Select player...</option>
+          </select>
+          <select id="assignCaptain">
+            <option value="">Select captain...</option>
+          </select>
+          <input type="number" id="assignPrice" placeholder="Sold price (pts)" min="0" />
+          <button class="btn-primary" onclick="assignPlayer()">Assign</button>
+        </div>
+        <p id="assignMsg" class="text-muted mt-8"></p>
+      </div>
+
+      <div class="section-title">Assigned Players</div>
+      <div id="assignedList" class="players-list"></div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" style="display:none;" onclick="closeModal(event)">
+    <div class="modal">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-sub" id="modalSub"></div>
+      <select id="modalCaptain">
+        <option value="">Select captain...</option>
+      </select>
+      <input type="number" id="modalPrice" placeholder="Sold price (pts)" min="0" />
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModalDirect()">Cancel</button>
+        <button class="btn-primary" onclick="confirmAssign()" style="width:auto;padding:9px 20px;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script>
+    if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
+
+    function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
+
+    let allCaptains = [];
+    let allPlayers = [];
+    let modalPlayerId = null;
+
+    // ── Tabs ──
+    function switchTab(tab) {
+      ['overview','players','assign'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+      });
+      document.querySelectorAll('.tab').forEach((el, i) => {
+        el.classList.toggle('active', ['overview','players','assign'][i] === tab);
+      });
+      if (tab === 'assign') populateAssignDropdowns();
+    }
+
+    // ── Load data ──
+    async function loadData() {
+      const [{ data: captains }, { data: players }] = await Promise.all([
+        supabase.from('captains').select('*').order('group_name').order('name'),
+        supabase.from('players').select('*').order('group_name').order('name')
+      ]);
+      allCaptains = captains || [];
+      allPlayers = players || [];
+      renderOverview();
+      renderPlayersList();
+      renderAssignedList();
+    }
+
+    // ── Overview ──
+    function renderOverview() {
+      const grid = document.getElementById('adminCaptainsGrid');
+      grid.innerHTML = allCaptains.map(c => {
+        const roster = allPlayers.filter(p => p.captain_id === c.id);
+        const spent = roster.reduce((sum, p) => sum + (p.sold_price || 0), 0);
+        const rosterHtml = roster.length
+          ? roster.map(p => `
+              <div class="roster-player">
+                <span class="roster-player-name">${p.name} <span class="group-badge group-${p.group_name}" style="font-size:9px;padding:2px 5px;">Grp ${p.group_name}</span></span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span class="roster-player-price">${p.sold_price} pts</span>
+                  <button class="btn-danger" onclick="unassignPlayer('${p.id}', '${c.id}', ${p.sold_price})">✕</button>
+                </div>
+              </div>`).join('')
+          : '<div class="roster-empty">No players yet</div>';
+        return `
+          <div class="captain-card">
+            <div class="captain-card-header">
+              <div>
+                <div class="captain-name">${c.name} <span class="group-badge group-${c.group_name}">Grp ${c.group_name}</span></div>
+                <div class="captain-wallet-label">Purse remaining</div>
+                <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.75rem;color:var(--muted)">pts</span></div>
+                <div class="captain-wallet-label" style="margin-top:2px;">Spent: ${spent.toLocaleString()} pts</div>
+              </div>
+            </div>
+            <div class="team-roster">${rosterHtml}</div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Players list ──
+    function renderPlayersList() {
+      const list = document.getElementById('playersList');
+      const unsold = allPlayers.filter(p => !p.is_sold);
+      if (!allPlayers.length) { list.innerHTML = '<div class="text-muted">No players added yet.</div>'; return; }
+      list.innerHTML = allPlayers.map(p => `
+        <div class="player-row">
+          <span class="player-row-name">${p.name}</span>
+          <span class="group-badge group-${p.group_name}">Group ${p.group_name}</span>
+          <span class="player-row-meta">${p.base_price} pts base</span>
+          ${p.is_sold ? `<span class="sold-badge">Sold</span>` : `<span class="unsold-badge">Available</span>`}
+          <div class="player-row-actions">
+            ${!p.is_sold ? `<button class="btn-sm" onclick="openAssignModal('${p.id}')">Assign →</button>` : ''}
+            <button class="btn-danger" onclick="deletePlayer('${p.id}')">Delete</button>
+          </div>
+        </div>`).join('');
+    }
+
+    // ── Assigned list ──
+    function renderAssignedList() {
+      const list = document.getElementById('assignedList');
+      const sold = allPlayers.filter(p => p.is_sold);
+      if (!sold.length) { list.innerHTML = '<div class="text-muted">No players assigned yet.</div>'; return; }
+      list.innerHTML = sold.map(p => {
+        const cap = allCaptains.find(c => c.id === p.captain_id);
+        return `
+          <div class="player-row">
+            <span class="player-row-name">${p.name}</span>
+            <span class="group-badge group-${p.group_name}">Group ${p.group_name}</span>
+            <span class="player-row-meta">→ ${cap ? cap.name : '?'}</span>
+            <span class="sold-badge">${p.sold_price} pts</span>
+            <div class="player-row-actions">
+              <button class="btn-danger" onclick="unassignPlayer('${p.id}', '${p.captain_id}', ${p.sold_price})">Unassign</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Add player ──
+    async function addPlayer() {
+      const name = document.getElementById('playerName').value.trim();
+      const group = document.getElementById('playerGroup').value;
+      const msg = document.getElementById('playerMsg');
+      if (!name) { msg.textContent = 'Enter a player name.'; return; }
+      const basePrice = group === 'A' ? 200 : group === 'B' ? 100 : 50;
+      const { error } = await supabase.from('players').insert({ name, group_name: group, base_price: basePrice });
+      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+      document.getElementById('playerName').value = '';
+      msg.textContent = `${name} added to Group ${group}.`;
+      setTimeout(() => msg.textContent = '', 3000);
+      loadData();
+    }
+
+    // ── Delete player ──
+    async function deletePlayer(id) {
+      if (!confirm('Delete this player?')) return;
+      await supabase.from('players').delete().eq('id', id);
+      loadData();
+    }
+
+    // ── Assign dropdowns ──
+    function populateAssignDropdowns() {
+      const pSel = document.getElementById('assignPlayer');
+      const cSel = document.getElementById('assignCaptain');
+      const avail = allPlayers.filter(p => !p.is_sold);
+      pSel.innerHTML = '<option value="">Select player...</option>' +
+        avail.map(p => `<option value="${p.id}">${p.name} (Grp ${p.group_name})</option>`).join('');
+      cSel.innerHTML = '<option value="">Select captain...</option>' +
+        allCaptains.map(c => `<option value="${c.id}">${c.name} (${c.wallet} pts left)</option>`).join('');
+    }
+
+    // ── Assign via tab form ──
+    async function assignPlayer() {
+      const playerId = document.getElementById('assignPlayer').value;
+      const captainId = document.getElementById('assignCaptain').value;
+      const price = parseInt(document.getElementById('assignPrice').value);
+      const msg = document.getElementById('assignMsg');
+      if (!playerId || !captainId || isNaN(price)) { msg.textContent = 'Fill all fields.'; return; }
+
+      const captain = allCaptains.find(c => c.id === captainId);
+      if (price > captain.wallet) { msg.textContent = `Not enough purse. ${captain.name} has ${captain.wallet} pts.`; return; }
+
+      await supabase.from('players').update({ captain_id: captainId, sold_price: price, is_sold: true }).eq('id', playerId);
+      await supabase.from('captains').update({ wallet: captain.wallet - price }).eq('id', captainId);
+
+      msg.textContent = 'Player assigned!';
+      setTimeout(() => msg.textContent = '', 3000);
+      loadData();
+    }
+
+    // ── Modal assign ──
+    function openAssignModal(playerId) {
+      modalPlayerId = playerId;
+      const p = allPlayers.find(x => x.id === playerId);
+      document.getElementById('modalTitle').textContent = p.name;
+      document.getElementById('modalSub').textContent = `Group ${p.group_name} · Base price: ${p.base_price} pts`;
+      const sel = document.getElementById('modalCaptain');
+      sel.innerHTML = '<option value="">Select captain...</option>' +
+        allCaptains.map(c => `<option value="${c.id}">${c.name} — ${c.wallet} pts left</option>`).join('');
+      document.getElementById('modalPrice').value = p.base_price;
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function closeModal(e) {
+      if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+    }
+
+    function closeModalDirect() {
+      document.getElementById('modalOverlay').style.display = 'none';
+      modalPlayerId = null;
+    }
+
+    async function confirmAssign() {
+      const captainId = document.getElementById('modalCaptain').value;
+      const price = parseInt(document.getElementById('modalPrice').value);
+      if (!captainId || isNaN(price)) return;
+
+      const captain = allCaptains.find(c => c.id === captainId);
+      if (price > captain.wallet) { alert(`Not enough purse. ${captain.name} has ${captain.wallet} pts.`); return; }
+
+      await supabase.from('players').update({ captain_id: captainId, sold_price: price, is_sold: true }).eq('id', modalPlayerId);
+      await supabase.from('captains').update({ wallet: captain.wallet - price }).eq('id', captainId);
+      closeModalDirect();
+      loadData();
+    }
+
+    // ── Unassign player ──
+    async function unassignPlayer(playerId, captainId, soldPrice) {
+      if (!confirm('Unassign this player and refund the points?')) return;
+      const captain = allCaptains.find(c => c.id === captainId);
+      await supabase.from('players').update({ captain_id: null, sold_price: null, is_sold: false }).eq('id', playerId);
+      await supabase.from('captains').update({ wallet: captain.wallet + soldPrice }).eq('id', captainId);
+      loadData();
+    }
+
+    // ── Realtime ──
+    supabase.channel('bpl-admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
+      .subscribe();
+
+    loadData();
+  </script>
+</body>
+</html>

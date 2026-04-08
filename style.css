@@ -1,0 +1,467 @@
+/* ── BPL Dallas · Global Styles ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0a0a0a;
+  --surface:  #141414;
+  --surface2: #1e1e1e;
+  --border:   #2a2a2a;
+  --accent:   #f0c040;
+  --accent2:  #e05a2b;
+  --text:     #f0f0f0;
+  --muted:    #888;
+  --green:    #3ecf8e;
+  --red:      #e05a2b;
+  --groupA:   #e05a2b;
+  --groupB:   #f0c040;
+  --groupC:   #3ecf8e;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --radius:   10px;
+  --radius-lg: 16px;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Login ── */
+.login-wrap {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2rem 1.5rem;
+  background: radial-gradient(ellipse at 50% 0%, #1a1200 0%, #0a0a0a 70%);
+}
+
+.brand-badge {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  line-height: 1;
+  text-align: center;
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-size: 5rem;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  line-height: 1;
+  text-align: center;
+}
+
+.brand-sub {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+.login-brand { display: flex; flex-direction: column; align-items: center; }
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-label {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 12px 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input:focus { border-color: var(--accent); }
+input::placeholder { color: var(--muted); }
+
+button {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #0a0a0a;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  padding: 13px;
+  width: 100%;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+button:hover { opacity: 0.9; }
+button:active { transform: scale(0.98); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.error-msg { color: var(--red); font-size: 13px; text-align: center; min-height: 18px; }
+
+/* ── Top Nav ── */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-brand {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.nav-user {
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  padding: 5px 12px;
+  width: auto;
+  letter-spacing: 0;
+}
+
+.btn-logout:hover { border-color: var(--muted); color: var(--text); }
+
+/* ── Page wrapper ── */
+.page { padding: 20px; max-width: 900px; margin: 0 auto; }
+
+/* ── Section headings ── */
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+/* ── Captain wallet card ── */
+.wallet-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.wallet-hero::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.04;
+}
+
+.wallet-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.wallet-amount { font-family: var(--font-display); font-size: 3.5rem; color: var(--accent); letter-spacing: 0.04em; line-height: 1; }
+.wallet-name { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+/* ── Captains grid ── */
+.captains-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.captain-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.captain-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.captain-name { font-size: 15px; font-weight: 600; color: var(--text); }
+.captain-wallet { font-family: var(--font-display); font-size: 1.4rem; color: var(--accent); }
+.captain-wallet-label { font-size: 11px; color: var(--muted); }
+
+.group-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.group-A { background: rgba(224,90,43,0.15); color: var(--groupA); }
+.group-B { background: rgba(240,192,64,0.15); color: var(--groupB); }
+.group-C { background: rgba(62,207,142,0.15); color: var(--groupC); }
+
+/* ── Team roster ── */
+.team-roster { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+
+.roster-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.roster-player-name { color: var(--text); }
+.roster-player-price { color: var(--accent); font-weight: 500; }
+.roster-empty { color: var(--muted); font-size: 12px; font-style: italic; text-align: center; padding: 10px 0; }
+
+/* ── Admin tabs ── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: auto;
+  letter-spacing: 0;
+}
+
+.tab.active {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* ── Admin player form ── */
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.form-row input, .form-row select { flex: 1; min-width: 140px; }
+
+select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  appearance: none;
+}
+
+select:focus { border-color: var(--accent); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #0a0a0a;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  width: auto;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary:hover { opacity: 0.88; }
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-family: var(--font-body);
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: auto;
+  letter-spacing: 0;
+  transition: all 0.15s;
+}
+
+.btn-danger:hover { background: var(--red); color: #fff; }
+
+.btn-sm {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  width: auto;
+  letter-spacing: 0;
+  transition: all 0.15s;
+}
+
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Players table ── */
+.players-list { display: flex; flex-direction: column; gap: 8px; }
+
+.player-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.player-row-name { font-weight: 500; flex: 1; min-width: 100px; }
+.player-row-meta { font-size: 12px; color: var(--muted); }
+.player-row-actions { display: flex; gap: 6px; margin-left: auto; align-items: center; }
+
+.sold-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(62,207,142,0.15);
+  color: var(--green);
+}
+
+.unsold-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--surface2);
+  color: var(--muted);
+}
+
+/* ── Assign modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-title { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 0.06em; }
+.modal-sub { font-size: 13px; color: var(--muted); }
+
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  width: auto;
+  letter-spacing: 0;
+}
+
+/* ── Utility ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.text-muted { color: var(--muted); font-size: 13px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.flex { display: flex; }
+.gap-8 { gap: 8px; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .captains-grid { grid-template-columns: 1fr; }
+  .brand-title { font-size: 4rem; }
+  .wallet-amount { font-size: 2.8rem; }
+}
