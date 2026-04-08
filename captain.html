@@ -25,11 +25,12 @@
       <div class="wallet-label">My Purse</div>
       <div class="wallet-amount" id="myWalletAmount">—</div>
       <div class="wallet-name" id="myWalletName"></div>
+      <div id="myWarning"></div>
     </div>
 
     <!-- My Team -->
     <div class="section-title">My Team</div>
-    <div id="myTeamCard" class="captain-card" style="margin-bottom:24px;">
+    <div class="captain-card" style="margin-bottom:24px;">
       <div class="team-roster" id="myRoster"></div>
     </div>
 
@@ -40,79 +41,69 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
+  <script src="budget-warning.js"></script>
   <script>
-    // Guard
     const user = JSON.parse(sessionStorage.getItem('bpl_user') || 'null');
     if (!user || sessionStorage.getItem('bpl_role') !== 'captain') window.location.href = 'index.html';
-
     document.getElementById('navName').textContent = user.name;
-
-    function logout() {
-      sessionStorage.clear();
-      window.location.href = 'index.html';
-    }
-
-    function groupBadge(g) {
-      return `<span class="group-badge group-${g}">Group ${g}</span>`;
-    }
-
-    function renderWallet(captain) {
-      document.getElementById('myWalletAmount').textContent = captain.wallet.toLocaleString() + ' pts';
-      document.getElementById('myWalletName').textContent = captain.name + ' · Group ' + captain.group_name;
-    }
-
-    function renderRoster(players, captainId, container) {
-      const mine = players.filter(p => p.captain_id === captainId);
-      if (mine.length === 0) {
-        container.innerHTML = '<div class="roster-empty">No players yet</div>';
-        return;
-      }
-      container.innerHTML = mine.map(p => `
-        <div class="roster-player">
-          <span class="roster-player-name">${p.name}</span>
-          <span class="roster-player-price">${p.sold_price ? p.sold_price + ' pts' : ''}</span>
-        </div>
-      `).join('');
-    }
-
-    function renderCaptainsGrid(captains, players) {
-      const grid = document.getElementById('captainsGrid');
-      const others = captains.filter(c => c.id !== user.id);
-      grid.innerHTML = others.map(c => {
-        const roster = players.filter(p => p.captain_id === c.id);
-        const rosterHtml = roster.length
-          ? roster.map(p => `<div class="roster-player"><span class="roster-player-name">${p.name}</span><span class="roster-player-price">${p.sold_price ? p.sold_price + ' pts' : ''}</span></div>`).join('')
-          : '<div class="roster-empty">No players yet</div>';
-        return `
-          <div class="captain-card">
-            <div class="captain-card-header">
-              <div>
-                <div class="captain-name">${c.name}</div>
-                <div class="captain-wallet-label">Purse</div>
-                <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.8rem;color:var(--muted)">pts</span></div>
-              </div>
-            </div>
-            <div class="team-roster">${rosterHtml}</div>
-          </div>
-        `;
-      }).join('');
-    }
+    function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
 
     async function loadData() {
       const [{ data: captains }, { data: players }] = await Promise.all([
         db.from('captains').select('*').order('name'),
         db.from('players').select('*').eq('is_sold', true)
       ]);
+      const allPlayers = players || [];
+      const allCaptains = captains || [];
+      const me = allCaptains.find(c => c.id === user.id);
 
-      const me = captains.find(c => c.id === user.id);
-      if (me) renderWallet(me);
-      renderRoster(players || [], user.id, document.getElementById('myRoster'));
-      renderCaptainsGrid(captains || [], players || []);
+      // My wallet + warning
+      if (me) {
+        const myBought = allPlayers.filter(p => p.captain_id === me.id).length;
+        document.getElementById('myWalletAmount').textContent = me.wallet.toLocaleString() + ' pts';
+        document.getElementById('myWalletName').textContent   = me.name + ' · Group ' + me.group_name;
+        document.getElementById('myWarning').innerHTML        = warningBadgeHtml(me.wallet, myBought);
+      }
+
+      // My roster
+      const myPlayers = allPlayers.filter(p => p.captain_id === user.id);
+      const myRoster  = document.getElementById('myRoster');
+      myRoster.innerHTML = myPlayers.length
+        ? myPlayers.map(p => `
+            <div class="roster-player">
+              <span class="roster-player-name">${p.name}</span>
+              <span class="roster-player-price">${p.sold_price ? p.sold_price + ' pts' : ''}</span>
+            </div>`).join('')
+        : '<div class="roster-empty">No players yet</div>';
+
+      // All captains grid
+      const grid = document.getElementById('captainsGrid');
+      grid.innerHTML = allCaptains.filter(c => c.id !== user.id).map(c => {
+        const bought    = allPlayers.filter(p => p.captain_id === c.id);
+        const rosterHtml = bought.length
+          ? bought.map(p => `
+              <div class="roster-player">
+                <span class="roster-player-name">${p.name}</span>
+                <span class="roster-player-price">${p.sold_price ? p.sold_price + ' pts' : ''}</span>
+              </div>`).join('')
+          : '<div class="roster-empty">No players yet</div>';
+        return `
+          <div class="captain-card">
+            <div class="captain-card-header">
+              <div style="width:100%;">
+                <div class="captain-name">${c.name}</div>
+                <div class="captain-wallet-label">Purse</div>
+                <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.8rem;color:var(--muted)">pts</span></div>
+                ${warningBadgeHtml(c.wallet, bought.length)}
+              </div>
+            </div>
+            <div class="team-roster">${rosterHtml}</div>
+          </div>`;
+      }).join('');
     }
 
     loadData();
 
-    // Realtime
     db.channel('bpl-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)

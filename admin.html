@@ -84,15 +84,16 @@
       <div class="section-title">Assign Player</div>
       <div class="form-card">
         <div class="form-row">
-          <select id="consolePlayer" style="flex:2;">
+          <select id="consolePlayer" style="flex:2;" onchange="updateConsoleWarning()">
             <option value="">Select player...</option>
           </select>
-          <select id="consoleCaptain" style="flex:2;">
+          <select id="consoleCaptain" style="flex:2;" onchange="updateConsoleWarning()">
             <option value="">Select captain...</option>
           </select>
           <input type="number" id="consolePrice" placeholder="Sold price (pts)" min="0" style="flex:1;min-width:120px;" />
           <button class="btn-primary" onclick="doAssign()">Assign</button>
         </div>
+        <div id="consoleWarning" style="margin-top:8px;"></div>
         <p id="consoleMsg" class="text-muted mt-8"></p>
       </div>
       <div class="section-title">Assigned Players</div>
@@ -102,6 +103,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
+  <script src="budget-warning.js"></script>
   <script>
     if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
@@ -271,7 +273,16 @@
 
     function quickAssign(playerId) {
       switchTab('console');
-      setTimeout(()=>{ document.getElementById('consolePlayer').value=playerId; },50);
+      setTimeout(()=>{ document.getElementById('consolePlayer').value=playerId; updateConsoleWarning(); },50);
+    }
+
+    function updateConsoleWarning() {
+      const captainId = document.getElementById('consoleCaptain').value;
+      const warn      = document.getElementById('consoleWarning');
+      if (!captainId) { warn.innerHTML=''; return; }
+      const captain = allCaptains.find(c=>c.id===captainId);
+      const bought  = allPlayers.filter(p=>p.captain_id===captainId && p.is_sold).length;
+      warn.innerHTML = warningBadgeHtml(captain.wallet, bought);
     }
 
     async function addPlayer() {
