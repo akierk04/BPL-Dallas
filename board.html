@@ -13,6 +13,7 @@
     .board-header{text-align:center;padding:24px 20px 8px;border-bottom:1px solid var(--border);margin-bottom:16px;}
     .board-title{font-family:var(--font-display);font-size:2.2rem;letter-spacing:0.1em;color:var(--accent);}
     .board-sub{font-size:12px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-top:4px;}
+    .board-viewers{font-size:12px;color:var(--green);margin-top:6px;letter-spacing:0.04em;}
     .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 1.5s infinite;}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
     .now-bidding{background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.5);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:20px;text-align:center;}
@@ -53,6 +54,7 @@
   <div class="board-header">
     <div class="board-title">Brownish Premier League</div>
     <div class="board-sub"><span class="live-dot"></span>Live · Season 1 · Dallas</div>
+    <div class="board-viewers" id="viewerCount"></div>
   </div>
 
   <div class="page">
@@ -212,6 +214,21 @@
       .on('postgres_changes',{event:'*',schema:'public',table:'matches'},loadData)
       .on('postgres_changes',{event:'*',schema:'public',table:'goals'},loadData)
       .subscribe();
+
+    // ── Presence: live viewer count ──
+    const presenceChannel = db.channel('bpl-presence', { config: { presence: { key: crypto.randomUUID() } } });
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        const count = Object.keys(state).length;
+        const el = document.getElementById('viewerCount');
+        el.textContent = count === 1 ? '● 1 watching live' : `● ${count} watching live`;
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ online_at: new Date().toISOString() });
+        }
+      });
 
     loadData();
   </script>
