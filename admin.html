@@ -239,7 +239,11 @@
         return `
           <div class="player-row">
             <span class="player-row-name">${p.name}</span>
-            <span class="group-badge group-${p.group_name}">Group ${p.group_name}</span>
+            <select onchange="updatePlayerGroup('${p.id}', this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);width:auto;">
+              <option value="A" ${p.group_name==='A'?'selected':''}>Group A</option>
+              <option value="B" ${p.group_name==='B'?'selected':''}>Group B</option>
+              <option value="C" ${p.group_name==='C'?'selected':''}>Group C</option>
+            </select>
             <span class="player-row-meta">${p.base_price} pts base</span>
             ${p.is_sold?`<span class="sold-badge">Sold → ${cap?cap.name:'?'} · ${p.sold_price} pts</span>`:`<span class="unsold-badge">Available</span>`}
             <div class="player-row-actions">
@@ -285,6 +289,12 @@
     async function deletePlayer(id) {
       if (!confirm('Delete this player?')) return;
       await db.from('players').delete().eq('id',id);
+      loadData();
+    }
+
+    async function updatePlayerGroup(id, newGroup) {
+      const basePrice = newGroup==='A'?200:newGroup==='B'?100:50;
+      await db.from('players').update({group_name:newGroup, base_price:basePrice}).eq('id',id);
       loadData();
     }
 
