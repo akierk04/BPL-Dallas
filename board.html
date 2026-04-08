@@ -206,9 +206,6 @@
       <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
       <button class="filter-btn" onclick="setFilter('available', this)">Available</button>
       <button class="filter-btn" onclick="setFilter('sold', this)">Sold</button>
-      <button class="filter-btn" onclick="setFilter('A', this)">Group A</button>
-      <button class="filter-btn" onclick="setFilter('B', this)">Group B</button>
-      <button class="filter-btn" onclick="setFilter('C', this)">Group C</button>
     </div>
     <div class="pool-grid" id="boardPool"></div>
   </div>
@@ -254,9 +251,7 @@
         const rHtml  = roster.length
           ? roster.map(p => `
               <div class="board-player-row">
-                <span class="board-player-name">${p.name}
-                  <span class="group-badge group-${p.group_name}" style="font-size:9px;padding:2px 5px;">Grp ${p.group_name}</span>
-                </span>
+                <span class="board-player-name">${p.name}</span>
                 <span class="board-player-price">${p.sold_price} pts</span>
               </div>`).join('')
           : '<div class="board-empty">No players yet</div>';
@@ -265,7 +260,6 @@
             <div class="board-captain-header">
               <div>
                 <div class="board-captain-name">${c.name}</div>
-                <span class="group-badge group-${c.group_name}" style="margin-top:4px;display:inline-block;">Group ${c.group_name}</span>
               </div>
               <div class="board-purse-wrap">
                 <div class="board-purse-label">Purse</div>
@@ -291,10 +285,7 @@
         return `
           <div class="pool-player-card ${p.is_sold ? 'is-sold' : ''}">
             <div class="pool-player-card-name">${p.name}</div>
-            <div class="pool-player-card-meta">
-              <span class="group-badge group-${p.group_name}" style="font-size:9px;padding:2px 6px;">Grp ${p.group_name}</span>
-              &nbsp;${p.base_price} pts base
-            </div>
+            <div class="pool-player-card-meta">${p.base_price} pts base</div>
             ${p.is_sold
               ? `<div class="pool-player-card-sold">✓ ${cap ? cap.name : '?'} · ${p.sold_price} pts</div>`
               : `<div style="font-size:11px;color:var(--muted);margin-top:4px;">Available</div>`}
