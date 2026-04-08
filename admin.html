@@ -22,6 +22,7 @@
     <div class="tabs">
       <button class="tab active" onclick="switchTab('overview')">Overview</button>
       <button class="tab" onclick="switchTab('players')">Players</button>
+      <button class="tab" onclick="switchTab('bidding')">Bidding</button>
       <button class="tab" onclick="switchTab('console')">Core Console</button>
     </div>
 
@@ -54,6 +55,30 @@
       <div id="playersList" class="players-list"></div>
     </div>
 
+    <!-- Bidding -->
+    <div id="tab-bidding" style="display:none;">
+      <div class="section-title">Player Up for Bidding</div>
+      <div class="form-card">
+        <p class="text-muted" style="margin-bottom:12px;">Select a player to display on the live board. All viewers will see this update instantly.</p>
+        <div class="form-row">
+          <select id="biddingPlayer" style="flex:3;">
+            <option value="">— No player selected —</option>
+          </select>
+          <button class="btn-primary" onclick="setBiddingPlayer()">Set Live</button>
+          <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="clearBiddingPlayer()">Clear</button>
+        </div>
+        <p id="biddingMsg" class="text-muted mt-8"></p>
+      </div>
+
+      <div id="currentBidPreview" style="display:none;margin-top:8px;">
+        <div class="section-title">Currently Live</div>
+        <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.4);border-radius:var(--radius-lg);padding:20px 24px;text-align:center;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">Now Bidding</div>
+          <div id="currentBidName" style="font-family:var(--font-display);font-size:2.5rem;letter-spacing:0.06em;color:var(--text);line-height:1;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Core Console -->
     <div id="tab-console" style="display:none;">
       <div class="section-title">Assign Player</div>
@@ -81,38 +106,43 @@
     if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
 
-    let allCaptains = [], allPlayers = [];
-    const TABS = ['overview','players','console'];
+    let allCaptains=[], allPlayers=[], currentPlayerId=null;
+    const TABS = ['overview','players','bidding','console'];
 
     function switchTab(tab) {
-      TABS.forEach(t => document.getElementById('tab-'+t).style.display = t === tab ? 'block' : 'none');
-      document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', TABS[i] === tab));
+      TABS.forEach(t => document.getElementById('tab-'+t).style.display = t===tab?'block':'none');
+      document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', TABS[i]===tab));
     }
 
     async function loadData() {
-      const [capRes, playRes] = await Promise.all([
+      const [capRes, playRes, bidRes] = await Promise.all([
         db.from('captains').select('*').order('group_name').order('name'),
-        db.from('players').select('*').order('group_name').order('name')
+        db.from('players').select('*').order('group_name').order('name'),
+        db.from('bidding_state').select('*').eq('id',1).single()
       ]);
-      if (capRes.error) { document.getElementById('overviewMsg').textContent = 'DB error: ' + capRes.error.message; return; }
-      allCaptains = capRes.data || [];
-      allPlayers  = playRes.data || [];
+      if (capRes.error) { document.getElementById('overviewMsg').textContent='DB error: '+capRes.error.message; return; }
+      allCaptains     = capRes.data  || [];
+      allPlayers      = playRes.data || [];
+      currentPlayerId = bidRes.data?.player_id || null;
       renderOverview();
       renderPlayersList();
       renderAssignedList();
       populateConsoleDropdowns();
+      populateBiddingDropdown();
+      renderBiddingPreview();
     }
 
+    // ── Overview ──
     function renderOverview() {
       const grid = document.getElementById('adminCaptainsGrid');
-      if (!allCaptains.length) { grid.innerHTML = '<div class="text-muted">No captains found.</div>'; return; }
+      if (!allCaptains.length) { grid.innerHTML='<div class="text-muted">No captains found.</div>'; return; }
       grid.innerHTML = allCaptains.map(c => {
-        const roster = allPlayers.filter(p => p.captain_id === c.id);
-        const spent  = roster.reduce((s,p) => s+(p.sold_price||0), 0);
+        const roster = allPlayers.filter(p => p.captain_id===c.id);
+        const spent  = roster.reduce((s,p)=>s+(p.sold_price||0),0);
         const rHtml  = roster.length
-          ? roster.map(p => `
+          ? roster.map(p=>`
               <div class="roster-player">
-                <span class="roster-player-name">${p.name} <span class="group-badge group-${p.group_name}" style="font-size:9px;padding:2px 5px;">Grp ${p.group_name}</span></span>
+                <span class="roster-player-name">${p.name}</span>
                 <div style="display:flex;align-items:center;gap:6px;">
                   <span class="roster-player-price">${p.sold_price} pts</span>
                   <button class="btn-danger" onclick="unassignPlayer('${p.id}','${c.id}',${p.sold_price})">✕</button>
@@ -140,41 +170,43 @@
       }).join('');
     }
 
+    // ── Players list ──
     function renderPlayersList() {
       const list  = document.getElementById('playersList');
       const count = document.getElementById('playerCount');
-      const avail = allPlayers.filter(p => !p.is_sold).length;
-      count.textContent = `(${avail} available · ${allPlayers.length - avail} sold · ${allPlayers.length} total)`;
-      if (!allPlayers.length) { list.innerHTML = '<div class="text-muted">No players in pool yet.</div>'; return; }
+      const avail = allPlayers.filter(p=>!p.is_sold).length;
+      count.textContent = `(${avail} available · ${allPlayers.length-avail} sold · ${allPlayers.length} total)`;
+      if (!allPlayers.length) { list.innerHTML='<div class="text-muted">No players in pool yet.</div>'; return; }
       list.innerHTML = allPlayers.map(p => {
-        const cap = allCaptains.find(c => c.id === p.captain_id);
+        const cap = allCaptains.find(c=>c.id===p.captain_id);
         return `
           <div class="player-row">
             <span class="player-row-name">${p.name}</span>
             <span class="group-badge group-${p.group_name}">Group ${p.group_name}</span>
             <span class="player-row-meta">${p.base_price} pts base</span>
             ${p.is_sold
-              ? `<span class="sold-badge">Sold → ${cap ? cap.name : '?'} · ${p.sold_price} pts</span>`
+              ? `<span class="sold-badge">Sold → ${cap?cap.name:'?'} · ${p.sold_price} pts</span>`
               : `<span class="unsold-badge">Available</span>`}
             <div class="player-row-actions">
-              ${!p.is_sold ? `<button class="btn-sm" onclick="quickAssign('${p.id}')">Assign →</button>` : ''}
+              ${!p.is_sold?`<button class="btn-sm" onclick="quickAssign('${p.id}')">Assign →</button>`:''}
               <button class="btn-danger" onclick="deletePlayer('${p.id}')">Delete</button>
             </div>
           </div>`;
       }).join('');
     }
 
+    // ── Assigned list ──
     function renderAssignedList() {
       const list = document.getElementById('assignedList');
-      const sold = allPlayers.filter(p => p.is_sold);
-      if (!sold.length) { list.innerHTML = '<div class="text-muted">No players assigned yet.</div>'; return; }
+      const sold = allPlayers.filter(p=>p.is_sold);
+      if (!sold.length) { list.innerHTML='<div class="text-muted">No players assigned yet.</div>'; return; }
       list.innerHTML = sold.map(p => {
-        const cap = allCaptains.find(c => c.id === p.captain_id);
+        const cap = allCaptains.find(c=>c.id===p.captain_id);
         return `
           <div class="player-row">
             <span class="player-row-name">${p.name}</span>
             <span class="group-badge group-${p.group_name}">Group ${p.group_name}</span>
-            <span class="player-row-meta">→ ${cap ? cap.name : '?'}</span>
+            <span class="player-row-meta">→ ${cap?cap.name:'?'}</span>
             <span class="sold-badge">${p.sold_price} pts</span>
             <div class="player-row-actions">
               <button class="btn-danger" onclick="unassignPlayer('${p.id}','${p.captain_id}',${p.sold_price})">Unassign</button>
@@ -183,71 +215,118 @@
       }).join('');
     }
 
+    // ── Bidding tab ──
+    function populateBiddingDropdown() {
+      const sel    = document.getElementById('biddingPlayer');
+      const cur    = sel.value;
+      const avail  = allPlayers.filter(p=>!p.is_sold);
+      sel.innerHTML = '<option value="">— No player selected —</option>' +
+        avail.map(p=>`<option value="${p.id}" ${p.id===cur?'selected':''}>${p.name}</option>`).join('');
+      if (currentPlayerId) sel.value = currentPlayerId;
+    }
+
+    function renderBiddingPreview() {
+      const preview = document.getElementById('currentBidPreview');
+      const nameEl  = document.getElementById('currentBidName');
+      if (currentPlayerId) {
+        const p = allPlayers.find(x=>x.id===currentPlayerId);
+        if (p && !p.is_sold) {
+          nameEl.textContent   = p.name;
+          preview.style.display = 'block';
+          return;
+        }
+      }
+      preview.style.display = 'none';
+    }
+
+    async function setBiddingPlayer() {
+      const pid = document.getElementById('biddingPlayer').value;
+      const msg = document.getElementById('biddingMsg');
+      if (!pid) { msg.textContent='Select a player first.'; return; }
+      const { error } = await db.from('bidding_state').update({ player_id: pid, updated_at: new Date().toISOString() }).eq('id',1);
+      if (error) { msg.textContent='Error: '+error.message; return; }
+      msg.textContent='Player set live on board!';
+      setTimeout(()=>msg.textContent='',3000);
+      loadData();
+    }
+
+    async function clearBiddingPlayer() {
+      const msg = document.getElementById('biddingMsg');
+      const { error } = await db.from('bidding_state').update({ player_id: null, updated_at: new Date().toISOString() }).eq('id',1);
+      if (error) { msg.textContent='Error: '+error.message; return; }
+      msg.textContent='Cleared.';
+      setTimeout(()=>msg.textContent='',2000);
+      loadData();
+    }
+
+    // ── Console dropdowns ──
+    function populateConsoleDropdowns() {
+      const pSel=document.getElementById('consolePlayer'), cSel=document.getElementById('consoleCaptain');
+      const cur_p=pSel.value, cur_c=cSel.value;
+      pSel.innerHTML='<option value="">Select player...</option>'+
+        allPlayers.filter(p=>!p.is_sold).map(p=>`<option value="${p.id}" ${p.id===cur_p?'selected':''}>${p.name} · Group ${p.group_name}</option>`).join('');
+      cSel.innerHTML='<option value="">Select captain...</option>'+
+        allCaptains.map(c=>`<option value="${c.id}" ${c.id===cur_c?'selected':''}>${c.name} · ${c.wallet.toLocaleString()} pts left</option>`).join('');
+    }
+
+    function quickAssign(playerId) {
+      switchTab('console');
+      setTimeout(()=>{ document.getElementById('consolePlayer').value=playerId; },50);
+    }
+
     async function addPlayer() {
-      const name  = document.getElementById('playerName').value.trim();
-      const group = document.getElementById('playerGroup').value;
-      const msg   = document.getElementById('playerMsg');
-      if (!name) { msg.textContent = 'Enter a player name.'; return; }
-      const basePrice = group === 'A' ? 200 : group === 'B' ? 100 : 50;
-      const { error } = await db.from('players').insert({ name, group_name: group, base_price: basePrice });
-      if (error) { msg.textContent = 'Error: ' + error.message; return; }
-      document.getElementById('playerName').value = '';
-      msg.textContent = `${name} added to Group ${group}.`;
-      setTimeout(() => msg.textContent = '', 3000);
+      const name=document.getElementById('playerName').value.trim(), group=document.getElementById('playerGroup').value;
+      const msg=document.getElementById('playerMsg');
+      if (!name) { msg.textContent='Enter a player name.'; return; }
+      const basePrice=group==='A'?200:group==='B'?100:50;
+      const {error}=await db.from('players').insert({name,group_name:group,base_price:basePrice});
+      if (error) { msg.textContent='Error: '+error.message; return; }
+      document.getElementById('playerName').value='';
+      msg.textContent=`${name} added.`;
+      setTimeout(()=>msg.textContent='',3000);
       loadData();
     }
 
     async function deletePlayer(id) {
       if (!confirm('Delete this player?')) return;
-      await db.from('players').delete().eq('id', id);
+      await db.from('players').delete().eq('id',id);
       loadData();
-    }
-
-    function populateConsoleDropdowns() {
-      const pSel  = document.getElementById('consolePlayer');
-      const cSel  = document.getElementById('consoleCaptain');
-      const cur_p = pSel.value, cur_c = cSel.value;
-      const avail = allPlayers.filter(p => !p.is_sold);
-      pSel.innerHTML = '<option value="">Select player...</option>' +
-        avail.map(p => `<option value="${p.id}" ${p.id===cur_p?'selected':''}}>${p.name} · Group ${p.group_name} (base ${p.base_price})</option>`).join('');
-      cSel.innerHTML = '<option value="">Select captain...</option>' +
-        allCaptains.map(c => `<option value="${c.id}" ${c.id===cur_c?'selected':''}>${c.name} · ${c.wallet.toLocaleString()} pts left</option>`).join('');
-    }
-
-    function quickAssign(playerId) {
-      switchTab('console');
-      setTimeout(() => { document.getElementById('consolePlayer').value = playerId; }, 50);
     }
 
     async function doAssign() {
-      const playerId  = document.getElementById('consolePlayer').value;
-      const captainId = document.getElementById('consoleCaptain').value;
-      const price     = parseInt(document.getElementById('consolePrice').value);
-      const msg       = document.getElementById('consoleMsg');
-      if (!playerId || !captainId || isNaN(price) || price < 0) { msg.textContent = 'Fill all fields.'; return; }
-      const captain = allCaptains.find(c => c.id === captainId);
-      if (price > captain.wallet) { msg.textContent = `${captain.name} only has ${captain.wallet} pts left.`; return; }
-      await db.from('players').update({ captain_id: captainId, sold_price: price, is_sold: true }).eq('id', playerId);
-      await db.from('captains').update({ wallet: captain.wallet - price }).eq('id', captainId);
-      document.getElementById('consolePlayer').value = '';
-      document.getElementById('consoleCaptain').value = '';
-      document.getElementById('consolePrice').value = '';
-      msg.textContent = 'Player assigned!';
-      setTimeout(() => msg.textContent = '', 3000);
+      const playerId=document.getElementById('consolePlayer').value;
+      const captainId=document.getElementById('consoleCaptain').value;
+      const price=parseInt(document.getElementById('consolePrice').value);
+      const msg=document.getElementById('consoleMsg');
+      if (!playerId||!captainId||isNaN(price)||price<0) { msg.textContent='Fill all fields.'; return; }
+      const captain=allCaptains.find(c=>c.id===captainId);
+      if (price>captain.wallet) { msg.textContent=`${captain.name} only has ${captain.wallet} pts left.`; return; }
+      await db.from('players').update({captain_id:captainId,sold_price:price,is_sold:true}).eq('id',playerId);
+      await db.from('captains').update({wallet:captain.wallet-price}).eq('id',captainId);
+      // Clear bidding state if this player was live
+      if (playerId===currentPlayerId) {
+        await db.from('bidding_state').update({player_id:null,updated_at:new Date().toISOString()}).eq('id',1);
+      }
+      document.getElementById('consolePlayer').value='';
+      document.getElementById('consoleCaptain').value='';
+      document.getElementById('consolePrice').value='';
+      msg.textContent='Player assigned!';
+      setTimeout(()=>msg.textContent='',3000);
       loadData();
     }
 
-    async function unassignPlayer(playerId, captainId, soldPrice) {
+    async function unassignPlayer(playerId,captainId,soldPrice) {
       if (!confirm('Unassign this player and refund the points?')) return;
-      const captain = allCaptains.find(c => c.id === captainId);
-      await db.from('players').update({ captain_id: null, sold_price: null, is_sold: false }).eq('id', playerId);
-      await db.from('captains').update({ wallet: captain.wallet + soldPrice }).eq('id', captainId);
+      const captain=allCaptains.find(c=>c.id===captainId);
+      await db.from('players').update({captain_id:null,sold_price:null,is_sold:false}).eq('id',playerId);
+      await db.from('captains').update({wallet:captain.wallet+soldPrice}).eq('id',captainId);
       loadData();
     }
 
     db.channel('bpl-admin')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'bidding_state'},loadData)
       .subscribe();
 
     loadData();
