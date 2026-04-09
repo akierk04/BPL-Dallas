@@ -69,6 +69,7 @@
       <div id="nowBidding" class="now-bidding" style="display:none;">
         <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
         <div class="now-bidding-name" id="nowBiddingName">—</div>
+        <div id="nowBiddingBase" style="font-size:13px;color:var(--muted);margin-top:6px;letter-spacing:0.04em;"></div>
       </div>
       <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
       <div class="stats-bar">
@@ -142,10 +143,15 @@
     }
 
     function renderCurrentPlayer() {
-      const nb=document.getElementById('nowBidding'), wb=document.getElementById('waitingBanner'), nm=document.getElementById('nowBiddingName');
+      const nb=document.getElementById('nowBidding'), wb=document.getElementById('waitingBanner');
+      const nm=document.getElementById('nowBiddingName'), bp=document.getElementById('nowBiddingBase');
       if (currentPlayerId) {
         const p=allPlayers.find(x=>x.id===currentPlayerId);
-        if (p&&!p.is_sold) { nm.textContent=p.name; nb.style.display='block'; wb.style.display='none'; return; }
+        if (p&&!p.is_sold) {
+          nm.textContent=p.name;
+          bp.textContent=`Base price: ${p.base_price} pts`;
+          nb.style.display='block'; wb.style.display='none'; return;
+        }
       }
       nb.style.display='none'; wb.style.display='block';
     }
