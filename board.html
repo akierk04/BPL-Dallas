@@ -229,7 +229,8 @@
     }
 
     function renderBoardSchedule() {
-      document.getElementById('boardSchedule').innerHTML=matchScheduleHtml(allMatches,allCaptains,allPlayers);
+      const rows = computeStandings(allCaptains, allMatches);
+      document.getElementById('boardSchedule').innerHTML=matchScheduleHtml(allMatches,allCaptains,allPlayers,rows);
     }
 
     db.channel('bpl-board')
