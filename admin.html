@@ -27,6 +27,7 @@
       <button class="tab" onclick="switchTab('matches')">Matches</button>
       <button class="tab" onclick="switchTab('standings')">Standings</button>
       <button class="tab" onclick="switchTab('stats')">Stats</button>
+      <button class="tab" onclick="switchTab('schedule')">Schedule</button>
     </div>
 
     <!-- Overview -->
@@ -119,6 +120,12 @@
           </div>
           <p id="scorerMsg" class="text-muted mt-8"></p>
           <div id="goalsList" style="margin-top:12px;"></div>
+          <div style="margin-top:16px;border-top:0.5px solid var(--border);padding-top:14px;">
+            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px;">⭐ Match MVP</div>
+            <select id="mvpPlayer" style="width:100%;">
+              <option value="">Select MVP (optional)...</option>
+            </select>
+          </div>
           <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
             <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="cancelMatch()">Cancel</button>
             <button class="btn-primary" onclick="finalizeMatch()" style="width:auto;padding:9px 20px;">Confirm Match</button>
@@ -144,6 +151,18 @@
       <div class="form-card">
         <div id="topScorers"></div>
       </div>
+      <div class="section-title" style="margin-top:16px;">Tournament MVP</div>
+      <div class="form-card">
+        <div id="mvpLeaderboard"></div>
+      </div>
+    </div>
+
+    <!-- Schedule -->
+    <div id="tab-schedule" style="display:none;">
+      <div class="section-title">Match Schedule</div>
+      <div class="form-card">
+        <div id="adminSchedule"></div>
+      </div>
     </div>
   </div>
 
@@ -157,7 +176,7 @@
 
     let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], currentPlayerId=null;
     let pendingMatchId=null;
-    const TABS = ['overview','players','bidding','console','matches','standings','stats'];
+    const TABS = ['overview','players','bidding','console','matches','standings','stats','schedule'];
 
     function switchTab(tab) {
       TABS.forEach(t => document.getElementById('tab-'+t).style.display = t===tab?'block':'none');
@@ -188,6 +207,7 @@
       renderMatchesList();
       renderStandings();
       renderStats();
+      renderSchedule();
     }
 
     // ── Overview ──
@@ -403,6 +423,7 @@
       const teamSel=document.getElementById('scorerTeam');
       teamSel.innerHTML=`<option value="${homeId}">${homeCap.name}</option><option value="${awayId}">${awayCap.name}</option>`;
       updateScorerPlayers();
+      populateMvpDropdown();
       document.getElementById('goalScorerSection').style.display='block';
       document.getElementById('goalsList').innerHTML='';
     }
@@ -441,13 +462,12 @@
 
     async function finalizeMatch() {
       if (!pendingMatchId) return;
-      // Insert all goals
       if (pendingGoals.length) {
         const {error}=await db.from('goals').insert(pendingGoals);
         if (error) { alert('Error saving goals: '+error.message); return; }
       }
-      // Mark match as played
-      await db.from('matches').update({played:true}).eq('id',pendingMatchId);
+      const mvpId=document.getElementById('mvpPlayer').value||null;
+      await db.from('matches').update({played:true, mvp_player_id:mvpId}).eq('id',pendingMatchId);
       pendingMatchId=null; pendingGoals=[];
       document.getElementById('goalScorerSection').style.display='none';
       document.getElementById('matchHome').value='';
@@ -503,6 +523,23 @@
     function renderStats() {
       const scorers=computeTopScorers(allPlayers,allGoals,allCaptains);
       document.getElementById('topScorers').innerHTML=topScorersHtml(scorers);
+      const mvps=computeMvpLeaderboard(allPlayers,allMatches);
+      document.getElementById('mvpLeaderboard').innerHTML=mvpLeaderboardHtml(mvps,allMatches,allPlayers,allCaptains);
+    }
+
+    function renderSchedule() {
+      document.getElementById('adminSchedule').innerHTML=matchScheduleHtml(allMatches,allCaptains,allPlayers);
+    }
+
+    function populateMvpDropdown() {
+      const sel=document.getElementById('mvpPlayer');
+      if (!sel) return;
+      const teamPlayers=allPlayers.filter(p=>p.captain_id===pendingHomeId||p.captain_id===pendingAwayId);
+      sel.innerHTML='<option value="">Select MVP (optional)...</option>'+
+        teamPlayers.map(p=>{
+          const cap=allCaptains.find(c=>c.id===p.captain_id);
+          return `<option value="${p.id}">${p.name} (${cap?cap.name:'?'})</option>`;
+        }).join('');
     }
 
     // ── Realtime ──
