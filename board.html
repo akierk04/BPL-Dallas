@@ -62,6 +62,7 @@
       <button class="tab active" onclick="switchBoardTab('auction')">Auction</button>
       <button class="tab" onclick="switchBoardTab('standings')">Standings</button>
       <button class="tab" onclick="switchBoardTab('stats')">Stats</button>
+      <button class="tab" onclick="switchBoardTab('schedule')">Schedule</button>
     </div>
 
     <!-- Auction tab -->
@@ -104,6 +105,18 @@
       <div class="form-card">
         <div id="boardTopScorers"></div>
       </div>
+      <div class="section-title" style="margin-top:16px;">Tournament MVP</div>
+      <div class="form-card">
+        <div id="boardMvp"></div>
+      </div>
+    </div>
+
+    <!-- Schedule tab -->
+    <div id="btab-schedule" style="display:none;">
+      <div class="section-title">Match Schedule</div>
+      <div class="form-card">
+        <div id="boardSchedule"></div>
+      </div>
     </div>
   </div>
 
@@ -113,7 +126,7 @@
   <script src="standings.js"></script>
   <script>
     let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], currentFilter='all', currentPlayerId=null;
-    const BTABS=['auction','standings','stats'];
+    const BTABS=['auction','standings','stats','schedule'];
 
     function switchBoardTab(tab) {
       BTABS.forEach(t=>document.getElementById('btab-'+t).style.display=t===tab?'block':'none');
@@ -139,7 +152,7 @@
       allMatches=matchRes.data||[]; allGoals=goalRes.data||[];
       currentPlayerId=bidRes.data?.player_id||null;
       renderCurrentPlayer(); renderStats_(); renderCaptains(); renderPool();
-      renderBoardStandings(); renderBoardStats();
+      renderBoardStandings(); renderBoardStats(); renderBoardSchedule();
     }
 
     function renderCurrentPlayer() {
@@ -211,6 +224,12 @@
     function renderBoardStats() {
       const scorers=computeTopScorers(allPlayers,allGoals,allCaptains);
       document.getElementById('boardTopScorers').innerHTML=topScorersHtml(scorers);
+      const mvps=computeMvpLeaderboard(allPlayers,allMatches);
+      document.getElementById('boardMvp').innerHTML=mvpLeaderboardHtml(mvps,allMatches,allPlayers,allCaptains);
+    }
+
+    function renderBoardSchedule() {
+      document.getElementById('boardSchedule').innerHTML=matchScheduleHtml(allMatches,allCaptains,allPlayers);
     }
 
     db.channel('bpl-board')
