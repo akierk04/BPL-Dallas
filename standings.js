@@ -115,3 +115,81 @@ function topScorersHtml(scorers) {
       <div style="font-size:11px;color:var(--muted);">goals</div>
     </div>`).join('');
 }
+
+function computeMvpLeaderboard(players, matches) {
+  const counts = {};
+  matches.filter(m => m.played && m.mvp_player_id).forEach(m => {
+    counts[m.mvp_player_id] = (counts[m.mvp_player_id] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .map(([pid, awards]) => {
+      const p = players.find(x => x.id === pid);
+      return { player: p, awards };
+    })
+    .filter(x => x.player)
+    .sort((a, b) => b.awards - a.awards);
+}
+
+function mvpLeaderboardHtml(leaders, matches, players, captains) {
+  if (!leaders.length) return '<div class="text-muted">No MVPs awarded yet.</div>';
+  return leaders.map((s, i) => {
+    const cap = captains.find(c => c.id === s.player.captain_id);
+    const trophy = i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border);">
+        <div style="font-size:1.3rem;min-width:28px;">${trophy || `<span style="font-family:var(--font-display);color:var(--muted);font-size:1.2rem;">${i+1}</span>`}</div>
+        <div style="flex:1;">
+          <div style="font-weight:500;color:var(--text);font-size:14px;">${s.player.name}</div>
+          <div style="font-size:12px;color:var(--muted);">${cap ? cap.name : '—'}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--accent);">${s.awards}</div>
+          <div style="font-size:11px;color:var(--muted);">MVP award${s.awards !== 1 ? 's' : ''}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function matchScheduleHtml(matches, captains, players) {
+  if (!matches.length) return '<div class="text-muted">No fixtures loaded yet.</div>';
+  const played = matches.filter(m => m.played);
+  const upcoming = matches.filter(m => !m.played);
+  let html = '';
+
+  if (played.length) {
+    html += `<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:10px;font-weight:500;">Results</div>`;
+    html += [...played].reverse().map((m, i) => {
+      const h = captains.find(c => c.id === m.home_captain_id);
+      const a = captains.find(c => c.id === m.away_captain_id);
+      const mvp = m.mvp_player_id ? players.find(p => p.id === m.mvp_player_id) : null;
+      const winner = m.home_score > m.away_score ? 'home' : m.away_score > m.home_score ? 'away' : 'draw';
+      return `
+        <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="flex:1;text-align:right;font-weight:${winner==='home'?'600':'400'};color:${winner==='home'?'var(--text)':'var(--muted)'};">${h ? h.name : '?'}</span>
+            <span style="font-family:var(--font-display);font-size:1.4rem;color:var(--accent);min-width:48px;text-align:center;">${m.home_score} – ${m.away_score}</span>
+            <span style="flex:1;font-weight:${winner==='away'?'600':'400'};color:${winner==='away'?'var(--text)':'var(--muted)'};">${a ? a.name : '?'}</span>
+          </div>
+          ${mvp ? `<div style="text-align:center;font-size:11px;color:var(--accent);margin-top:6px;">⭐ MVP: ${mvp.name}</div>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  if (upcoming.length) {
+    html += `<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin:16px 0 10px;font-weight:500;">Upcoming</div>`;
+    html += upcoming.map((m, i) => {
+      const h = captains.find(c => c.id === m.home_captain_id);
+      const a = captains.find(c => c.id === m.away_captain_id);
+      return `
+        <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="flex:1;text-align:right;color:var(--text);font-weight:500;">${h ? h.name : '?'}</span>
+            <span style="font-size:12px;color:var(--muted);min-width:48px;text-align:center;">vs</span>
+            <span style="flex:1;color:var(--text);font-weight:500;">${a ? a.name : '?'}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  return html;
+}
