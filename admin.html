@@ -98,6 +98,14 @@
     <div id="tab-matches" style="display:none;">
       <div class="section-title">Enter Match Result</div>
       <div class="form-card">
+        <div class="form-row" style="margin-bottom:10px;">
+          <select id="matchType" onchange="toggleMatchType()" style="flex:1;">
+            <option value="league">League Match</option>
+            <option value="SF1">Semi-Final 1 (1st vs 4th)</option>
+            <option value="SF2">Semi-Final 2 (2nd vs 3rd)</option>
+            <option value="Final">🏆 Final</option>
+          </select>
+        </div>
         <div class="form-row">
           <select id="matchHome" style="flex:2;"><option value="">Home team...</option></select>
           <input type="number" id="matchHomeScore" placeholder="Score" min="0" style="flex:0.5;min-width:60px;" />
@@ -398,28 +406,37 @@
       home.innerHTML=opts; away.innerHTML=opts;
     }
 
+    function toggleMatchType() {
+      // Could pre-fill teams for knockouts in future — for now just a label
+    }
+
     let pendingGoals=[], pendingHomeId=null, pendingAwayId=null, pendingHS=0, pendingAS=0;
 
     async function saveMatch() {
       const homeId=document.getElementById('matchHome').value, awayId=document.getElementById('matchAway').value;
       const hs=parseInt(document.getElementById('matchHomeScore').value), as_=parseInt(document.getElementById('matchAwayScore').value);
+      const matchType=document.getElementById('matchType').value;
       const msg=document.getElementById('matchMsg');
       if (!homeId||!awayId||isNaN(hs)||isNaN(as_)) { msg.textContent='Fill all fields.'; return; }
       if (homeId===awayId) { msg.textContent='Home and away must be different teams.'; return; }
 
-      // Create match as unplayed first
-      const {data,error}=await db.from('matches').insert({home_captain_id:homeId,away_captain_id:awayId,home_score:hs,away_score:as_,played:false}).select().single();
+      const isKnockout = matchType !== 'league';
+      const knockoutLabel = isKnockout ? matchType : null;
+
+      const {data,error}=await db.from('matches').insert({
+        home_captain_id:homeId, away_captain_id:awayId,
+        home_score:hs, away_score:as_, played:false,
+        is_knockout:isKnockout, knockout_label:knockoutLabel
+      }).select().single();
       if (error) { msg.textContent='Error: '+error.message; return; }
 
       pendingMatchId=data.id; pendingHomeId=homeId; pendingAwayId=awayId; pendingHS=hs; pendingAS=as_;
       pendingGoals=[];
 
-      // Show goal scorer section
       const totalGoals=hs+as_;
       const homeCap=allCaptains.find(c=>c.id===homeId), awayCap=allCaptains.find(c=>c.id===awayId);
       msg.textContent=`${homeCap.name} ${hs} – ${as_} ${awayCap.name} · Now add ${totalGoals} goal scorer(s).`;
 
-      // Populate scorer dropdowns
       const teamSel=document.getElementById('scorerTeam');
       teamSel.innerHTML=`<option value="${homeId}">${homeCap.name}</option><option value="${awayId}">${awayCap.name}</option>`;
       updateScorerPlayers();
@@ -528,7 +545,8 @@
     }
 
     function renderSchedule() {
-      document.getElementById('adminSchedule').innerHTML=matchScheduleHtml(allMatches,allCaptains,allPlayers);
+      const rows = computeStandings(allCaptains, allMatches);
+      document.getElementById('adminSchedule').innerHTML=matchScheduleHtml(allMatches,allCaptains,allPlayers,rows);
     }
 
     function populateMvpDropdown() {
