@@ -150,46 +150,102 @@ function mvpLeaderboardHtml(leaders, matches, players, captains) {
   }).join('');
 }
 
-function matchScheduleHtml(matches, captains, players) {
-  if (!matches.length) return '<div class="text-muted">No fixtures loaded yet.</div>';
-  const played = matches.filter(m => m.played);
-  const upcoming = matches.filter(m => !m.played);
+function matchScheduleHtml(matches, captains, players, standings) {
+  const leagueMatches = matches.filter(m => !m.is_knockout);
+  const knockoutMatches = matches.filter(m => m.is_knockout);
+
+  // Derive SF/Final teams from standings if available
+  const s = standings || [];
+  const p1 = s[0]?.captain, p2 = s[1]?.captain, p3 = s[2]?.captain, p4 = s[3]?.captain;
+
+  function matchCard(m, label) {
+    const h = captains.find(c => c.id === m.home_captain_id);
+    const a = captains.find(c => c.id === m.away_captain_id);
+    const mvp = m.mvp_player_id ? players.find(p => p.id === m.mvp_player_id) : null;
+    const winner = m.home_score > m.away_score ? 'home' : m.away_score > m.home_score ? 'away' : 'draw';
+    return `
+      <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
+        ${label ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="flex:1;text-align:right;font-weight:${winner==='home'?'600':'400'};color:${winner==='home'?'var(--text)':'var(--muted)'};">${h?h.name:'?'}</span>
+          <span style="font-family:var(--font-display);font-size:1.4rem;color:var(--accent);min-width:52px;text-align:center;">${m.home_score} – ${m.away_score}</span>
+          <span style="flex:1;font-weight:${winner==='away'?'600':'400'};color:${winner==='away'?'var(--text)':'var(--muted)'};">${a?a.name:'?'}</span>
+        </div>
+        ${mvp ? `<div style="text-align:center;font-size:11px;color:var(--accent);margin-top:6px;">⭐ MVP: ${mvp.name}</div>` : ''}
+      </div>`;
+  }
+
+  function upcomingCard(homeName, awayName, label) {
+    return `
+      <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
+        ${label ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="flex:1;text-align:right;color:var(--text);font-weight:500;">${homeName}</span>
+          <span style="font-size:12px;color:var(--muted);min-width:52px;text-align:center;">vs</span>
+          <span style="flex:1;color:var(--text);font-weight:500;">${awayName}</span>
+        </div>
+      </div>`;
+  }
+
+  function sectionHeader(title) {
+    return `<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin:16px 0 10px;font-weight:500;">${title}</div>`;
+  }
+
   let html = '';
 
-  if (played.length) {
-    html += `<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:10px;font-weight:500;">Results</div>`;
-    html += [...played].reverse().map((m, i) => {
+  // ── League matches ──
+  const playedLeague = leagueMatches.filter(m => m.played);
+  const upcomingLeague = leagueMatches.filter(m => !m.played);
+
+  if (playedLeague.length) {
+    html += sectionHeader('League Results');
+    html += playedLeague.map((m, i) => matchCard(m, `Match ${i + 1}`)).join('');
+  }
+
+  if (upcomingLeague.length) {
+    html += sectionHeader('Upcoming League Matches');
+    html += upcomingLeague.map((m, i) => {
       const h = captains.find(c => c.id === m.home_captain_id);
       const a = captains.find(c => c.id === m.away_captain_id);
-      const mvp = m.mvp_player_id ? players.find(p => p.id === m.mvp_player_id) : null;
-      const winner = m.home_score > m.away_score ? 'home' : m.away_score > m.home_score ? 'away' : 'draw';
-      return `
-        <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="flex:1;text-align:right;font-weight:${winner==='home'?'600':'400'};color:${winner==='home'?'var(--text)':'var(--muted)'};">${h ? h.name : '?'}</span>
-            <span style="font-family:var(--font-display);font-size:1.4rem;color:var(--accent);min-width:48px;text-align:center;">${m.home_score} – ${m.away_score}</span>
-            <span style="flex:1;font-weight:${winner==='away'?'600':'400'};color:${winner==='away'?'var(--text)':'var(--muted)'};">${a ? a.name : '?'}</span>
-          </div>
-          ${mvp ? `<div style="text-align:center;font-size:11px;color:var(--accent);margin-top:6px;">⭐ MVP: ${mvp.name}</div>` : ''}
-        </div>`;
+      return upcomingCard(h ? h.name : '?', a ? a.name : '?', `Match ${playedLeague.length + i + 1}`);
     }).join('');
   }
 
-  if (upcoming.length) {
-    html += `<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin:16px 0 10px;font-weight:500;">Upcoming</div>`;
-    html += upcoming.map((m, i) => {
-      const h = captains.find(c => c.id === m.home_captain_id);
-      const a = captains.find(c => c.id === m.away_captain_id);
-      return `
-        <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="flex:1;text-align:right;color:var(--text);font-weight:500;">${h ? h.name : '?'}</span>
-            <span style="font-size:12px;color:var(--muted);min-width:48px;text-align:center;">vs</span>
-            <span style="flex:1;color:var(--text);font-weight:500;">${a ? a.name : '?'}</span>
-          </div>
-        </div>`;
-    }).join('');
+  // ── Semi-Finals ──
+  html += sectionHeader('Semi-Finals');
+
+  const sf1played = knockoutMatches.find(m => m.knockout_label === 'SF1' && m.played);
+  const sf2played = knockoutMatches.find(m => m.knockout_label === 'SF2' && m.played);
+
+  if (sf1played) {
+    html += matchCard(sf1played, 'SF1 · 1st vs 4th');
+  } else {
+    html += upcomingCard(p1 ? `${p1.name} (1st)` : '1st Place', p4 ? `${p4.name} (4th)` : '4th Place', 'SF1 · 1st vs 4th');
+  }
+  if (sf2played) {
+    html += matchCard(sf2played, 'SF2 · 2nd vs 3rd');
+  } else {
+    html += upcomingCard(p2 ? `${p2.name} (2nd)` : '2nd Place', p3 ? `${p3.name} (3rd)` : '3rd Place', 'SF2 · 2nd vs 3rd');
   }
 
-  return html;
+  // ── Final ──
+  html += sectionHeader('Final');
+  const finalPlayed = knockoutMatches.find(m => m.knockout_label === 'Final' && m.played);
+  if (finalPlayed) {
+    html += matchCard(finalPlayed, '🏆 Final');
+  } else {
+    const sf1Winner = sf1played
+      ? (sf1played.home_score > sf1played.away_score ? captains.find(c => c.id === sf1played.home_captain_id) : captains.find(c => c.id === sf1played.away_captain_id))
+      : null;
+    const sf2Winner = sf2played
+      ? (sf2played.home_score > sf2played.away_score ? captains.find(c => c.id === sf2played.home_captain_id) : captains.find(c => c.id === sf2played.away_captain_id))
+      : null;
+    html += upcomingCard(
+      sf1Winner ? `${sf1Winner.name} (W SF1)` : 'Winner of SF1',
+      sf2Winner ? `${sf2Winner.name} (W SF2)` : 'Winner of SF2',
+      '🏆 Final'
+    );
+  }
+
+  return html || '<div class="text-muted">No fixtures loaded yet.</div>';
 }
