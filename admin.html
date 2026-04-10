@@ -383,11 +383,13 @@
         loadData(); return;
       }
 
-      // Assign player to winning captain
+      // Assign player to winning captain — fetch fresh wallet
+      const { data: freshCap } = await db.from('captains').select('wallet').eq('id', currentBidderId).single();
       const captain = allCaptains.find(c => c.id === currentBidderId);
-      if (!captain) return;
+      if (!captain && !freshCap) return;
+      const currentWallet = freshCap?.wallet ?? captain?.wallet ?? 0;
       await db.from('players').update({ captain_id: currentBidderId, sold_price: currentBid, is_sold: true }).eq('id', currentPlayerId);
-      await db.from('captains').update({ wallet: captain.wallet - currentBid }).eq('id', currentBidderId);
+      await db.from('captains').update({ wallet: currentWallet - currentBid }).eq('id', currentBidderId);
       await db.from('bidding_state').update({ player_id: null, current_bid: 0, current_bidder_id: null, bid_locked: false, updated_at: new Date().toISOString() }).eq('id', 1);
 
       msg.textContent = `✓ ${captain.name} wins for ${currentBid} pts!`;
@@ -445,9 +447,11 @@
 
     async function unassignPlayer(playerId,captainId,soldPrice) {
       if (!confirm('Unassign this player and refund the points?')) return;
-      const captain=allCaptains.find(c=>c.id===captainId);
+      // Always fetch fresh wallet to avoid stale data
+      const { data: fresh } = await db.from('captains').select('wallet').eq('id',captainId).single();
+      const currentWallet = fresh?.wallet ?? allCaptains.find(c=>c.id===captainId)?.wallet ?? 0;
       await db.from('players').update({captain_id:null,sold_price:null,is_sold:false}).eq('id',playerId);
-      await db.from('captains').update({wallet:captain.wallet+soldPrice}).eq('id',captainId);
+      await db.from('captains').update({wallet:currentWallet+soldPrice}).eq('id',captainId);
       loadData();
     }
 
