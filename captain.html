@@ -308,18 +308,18 @@
     function detectSoldTransition(nextPlayers) {
       for (const p of nextPlayers) {
         const prev = previousSoldState.get(p.id);
-        if (p.is_sold && (!prev || !prev.is_sold || prev.captain_id !== p.captain_id || prev.sold_price !== p.sold_price)) {
+        if (p.is_sold && (!prev || !prev.is_sold || prev.captain_id !== p.captain_id || prev.sold_price !== p.sold_price || prev.sold_at !== p.sold_at)) {
           const cap = allCaptains.find(c => c.id === p.captain_id);
           lastSoldEvent = {
             player: p.name,
             captain: cap ? displayCaptainName(cap) : '—',
             price: p.sold_price || 0,
             at: Date.now(),
-            key: `${p.id}:${p.captain_id || ''}:${p.sold_price || 0}:${p.sold_at || ''}`
+            key: `${p.id}:${p.captain_id || ''}:${p.sold_price || 0}:${p.sold_at || Date.now()}`
           };
         }
       }
-      previousSoldState = new Map(nextPlayers.map(p => [p.id, { is_sold: p.is_sold, captain_id: p.captain_id, sold_price: p.sold_price }]));
+      previousSoldState = new Map(nextPlayers.map(p => [p.id, { is_sold: p.is_sold, captain_id: p.captain_id, sold_price: p.sold_price, sold_at: p.sold_at }]));
     }
     document.addEventListener('click', unlockAudio, { once: true });
     document.addEventListener('touchstart', unlockAudio, { once: true });
@@ -586,7 +586,8 @@
       await db.from('players').update({
         captain_id: currentBidderId,
         sold_price: currentBid,
-        is_sold: true
+        is_sold: true,
+        sold_at: new Date().toISOString()
       }).eq('id', playerId);
       await db.from('captains').update({
         wallet: freshCap.wallet - currentBid
