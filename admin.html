@@ -60,7 +60,7 @@
     <div id="tab-bidding" style="display:none;">
       <div class="section-title">Player Up for Bidding</div>
       <div class="form-card">
-        <p class="text-muted" style="margin-bottom:12px;">Select a player to display on the live board. All viewers will see this update instantly.</p>
+        <p class="text-muted" style="margin-bottom:12px;">Select a player to go live. Captains can then place bids from their phones.</p>
         <div class="form-row">
           <select id="biddingPlayer" style="flex:3;"><option value="">— No player selected —</option></select>
           <button class="btn-primary" onclick="setBiddingPlayer()">Set Live</button>
@@ -68,11 +68,23 @@
         </div>
         <p id="biddingMsg" class="text-muted mt-8"></p>
       </div>
-      <div id="currentBidPreview" style="display:none;margin-top:8px;">
-        <div class="section-title">Currently Live</div>
-        <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.4);border-radius:var(--radius-lg);padding:20px 24px;text-align:center;">
+      <div id="liveBidStatus" style="display:none;margin-top:8px;">
+        <div class="section-title">Live Bid</div>
+        <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.4);border-radius:var(--radius-lg);padding:20px 24px;">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">Now Bidding</div>
-          <div id="currentBidName" style="font-family:var(--font-display);font-size:2.5rem;letter-spacing:0.06em;color:var(--text);line-height:1;"></div>
+          <div id="liveBidPlayerName" style="font-family:var(--font-display);font-size:2rem;color:var(--text);line-height:1;margin-bottom:12px;"></div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;">
+            <div style="font-family:var(--font-display);font-size:2.5rem;color:var(--accent);" id="liveBidAmount">0</div>
+            <div>
+              <div style="font-size:12px;color:var(--muted);">current bid</div>
+              <div style="font-size:14px;font-weight:500;color:var(--text);" id="liveBidder">No bids yet</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-primary" onclick="closeBidding()" style="width:auto;padding:12px 24px;font-size:1.1rem;">✓ Close Bidding</button>
+            <button class="btn-cancel" style="width:auto;padding:12px 16px;" onclick="clearBiddingPlayer()">Cancel</button>
+          </div>
+          <p id="closeMsg" class="text-muted mt-8"></p>
         </div>
       </div>
     </div>
@@ -182,7 +194,7 @@
     if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
 
-    let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], currentPlayerId=null;
+    let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], currentPlayerId=null, bidState=null;
     let pendingMatchId=null;
     const TABS = ['overview','players','bidding','console','matches','standings','stats','schedule'];
 
@@ -205,6 +217,7 @@
       allMatches      = matchRes.data || [];
       allGoals        = goalRes.data || [];
       currentPlayerId = bidRes.data?.player_id || null;
+      bidState        = bidRes.data || null;
       renderOverview();
       renderPlayersList();
       renderAssignedList();
@@ -335,12 +348,51 @@
     }
 
     function renderBiddingPreview() {
-      const preview=document.getElementById('currentBidPreview'), nameEl=document.getElementById('currentBidName');
+      const status  = document.getElementById('liveBidStatus');
+      const nameEl  = document.getElementById('liveBidPlayerName');
+      const amountEl= document.getElementById('liveBidAmount');
+      const bidderEl= document.getElementById('liveBidder');
+
       if (currentPlayerId) {
-        const p=allPlayers.find(x=>x.id===currentPlayerId);
-        if (p&&!p.is_sold) { nameEl.textContent=p.name; preview.style.display='block'; return; }
+        const p = allPlayers.find(x => x.id === currentPlayerId) ||
+                  { name: '...', base_price: 0 };
+        const currentBid    = bidState?.current_bid || p.base_price || 0;
+        const currentBidder = bidState?.current_bidder_id
+          ? allCaptains.find(c => c.id === bidState.current_bidder_id)
+          : null;
+        nameEl.textContent   = p.name || '...';
+        amountEl.textContent = currentBid.toLocaleString();
+        bidderEl.textContent = currentBidder ? currentBidder.name : 'No bids yet';
+        status.style.display = 'block';
+        return;
       }
-      preview.style.display='none';
+      status.style.display = 'none';
+    }
+
+    async function closeBidding() {
+      if (!currentPlayerId) return;
+      const msg = document.getElementById('closeMsg');
+      const currentBid      = bidState?.current_bid || 0;
+      const currentBidderId = bidState?.current_bidder_id;
+
+      if (!currentBidderId || currentBid === 0) {
+        // No bids — just clear
+        await db.from('bidding_state').update({ player_id: null, current_bid: 0, current_bidder_id: null, bid_locked: false, updated_at: new Date().toISOString() }).eq('id', 1);
+        msg.textContent = 'No bids — player returned to pool.';
+        setTimeout(() => msg.textContent = '', 3000);
+        loadData(); return;
+      }
+
+      // Assign player to winning captain
+      const captain = allCaptains.find(c => c.id === currentBidderId);
+      if (!captain) return;
+      await db.from('players').update({ captain_id: currentBidderId, sold_price: currentBid, is_sold: true }).eq('id', currentPlayerId);
+      await db.from('captains').update({ wallet: captain.wallet - currentBid }).eq('id', currentBidderId);
+      await db.from('bidding_state').update({ player_id: null, current_bid: 0, current_bidder_id: null, bid_locked: false, updated_at: new Date().toISOString() }).eq('id', 1);
+
+      msg.textContent = `✓ ${captain.name} wins for ${currentBid} pts!`;
+      setTimeout(() => msg.textContent = '', 4000);
+      loadData();
     }
 
     async function setBiddingPlayer() {
