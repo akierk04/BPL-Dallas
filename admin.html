@@ -9,177 +9,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <style>
-    .auction-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
-      gap: 20px;
-      align-items: start;
-    }
-
-    .auction-live-card {
-      background: linear-gradient(135deg, rgba(240,192,64,0.12), rgba(240,192,64,0.04));
-      border: 1px solid rgba(240,192,64,0.45);
-      border-radius: var(--radius-lg);
-      padding: 22px 24px;
-    }
-
-    .auction-live-top {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: flex-start;
-      margin-bottom: 18px;
-    }
-
-    .auction-live-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--accent);
-      margin-bottom: 6px;
-    }
-
-    .auction-live-player {
-      font-family: var(--font-display);
-      font-size: 2.4rem;
-      line-height: 1;
-      color: var(--text);
-      letter-spacing: 0.04em;
-      margin-bottom: 6px;
-    }
-
-    .auction-live-meta {
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .auction-status-pill {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: var(--surface2);
-      color: var(--muted);
-      border: 1px solid var(--border);
-      white-space: nowrap;
-    }
-
-    .auction-status-pill.live {
-      color: var(--accent);
-      border-color: rgba(240,192,64,0.35);
-      background: rgba(240,192,64,0.08);
-    }
-
-    .auction-status-pill.locked {
-      color: var(--red);
-      border-color: rgba(224,90,43,0.35);
-      background: rgba(224,90,43,0.08);
-    }
-
-    .auction-status-pill.ready {
-      color: var(--green);
-      border-color: rgba(62,207,142,0.35);
-      background: rgba(62,207,142,0.08);
-    }
-
-    .auction-live-body {
-      display: flex;
-      gap: 20px;
-      align-items: end;
-      justify-content: space-between;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-    }
-
-    .auction-live-amount {
-      font-family: var(--font-display);
-      font-size: 3.4rem;
-      line-height: 1;
-      color: var(--accent);
-      letter-spacing: 0.03em;
-    }
-
-    .auction-live-amount-label,
-    .auction-live-bidder-label {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-top: 4px;
-    }
-
-    .auction-live-bidder {
-      font-size: 1rem;
-      color: var(--text);
-      font-weight: 600;
-      margin-top: 4px;
-    }
-
-    .auction-live-after {
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .auction-live-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .captain-status-row,
-    .recent-sale-row {
-      padding: 10px 0;
-      border-bottom: 0.5px solid var(--border);
-    }
-
-    .captain-status-row:last-child,
-    .recent-sale-row:last-child {
-      border-bottom: none;
-    }
-
-    .captain-status-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
-
-    .captain-status-name {
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .captain-status-meta {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .undo-bar {
-      position: fixed;
-      left: 20px;
-      right: 20px;
-      bottom: 20px;
-      z-index: 300;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 14px 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-    }
-
-    @media (max-width: 900px) {
-      .auction-layout {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
 </head>
 <body>
   <nav class="nav">
@@ -191,98 +20,18 @@
 
   <div class="page">
     <div class="tabs" style="flex-wrap:wrap;">
-      <button class="tab active" onclick="switchTab('auction-control')">Auction Control</button>
-      <button class="tab" onclick="switchTab('overview')">Overview</button>
+      <button class="tab active" onclick="switchTab('overview')">Overview</button>
       <button class="tab" onclick="switchTab('players')">Players</button>
+      <button class="tab" onclick="switchTab('bidding')">Bidding</button>
+      <button class="tab" onclick="switchTab('console')">Auction Desk</button>
       <button class="tab" onclick="switchTab('matches')">Matches</button>
       <button class="tab" onclick="switchTab('standings')">Standings</button>
       <button class="tab" onclick="switchTab('stats')">Stats</button>
       <button class="tab" onclick="switchTab('schedule')">Schedule</button>
     </div>
 
-    <!-- Auction Control -->
-    <div id="tab-auction-control">
-      <div class="auction-layout">
-        <div class="auction-main">
-          <div class="section-title">Start Auction</div>
-          <div class="form-card">
-            <div class="form-row">
-              <select id="biddingPlayer" style="flex:3;">
-                <option value="">Select player to go live...</option>
-              </select>
-              <button class="btn-primary" onclick="setBiddingPlayer()">Go Live</button>
-              <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="clearBiddingPlayer()">Clear</button>
-            </div>
-            <p id="biddingMsg" class="text-muted mt-8"></p>
-          </div>
-
-          <div class="section-title">Live Auction</div>
-          <div id="liveBidStatus" class="auction-live-card" style="display:none;">
-            <div class="auction-live-top">
-              <div>
-                <div class="auction-live-label">Now Bidding</div>
-                <div id="liveBidPlayerName" class="auction-live-player">—</div>
-                <div id="liveBidMeta" class="auction-live-meta">—</div>
-              </div>
-              <div id="auctionStatusPill" class="auction-status-pill">Waiting</div>
-            </div>
-
-            <div class="auction-live-body">
-              <div class="auction-live-amount-wrap">
-                <div class="auction-live-amount" id="liveBidAmount">0</div>
-                <div class="auction-live-amount-label">current bid</div>
-              </div>
-              <div class="auction-live-bidder-wrap">
-                <div class="auction-live-bidder-label">Highest bidder</div>
-                <div class="auction-live-bidder" id="liveBidder">No bids yet</div>
-                <div class="auction-live-after" id="liveBidWalletAfter"></div>
-              </div>
-            </div>
-
-            <div class="auction-live-actions">
-              <button class="btn-primary" onclick="confirmCloseBidding()" style="width:auto;padding:12px 24px;font-size:1.05rem;">✓ Close Bidding</button>
-              <button class="btn-cancel" style="width:auto;padding:12px 16px;" onclick="clearBiddingPlayer()">Cancel Auction</button>
-            </div>
-            <p id="closeMsg" class="text-muted mt-8"></p>
-          </div>
-
-          <div id="liveBidEmpty" class="form-card text-muted">
-            No player is live right now.
-          </div>
-        </div>
-
-        <div class="auction-side">
-          <div class="section-title">Captain Status</div>
-          <div class="form-card">
-            <div id="captainStatusList"></div>
-          </div>
-
-          <div class="section-title">Manual Override</div>
-          <div class="form-card">
-            <div class="form-row">
-              <select id="consolePlayer" style="flex:2;" onchange="updateConsoleWarning()">
-                <option value="">Select player...</option>
-              </select>
-              <select id="consoleCaptain" style="flex:2;" onchange="updateConsoleWarning()">
-                <option value="">Select captain...</option>
-              </select>
-              <input type="number" id="consolePrice" placeholder="Sold price (pts)" min="0" style="flex:1;min-width:120px;" />
-              <button class="btn-primary" onclick="doAssign()">Assign Manually</button>
-            </div>
-            <div id="consoleWarning" style="margin-top:8px;"></div>
-            <p id="consoleMsg" class="text-muted mt-8"></p>
-          </div>
-
-          <div class="section-title">Recently Sold</div>
-          <div class="form-card">
-            <div id="recentSalesList"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Overview -->
-    <div id="tab-overview" style="display:none;">
+    <div id="tab-overview">
       <div class="section-title">Captains & Purses</div>
       <div id="overviewMsg" class="text-muted" style="margin-bottom:12px;"></div>
       <div class="captains-grid" id="adminCaptainsGrid"></div>
@@ -307,14 +56,58 @@
       <div id="playersList" class="players-list"></div>
     </div>
 
+    <!-- Bidding -->
+    <div id="tab-bidding" style="display:none;">
+      <div class="section-title">Player Up for Bidding</div>
+      <div class="form-card">
+        <p class="text-muted" style="margin-bottom:12px;">Select a player to go live. Captains can then place bids from their phones.</p>
+        <div class="form-row">
+          <select id="biddingPlayer" style="flex:3;"><option value="">— No player selected —</option></select>
+          <button class="btn-primary" onclick="setBiddingPlayer()">Set Live</button>
+          <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="clearBiddingPlayer()">Clear</button>
+        </div>
+        <p id="biddingMsg" class="text-muted mt-8"></p>
+      </div>
+      <div id="liveBidStatus" style="display:none;margin-top:8px;">
+        <div class="section-title">Live Bid</div>
+        <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.4);border-radius:var(--radius-lg);padding:20px 24px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">Now Bidding</div>
+          <div id="liveBidPlayerName" style="font-family:var(--font-display);font-size:2rem;color:var(--text);line-height:1;margin-bottom:12px;"></div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;">
+            <div style="font-family:var(--font-display);font-size:2.5rem;color:var(--accent);" id="liveBidAmount">0</div>
+            <div>
+              <div style="font-size:12px;color:var(--muted);">current bid</div>
+              <div style="font-size:14px;font-weight:500;color:var(--text);" id="liveBidder">No bids yet</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-primary" onclick="closeBidding()" style="width:auto;padding:12px 24px;font-size:1.1rem;">✓ Close Bidding</button>
+            <button class="btn-cancel" style="width:auto;padding:12px 16px;" onclick="clearBiddingPlayer()">Cancel</button>
+          </div>
+          <p id="closeMsg" class="text-muted mt-8"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auction Desk -->
+    <div id="tab-console" style="display:none;">
+      <div class="section-title">Assign Player</div>
+      <div class="form-card">
+        <div class="form-row">
+          <select id="consolePlayer" style="flex:2;" onchange="updateConsoleWarning()"><option value="">Select player...</option></select>
+          <select id="consoleCaptain" style="flex:2;" onchange="updateConsoleWarning()"><option value="">Select captain...</option></select>
+          <input type="number" id="consolePrice" placeholder="Sold price (pts)" min="0" style="flex:1;min-width:120px;" />
+          <button class="btn-primary" onclick="doAssign()">Assign</button>
+        </div>
+        <div id="consoleWarning" style="margin-top:8px;"></div>
+        <p id="consoleMsg" class="text-muted mt-8"></p>
+      </div>
+      <div class="section-title">Assigned Players</div>
+      <div id="assignedList" class="players-list"></div>
+    </div>
+
     <!-- Matches -->
     <div id="tab-matches" style="display:none;">
-      <div class="section-title">Upcoming Fixtures</div>
-      <div class="form-card">
-        <div class="fixture-tip">Click any upcoming fixture to prefill teams and start score entry faster.</div>
-        <div id="fixtureGrid" class="fixture-grid"></div>
-      </div>
-
       <div class="section-title">Enter Match Result</div>
       <div class="form-card">
         <div class="form-row" style="margin-bottom:10px;">
@@ -326,22 +119,19 @@
             <option value="SF2">Semi-Final 2 (G2 1st vs QF2 Winner)</option>
             <option value="Final">🏆 Final</option>
           </select>
-          <button class="btn-sm" onclick="resetMatchForm()" style="width:auto;">Clear Form</button>
         </div>
         <div class="form-row">
           <select id="matchHome" style="flex:2;"><option value="">Home team...</option></select>
-          <div class="score-shell">
-            <input type="number" id="matchHomeScore" placeholder="0" min="0" />
-            <span style="align-self:center;color:var(--muted);font-size:14px;padding:0 4px;">vs</span>
-            <input type="number" id="matchAwayScore" placeholder="0" min="0" />
-          </div>
+          <input type="number" id="matchHomeScore" placeholder="Score" min="0" style="flex:0.5;min-width:60px;" />
+          <span style="align-self:center;color:var(--muted);font-size:14px;padding:0 4px;">vs</span>
+          <input type="number" id="matchAwayScore" placeholder="Score" min="0" style="flex:0.5;min-width:60px;" />
           <select id="matchAway" style="flex:2;"><option value="">Away team...</option></select>
           <button class="btn-primary" onclick="saveMatch()">Save</button>
         </div>
-        <div id="matchPrefillHint" class="fixture-tip"></div>
         <p id="matchMsg" class="text-muted mt-8"></p>
       </div>
 
+      <!-- Goal scorers -->
       <div id="goalScorerSection" style="display:none;">
         <div class="section-title">Goal Scorers</div>
         <div class="form-card">
@@ -398,322 +188,60 @@
     </div>
   </div>
 
-  <div id="saleConfirmModal" class="modal-overlay" style="display:none;">
-    <div class="modal">
-      <div class="modal-title">Confirm Sale</div>
-      <div class="modal-sub" id="saleConfirmText">—</div>
-      <div class="modal-actions">
-        <button class="btn-cancel" style="width:auto;" onclick="hideSaleConfirm()">Cancel</button>
-        <button class="btn-primary" style="width:auto;" onclick="finalizeCloseBidding()">Confirm Sale</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="undoBar" class="undo-bar" style="display:none;">
-    <div id="undoBarText">Sale completed</div>
-    <button class="btn-sm" onclick="undoLastSale()">Undo Sale</button>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="budget-warning.js"></script>
-  <script src="standings_teamname.js"></script>
+  <script src="standings.js"></script>
   <script>
     if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
 
-    let allCaptains = [], allPlayers = [], allMatches = [], allGoals = [], currentPlayerId = null, bidState = null;
-    function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
-    let pendingMatchId = null;
-    let selectedFixtureId = null;
-    let lastSale = null;
-    let undoTimer = null;
-    let pendingGoals = [], pendingHomeId = null, pendingAwayId = null, pendingHS = 0, pendingAS = 0;
-    const TABS = ['auction-control','overview','players','matches','standings','stats','schedule'];
+    let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], currentPlayerId=null, bidState=null;
+    let pendingMatchId=null;
+    const TABS = ['overview','players','bidding','console','matches','standings','stats','schedule'];
 
     function switchTab(tab) {
-      TABS.forEach(t => document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none');
-      document.querySelectorAll('.tab').forEach((el, i) => el.classList.toggle('active', TABS[i] === tab));
+      TABS.forEach(t => document.getElementById('tab-'+t).style.display = t===tab?'block':'none');
+      document.querySelectorAll('.tab').forEach((el,i) => el.classList.toggle('active', TABS[i]===tab));
     }
 
     async function loadData() {
       const [capRes, playRes, bidRes, matchRes, goalRes] = await Promise.all([
         db.from('captains').select('*').order('group_name').order('name'),
         db.from('players').select('*').order('group_name').order('name'),
-        db.from('bidding_state').select('*').eq('id', 1).single(),
+        db.from('bidding_state').select('*').eq('id',1).single(),
         db.from('matches').select('*').order('created_at'),
         db.from('goals').select('*')
       ]);
-
-      if (capRes.error) {
-        document.getElementById('overviewMsg').textContent = 'DB error: ' + capRes.error.message;
-        return;
-      }
-
-      allCaptains = capRes.data || [];
-      allPlayers = playRes.data || [];
-      allMatches = matchRes.data || [];
-      allGoals = goalRes.data || [];
+      if (capRes.error) { document.getElementById('overviewMsg').textContent='DB error: '+capRes.error.message; return; }
+      allCaptains     = capRes.data  || [];
+      allPlayers      = playRes.data || [];
+      allMatches      = matchRes.data || [];
+      allGoals        = goalRes.data || [];
       currentPlayerId = bidRes.data?.player_id || null;
-      bidState = bidRes.data || null;
-
-      renderAuctionControl();
+      bidState        = bidRes.data || null;
       renderOverview();
       renderPlayersList();
+      renderAssignedList();
       populateConsoleDropdowns();
       populateBiddingDropdown();
+      renderBiddingPreview();
       populateMatchDropdowns();
-      renderFixtures();
       renderMatchesList();
       renderStandings();
       renderStats();
       renderSchedule();
     }
 
-    function renderAuctionControl() {
-      renderLiveAuctionCard();
-      renderCaptainStatus();
-      renderRecentSales();
-    }
-
-    function renderLiveAuctionCard() {
-      const live = document.getElementById('liveBidStatus');
-      const empty = document.getElementById('liveBidEmpty');
-      const player = allPlayers.find(p => p.id === currentPlayerId);
-
-      if (!player || player.is_sold) {
-        live.style.display = 'none';
-        empty.style.display = 'block';
-        return;
-      }
-
-      live.style.display = 'block';
-      empty.style.display = 'none';
-
-      const currentBid = bidState?.current_bid || player.base_price;
-      const currentBidder = bidState?.current_bidder_id
-        ? allCaptains.find(c => c.id === bidState.current_bidder_id)
-        : null;
-
-      document.getElementById('liveBidPlayerName').textContent = player.name;
-      document.getElementById('liveBidMeta').textContent = `Group ${player.group_name} · Base ${player.base_price} pts`;
-      document.getElementById('liveBidAmount').textContent = currentBid.toLocaleString();
-      document.getElementById('liveBidder').textContent = currentBidder ? displayCaptainName(currentBidder) : 'No bids yet';
-
-      const afterEl = document.getElementById('liveBidWalletAfter');
-      if (currentBidder) {
-        const afterWallet = Math.max(0, (currentBidder.wallet || 0) - currentBid);
-        afterEl.textContent = `Wallet after sale: ${afterWallet.toLocaleString()} pts`;
-      } else {
-        afterEl.textContent = '';
-      }
-
-      const pill = document.getElementById('auctionStatusPill');
-      pill.className = 'auction-status-pill';
-      if (!bidState?.current_bidder_id) {
-        pill.textContent = 'Live';
-        pill.classList.add('live');
-      } else if (bidState?.bid_locked) {
-        pill.textContent = 'Locked';
-        pill.classList.add('locked');
-      } else {
-        pill.textContent = 'Ready to close';
-        pill.classList.add('ready');
-      }
-    }
-
-    function renderCaptainStatus() {
-      const wrap = document.getElementById('captainStatusList');
-      if (!allCaptains.length) {
-        wrap.innerHTML = '<div class="text-muted">No captains found.</div>';
-        return;
-      }
-
-      wrap.innerHTML = allCaptains.map(c => {
-        const bought = allPlayers.filter(p => p.captain_id === c.id && p.is_sold).length;
-        return `
-          <div class="captain-status-row">
-            <div class="captain-status-top">
-              <div class="captain-status-name">${displayCaptainName(c)}</div>
-              <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.75rem;color:var(--muted)">pts</span></div>
-            </div>
-            <div class="captain-status-meta">${bought}/4 players bought</div>
-            ${warningBadgeHtml(c.wallet, bought)}
-          </div>`;
-      }).join('');
-    }
-
-    function renderRecentSales() {
-      const wrap = document.getElementById('recentSalesList');
-      const sold = allPlayers.filter(p => p.is_sold);
-
-      const sessionSale = lastSale
-        ? [{
-            id: `session-${lastSale.playerId}`,
-            name: lastSale.playerName,
-            captain_id: lastSale.captainId,
-            sold_price: lastSale.soldPrice,
-            created_at: new Date().toISOString()
-          }]
-        : [];
-
-      const rows = [...sessionSale, ...sold]
-        .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
-        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-        .slice(0, 5);
-
-      if (!rows.length) {
-        wrap.innerHTML = '<div class="text-muted">No completed sales yet.</div>';
-        return;
-      }
-
-      wrap.innerHTML = rows.map(p => {
-        const cap = allCaptains.find(c => c.id === p.captain_id);
-        return `
-          <div class="recent-sale-row">
-            <div style="font-weight:600;color:var(--text);">${p.name}</div>
-            <div class="captain-status-meta">${cap ? displayCaptainName(cap) : '—'} · ${p.sold_price || 0} pts</div>
-          </div>`;
-      }).join('');
-    }
-
-    function hideSaleConfirm() {
-      document.getElementById('saleConfirmModal').style.display = 'none';
-    }
-
-    function confirmCloseBidding() {
-      if (!currentPlayerId) return;
-
-      const player = allPlayers.find(p => p.id === currentPlayerId);
-      if (!player) return;
-
-      const currentBid = bidState?.current_bid || 0;
-      const currentBidderId = bidState?.current_bidder_id;
-      const text = document.getElementById('saleConfirmText');
-
-      if (!currentBidderId || currentBid === 0) {
-        text.innerHTML = `No bids were placed for <strong>${player.name}</strong>. Return player to pool?`;
-        document.getElementById('saleConfirmModal').style.display = 'flex';
-        return;
-      }
-
-      const captain = allCaptains.find(c => c.id === currentBidderId);
-      const afterWallet = Math.max(0, (captain?.wallet || 0) - currentBid);
-
-      text.innerHTML = `
-        <div><strong>Player:</strong> ${player.name}</div>
-        <div class="mt-8"><strong>Winner:</strong> ${captain ? displayCaptainName(captain) : '—'}</div>
-        <div class="mt-8"><strong>Sold Price:</strong> ${currentBid} pts</div>
-        <div class="mt-8"><strong>Wallet After Sale:</strong> ${afterWallet} pts</div>`;
-
-      document.getElementById('saleConfirmModal').style.display = 'flex';
-    }
-
-    async function finalizeCloseBidding() {
-      if (!currentPlayerId) return;
-
-      const msg = document.getElementById('closeMsg');
-      const currentBid = bidState?.current_bid || 0;
-      const currentBidderId = bidState?.current_bidder_id;
-      const player = allPlayers.find(p => p.id === currentPlayerId);
-
-      hideSaleConfirm();
-
-      if (!currentBidderId || currentBid === 0) {
-        await db.from('bidding_state').update({
-          player_id: null,
-          current_bid: 0,
-          current_bidder_id: null,
-          bid_locked: false,
-          updated_at: new Date().toISOString()
-        }).eq('id', 1);
-
-        msg.textContent = 'No bids — player returned to pool.';
-        setTimeout(() => msg.textContent = '', 3000);
-        loadData();
-        return;
-      }
-
-      const { data: freshCap } = await db.from('captains').select('wallet').eq('id', currentBidderId).single();
-      const captain = allCaptains.find(c => c.id === currentBidderId);
-      if (!captain && !freshCap) return;
-      const currentWallet = freshCap?.wallet ?? captain?.wallet ?? 0;
-
-      await db.from('players').update({
-        captain_id: currentBidderId,
-        sold_price: currentBid,
-        is_sold: true,
-        sold_at: new Date().toISOString()
-      }).eq('id', currentPlayerId);
-
-      await db.from('captains').update({ wallet: currentWallet - currentBid }).eq('id', currentBidderId);
-      await db.from('bidding_state').update({
-        player_id: null,
-        current_bid: 0,
-        current_bidder_id: null,
-        bid_locked: false,
-        updated_at: new Date().toISOString()
-      }).eq('id', 1);
-
-      lastSale = {
-        playerId: player.id,
-        playerName: player.name,
-        captainId: currentBidderId,
-        captainName: displayCaptainName(captain),
-        soldPrice: currentBid
-      };
-
-      showUndoBar();
-
-      msg.textContent = `✓ ${displayCaptainName(captain)} wins for ${currentBid} pts!`;
-      setTimeout(() => msg.textContent = '', 4000);
-      loadData();
-    }
-
-    function showUndoBar() {
-      if (!lastSale) return;
-      const bar = document.getElementById('undoBar');
-      const text = document.getElementById('undoBarText');
-      text.textContent = `Sold: ${lastSale.playerName} → ${lastSale.captainName} for ${lastSale.soldPrice} pts`;
-      bar.style.display = 'flex';
-      if (undoTimer) clearTimeout(undoTimer);
-      undoTimer = setTimeout(() => {
-        bar.style.display = 'none';
-        lastSale = null;
-      }, 10000);
-    }
-
-    async function undoLastSale() {
-      if (!lastSale) return;
-
-      const { data: fresh } = await db.from('captains').select('wallet').eq('id', lastSale.captainId).single();
-      const currentWallet = fresh?.wallet ?? allCaptains.find(c => c.id === lastSale.captainId)?.wallet ?? 0;
-
-      await db.from('players').update({
-        captain_id: null,
-        sold_price: null,
-        is_sold: false,
-        sold_at: null
-      }).eq('id', lastSale.playerId);
-
-      await db.from('captains').update({
-        wallet: currentWallet + lastSale.soldPrice
-      }).eq('id', lastSale.captainId);
-
-      document.getElementById('undoBar').style.display = 'none';
-      if (undoTimer) clearTimeout(undoTimer);
-      lastSale = null;
-      loadData();
-    }
-
+    // ── Overview ──
     function renderOverview() {
       const grid = document.getElementById('adminCaptainsGrid');
-      if (!allCaptains.length) { grid.innerHTML = '<div class="text-muted">No captains found.</div>'; return; }
+      if (!allCaptains.length) { grid.innerHTML='<div class="text-muted">No captains found.</div>'; return; }
       grid.innerHTML = allCaptains.map(c => {
-        const roster = allPlayers.filter(p => p.captain_id === c.id);
-        const spent = roster.reduce((s, p) => s + (p.sold_price || 0), 0);
-        const rHtml = roster.length
-          ? roster.map(p => `
+        const roster = allPlayers.filter(p => p.captain_id===c.id);
+        const spent  = roster.reduce((s,p)=>s+(p.sold_price||0),0);
+        const rHtml  = roster.length
+          ? roster.map(p=>`
               <div class="roster-player">
                 <span class="roster-player-name">${p.name}</span>
                 <div style="display:flex;align-items:center;gap:6px;">
@@ -727,7 +255,7 @@
             <div class="captain-card-header">
               <div style="width:100%;">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <div class="captain-name">${displayCaptainName(c)}</div>
+                  <div class="captain-name">${c.name}</div>
                   <span class="group-badge group-${c.group_name}">Group ${c.group_name}</span>
                 </div>
                 <div style="display:flex;gap:20px;margin-top:8px;">
@@ -743,378 +271,316 @@
       }).join('');
     }
 
+    // ── Players ──
     function renderPlayersList() {
-      const list = document.getElementById('playersList'), count = document.getElementById('playerCount');
-      const avail = allPlayers.filter(p => !p.is_sold).length;
-      count.textContent = `(${avail} available · ${allPlayers.length - avail} sold · ${allPlayers.length} total)`;
-      if (!allPlayers.length) { list.innerHTML = '<div class="text-muted">No players in pool yet.</div>'; return; }
+      const list=document.getElementById('playersList'), count=document.getElementById('playerCount');
+      const avail=allPlayers.filter(p=>!p.is_sold).length;
+      count.textContent=`(${avail} available · ${allPlayers.length-avail} sold · ${allPlayers.length} total)`;
+      if (!allPlayers.length) { list.innerHTML='<div class="text-muted">No players in pool yet.</div>'; return; }
       list.innerHTML = allPlayers.map(p => {
-        const cap = allCaptains.find(c => c.id === p.captain_id);
+        const cap=allCaptains.find(c=>c.id===p.captain_id);
         return `
           <div class="player-row">
             <span class="player-row-name">${p.name}</span>
             <select onchange="updatePlayerGroup('${p.id}', this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);width:auto;">
-              <option value="A" ${p.group_name === 'A' ? 'selected' : ''}>Group A</option>
-              <option value="B" ${p.group_name === 'B' ? 'selected' : ''}>Group B</option>
-              <option value="C" ${p.group_name === 'C' ? 'selected' : ''}>Group C</option>
+              <option value="A" ${p.group_name==='A'?'selected':''}>Group A</option>
+              <option value="B" ${p.group_name==='B'?'selected':''}>Group B</option>
+              <option value="C" ${p.group_name==='C'?'selected':''}>Group C</option>
             </select>
             <span class="player-row-meta">${p.base_price} pts base</span>
-            ${p.is_sold ? `<span class="sold-badge">Sold → ${cap ? displayCaptainName(cap) : '?'} · ${p.sold_price} pts</span>` : `<span class="unsold-badge">Available</span>`}
+            ${p.is_sold?`<span class="sold-badge">Sold → ${cap?cap.name:'?'} · ${p.sold_price} pts</span>`:`<span class="unsold-badge">Available</span>`}
             <div class="player-row-actions">
-              ${!p.is_sold ? `<button class="btn-sm" onclick="quickAssign('${p.id}')">Assign →</button>` : ''}
+              ${!p.is_sold?`<button class="btn-sm" onclick="quickAssign('${p.id}')">Assign →</button>`:''}
               <button class="btn-danger" onclick="deletePlayer('${p.id}')">Delete</button>
             </div>
           </div>`;
       }).join('');
     }
 
+    function renderAssignedList() {
+      const list=document.getElementById('assignedList');
+      const sold=allPlayers.filter(p=>p.is_sold);
+      if (!sold.length) { list.innerHTML='<div class="text-muted">No players assigned yet.</div>'; return; }
+      list.innerHTML = sold.map(p => {
+        const cap=allCaptains.find(c=>c.id===p.captain_id);
+        return `
+          <div class="player-row">
+            <span class="player-row-name">${p.name}</span>
+            <span class="group-badge group-${p.group_name}">Group ${p.group_name}</span>
+            <span class="player-row-meta">→ ${cap?cap.name:'?'}</span>
+            <span class="sold-badge">${p.sold_price} pts</span>
+            <div class="player-row-actions">
+              <button class="btn-danger" onclick="unassignPlayer('${p.id}','${p.captain_id}',${p.sold_price})">Unassign</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
     async function addPlayer() {
-      const name = document.getElementById('playerName').value.trim(), group = document.getElementById('playerGroup').value;
-      const msg = document.getElementById('playerMsg');
-      if (!name) { msg.textContent = 'Enter a player name.'; return; }
-      const basePrice = group === 'A' ? 200 : group === 'B' ? 100 : 50;
-      const { error } = await db.from('players').insert({ name, group_name: group, base_price: basePrice });
-      if (error) { msg.textContent = 'Error: ' + error.message; return; }
-      document.getElementById('playerName').value = '';
-      msg.textContent = `${name} added.`;
-      setTimeout(() => msg.textContent = '', 3000);
+      const name=document.getElementById('playerName').value.trim(), group=document.getElementById('playerGroup').value;
+      const msg=document.getElementById('playerMsg');
+      if (!name) { msg.textContent='Enter a player name.'; return; }
+      const basePrice=group==='A'?200:group==='B'?100:50;
+      const {error}=await db.from('players').insert({name,group_name:group,base_price:basePrice});
+      if (error) { msg.textContent='Error: '+error.message; return; }
+      document.getElementById('playerName').value='';
+      msg.textContent=`${name} added.`;
+      setTimeout(()=>msg.textContent='',3000);
       loadData();
     }
 
     async function deletePlayer(id) {
       if (!confirm('Delete this player?')) return;
-      await db.from('players').delete().eq('id', id);
+      await db.from('players').delete().eq('id',id);
       loadData();
     }
 
     async function updatePlayerGroup(id, newGroup) {
-      const basePrice = newGroup === 'A' ? 200 : newGroup === 'B' ? 100 : 50;
-      await db.from('players').update({ group_name: newGroup, base_price: basePrice }).eq('id', id);
+      const basePrice = newGroup==='A'?200:newGroup==='B'?100:50;
+      await db.from('players').update({group_name:newGroup, base_price:basePrice}).eq('id',id);
       loadData();
     }
 
+    // ── Bidding ──
     function populateBiddingDropdown() {
-      const sel = document.getElementById('biddingPlayer');
-      const cur = sel.value;
-      sel.innerHTML = '<option value="">Select player to go live...</option>' +
-        allPlayers.filter(p => !p.is_sold).map(p => `
-          <option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.name} · Group ${p.group_name} · ${p.base_price} pts</option>`).join('');
-      if (currentPlayerId) sel.value = currentPlayerId;
+      const sel=document.getElementById('biddingPlayer'), cur=sel.value;
+      sel.innerHTML='<option value="">— No player selected —</option>'+
+        allPlayers.filter(p=>!p.is_sold).map(p=>`<option value="${p.id}" ${p.id===cur?'selected':''}>${p.name}</option>`).join('');
+      if (currentPlayerId) sel.value=currentPlayerId;
+    }
+
+    function renderBiddingPreview() {
+      const status  = document.getElementById('liveBidStatus');
+      const nameEl  = document.getElementById('liveBidPlayerName');
+      const amountEl= document.getElementById('liveBidAmount');
+      const bidderEl= document.getElementById('liveBidder');
+
+      if (currentPlayerId) {
+        const p = allPlayers.find(x => x.id === currentPlayerId) ||
+                  { name: '...', base_price: 0 };
+        const currentBid    = bidState?.current_bid || p.base_price || 0;
+        const currentBidder = bidState?.current_bidder_id
+          ? allCaptains.find(c => c.id === bidState.current_bidder_id)
+          : null;
+        nameEl.textContent   = p.name || '...';
+        amountEl.textContent = currentBid.toLocaleString();
+        bidderEl.textContent = currentBidder ? currentBidder.name : 'No bids yet';
+        status.style.display = 'block';
+        return;
+      }
+      status.style.display = 'none';
+    }
+
+    async function closeBidding() {
+      if (!currentPlayerId) return;
+      const msg = document.getElementById('closeMsg');
+      const currentBid      = bidState?.current_bid || 0;
+      const currentBidderId = bidState?.current_bidder_id;
+
+      if (!currentBidderId || currentBid === 0) {
+        // No bids — just clear
+        await db.from('bidding_state').update({ player_id: null, current_bid: 0, current_bidder_id: null, bid_locked: false, updated_at: new Date().toISOString() }).eq('id', 1);
+        msg.textContent = 'No bids — player returned to pool.';
+        setTimeout(() => msg.textContent = '', 3000);
+        loadData(); return;
+      }
+
+      // Assign player to winning captain — fetch fresh wallet
+      const { data: freshCap } = await db.from('captains').select('wallet').eq('id', currentBidderId).single();
+      const captain = allCaptains.find(c => c.id === currentBidderId);
+      if (!captain && !freshCap) return;
+      const currentWallet = freshCap?.wallet ?? captain?.wallet ?? 0;
+      await db.from('players').update({ captain_id: currentBidderId, sold_price: currentBid, is_sold: true }).eq('id', currentPlayerId);
+      await db.from('captains').update({ wallet: currentWallet - currentBid }).eq('id', currentBidderId);
+      await db.from('bidding_state').update({ player_id: null, current_bid: 0, current_bidder_id: null, bid_locked: false, updated_at: new Date().toISOString() }).eq('id', 1);
+
+      msg.textContent = `✓ ${captain.name} wins for ${currentBid} pts!`;
+      setTimeout(() => msg.textContent = '', 4000);
+      loadData();
     }
 
     async function setBiddingPlayer() {
-      const pid = document.getElementById('biddingPlayer').value, msg = document.getElementById('biddingMsg');
-      if (!pid) { msg.textContent = 'Select a player first.'; return; }
+      const pid=document.getElementById('biddingPlayer').value, msg=document.getElementById('biddingMsg');
+      if (!pid) { msg.textContent='Select a player first.'; return; }
       await db.from('bidding_state').update({
-        player_id: pid,
-        current_bid: 0,
-        current_bidder_id: null,
-        bid_locked: false,
-        updated_at: new Date().toISOString()
-      }).eq('id', 1);
-      msg.textContent = 'Player set live!';
-      setTimeout(() => msg.textContent = '', 3000);
-      loadData();
+        player_id:pid,
+        current_bid:0,
+        current_bidder_id:null,
+        bid_locked:false,
+        updated_at:new Date().toISOString()
+      }).eq('id',1);
+      msg.textContent='Player set live!'; setTimeout(()=>msg.textContent='',3000); loadData();
     }
 
     async function clearBiddingPlayer() {
-      await db.from('bidding_state').update({
-        player_id: null,
-        current_bid: 0,
-        current_bidder_id: null,
-        bid_locked: false,
-        updated_at: new Date().toISOString()
-      }).eq('id', 1);
-      document.getElementById('biddingMsg').textContent = 'Cleared.';
-      setTimeout(() => document.getElementById('biddingMsg').textContent = '', 2000);
-      loadData();
+      await db.from('bidding_state').update({player_id:null,updated_at:new Date().toISOString()}).eq('id',1);
+      document.getElementById('biddingMsg').textContent='Cleared.';
+      setTimeout(()=>document.getElementById('biddingMsg').textContent='',2000); loadData();
     }
 
+    // ── Console ──
     function populateConsoleDropdowns() {
-      const pSel = document.getElementById('consolePlayer'), cSel = document.getElementById('consoleCaptain');
-      const cur_p = pSel.value, cur_c = cSel.value;
-      pSel.innerHTML = '<option value="">Select player...</option>' +
-        allPlayers.filter(p => !p.is_sold).map(p => `
-          <option value="${p.id}" ${p.id === cur_p ? 'selected' : ''}>${p.name} · Group ${p.group_name}</option>`).join('');
-      cSel.innerHTML = '<option value="">Select captain...</option>' +
-        allCaptains.map(c => `
-          <option value="${c.id}" ${c.id === cur_c ? 'selected' : ''}>${displayCaptainName(c)} · ${c.wallet.toLocaleString()} pts left</option>`).join('');
+      const pSel=document.getElementById('consolePlayer'), cSel=document.getElementById('consoleCaptain');
+      const cur_p=pSel.value, cur_c=cSel.value;
+      pSel.innerHTML='<option value="">Select player...</option>'+
+        allPlayers.filter(p=>!p.is_sold).map(p=>`<option value="${p.id}" ${p.id===cur_p?'selected':''}>${p.name} · Group ${p.group_name}</option>`).join('');
+      cSel.innerHTML='<option value="">Select captain...</option>'+
+        allCaptains.map(c=>`<option value="${c.id}" ${c.id===cur_c?'selected':''}>${c.name} · ${c.wallet.toLocaleString()} pts left</option>`).join('');
     }
 
-    function quickAssign(playerId) {
-      switchTab('auction-control');
-      setTimeout(() => {
-        document.getElementById('consolePlayer').value = playerId;
-      }, 50);
-    }
+    function quickAssign(playerId) { switchTab('console'); setTimeout(()=>{ document.getElementById('consolePlayer').value=playerId; },50); }
 
     function updateConsoleWarning() {
-      const captainId = document.getElementById('consoleCaptain').value, warn = document.getElementById('consoleWarning');
-      if (!captainId) { warn.innerHTML = ''; return; }
-      const captain = allCaptains.find(c => c.id === captainId);
-      const bought = allPlayers.filter(p => p.captain_id === captainId && p.is_sold).length;
-      warn.innerHTML = warningBadgeHtml(captain.wallet, bought);
+      const captainId=document.getElementById('consoleCaptain').value, warn=document.getElementById('consoleWarning');
+      if (!captainId) { warn.innerHTML=''; return; }
+      const captain=allCaptains.find(c=>c.id===captainId);
+      const bought=allPlayers.filter(p=>p.captain_id===captainId&&p.is_sold).length;
+      warn.innerHTML=warningBadgeHtml(captain.wallet,bought);
     }
 
     async function doAssign() {
-      const playerId = document.getElementById('consolePlayer').value, captainId = document.getElementById('consoleCaptain').value;
-      const price = parseInt(document.getElementById('consolePrice').value), msg = document.getElementById('consoleMsg');
-      if (!playerId || !captainId || isNaN(price) || price < 0) { msg.textContent = 'Fill all fields.'; return; }
-      const captain = allCaptains.find(c => c.id === captainId);
-      if (price > captain.wallet) { msg.textContent = `${displayCaptainName(captain)} only has ${captain.wallet} pts left.`; return; }
-
-      await db.from('players').update({
-        captain_id: captainId,
-        sold_price: price,
-        is_sold: true,
-        sold_at: new Date().toISOString()
-      }).eq('id', playerId);
-
-      await db.from('captains').update({ wallet: captain.wallet - price }).eq('id', captainId);
-      if (playerId === currentPlayerId) {
-        await db.from('bidding_state').update({
-          player_id: null,
-          current_bid: 0,
-          current_bidder_id: null,
-          bid_locked: false,
-          updated_at: new Date().toISOString()
-        }).eq('id', 1);
-      }
-
-      lastSale = {
-        playerId,
-        playerName: allPlayers.find(p => p.id === playerId)?.name || 'Player',
-        captainId,
-        captainName: displayCaptainName(captain),
-        soldPrice: price
-      };
-      showUndoBar();
-
-      document.getElementById('consolePlayer').value = '';
-      document.getElementById('consoleCaptain').value = '';
-      document.getElementById('consolePrice').value = '';
-      msg.textContent = 'Player assigned!';
-      setTimeout(() => msg.textContent = '', 3000);
-      loadData();
+      const playerId=document.getElementById('consolePlayer').value, captainId=document.getElementById('consoleCaptain').value;
+      const price=parseInt(document.getElementById('consolePrice').value), msg=document.getElementById('consoleMsg');
+      if (!playerId||!captainId||isNaN(price)||price<0) { msg.textContent='Fill all fields.'; return; }
+      const captain=allCaptains.find(c=>c.id===captainId);
+      if (price>captain.wallet) { msg.textContent=`${captain.name} only has ${captain.wallet} pts left.`; return; }
+      await db.from('players').update({captain_id:captainId,sold_price:price,is_sold:true}).eq('id',playerId);
+      await db.from('captains').update({wallet:captain.wallet-price}).eq('id',captainId);
+      if (playerId===currentPlayerId) await db.from('bidding_state').update({player_id:null,updated_at:new Date().toISOString()}).eq('id',1);
+      document.getElementById('consolePlayer').value='';
+      document.getElementById('consoleCaptain').value='';
+      document.getElementById('consolePrice').value='';
+      msg.textContent='Player assigned!'; setTimeout(()=>msg.textContent='',3000); loadData();
     }
 
-    async function unassignPlayer(playerId, captainId, soldPrice) {
+    async function unassignPlayer(playerId,captainId,soldPrice) {
       if (!confirm('Unassign this player and refund the points?')) return;
-      const { data: fresh } = await db.from('captains').select('wallet').eq('id', captainId).single();
-      const currentWallet = fresh?.wallet ?? allCaptains.find(c => c.id === captainId)?.wallet ?? 0;
-      await db.from('players').update({ captain_id: null, sold_price: null, is_sold: false, sold_at: null }).eq('id', playerId);
-      await db.from('captains').update({ wallet: currentWallet + soldPrice }).eq('id', captainId);
+      // Always fetch fresh wallet to avoid stale data
+      const { data: fresh } = await db.from('captains').select('wallet').eq('id',captainId).single();
+      const currentWallet = fresh?.wallet ?? allCaptains.find(c=>c.id===captainId)?.wallet ?? 0;
+      await db.from('players').update({captain_id:null,sold_price:null,is_sold:false}).eq('id',playerId);
+      await db.from('captains').update({wallet:currentWallet+soldPrice}).eq('id',captainId);
       loadData();
     }
 
+    // ── Matches ──
     function populateMatchDropdowns() {
-      const home = document.getElementById('matchHome'), away = document.getElementById('matchAway');
-      const currentHome = home.value, currentAway = away.value;
-      const opts = '<option value="">Select team...</option>' + allCaptains.map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
-      home.innerHTML = opts; away.innerHTML = opts;
-      if (currentHome) home.value = currentHome;
-      if (currentAway) away.value = currentAway;
-    }
-
-    function computeFixtureSeeds() {
-      const rows = computeStandings(allCaptains, allMatches);
-      const groupOne = rows.filter(r => r.captain.tournament_group === '1');
-      const groupTwo = rows.filter(r => r.captain.tournament_group === '2');
-      return {
-        QF1: { home: groupOne[1]?.captain || null, away: groupTwo[2]?.captain || null, label: 'QF1 · G1 2nd vs G2 3rd' },
-        QF2: { home: groupTwo[1]?.captain || null, away: groupOne[2]?.captain || null, label: 'QF2 · G2 2nd vs G1 3rd' },
-        SF1: { home: groupOne[0]?.captain || null, away: null, label: 'SF1 · G1 1st vs QF1 Winner' },
-        SF2: { home: groupTwo[0]?.captain || null, away: null, label: 'SF2 · G2 1st vs QF2 Winner' },
-        Final: { home: null, away: null, label: 'Final · Winner SF1 vs Winner SF2' }
-      };
-    }
-
-    function renderFixtures() {
-      const grid = document.getElementById('fixtureGrid');
-      const upcoming = allMatches.filter(m => !m.played);
-      if (!upcoming.length) {
-        grid.innerHTML = '<div class="text-muted">No upcoming fixtures loaded yet.</div>';
-        return;
-      }
-      grid.innerHTML = upcoming.map(m => {
-        const h = allCaptains.find(c => c.id === m.home_captain_id);
-        const a = allCaptains.find(c => c.id === m.away_captain_id);
-        const label = m.is_knockout ? (m.knockout_label || 'Knockout') : ((h?.tournament_group || a?.tournament_group) ? `Group ${h?.tournament_group || a?.tournament_group}` : 'League');
-        return `<div class="fixture-card" onclick="loadFixture('${m.id}')">
-          <div class="fixture-label">${label}</div>
-          <div class="fixture-teamline">${h ? displayCaptainName(h) : 'TBD'} vs ${a ? displayCaptainName(a) : 'TBD'}</div>
-          <div class="fixture-meta">Click to load into score entry</div>
-        </div>`;
-      }).join('');
-    }
-
-    function loadFixture(matchId) {
-      const match = allMatches.find(m => m.id === matchId);
-      if (!match) return;
-      selectedFixtureId = matchId;
-      document.getElementById('matchType').value = match.is_knockout ? (match.knockout_label || 'league') : 'league';
-      populateMatchDropdowns();
-      document.getElementById('matchHome').value = match.home_captain_id || '';
-      document.getElementById('matchAway').value = match.away_captain_id || '';
-      document.getElementById('matchHomeScore').value = '';
-      document.getElementById('matchAwayScore').value = '';
-      document.getElementById('matchPrefillHint').textContent = 'Fixture loaded. Enter the score, then add scorers and MVP.';
-      toggleMatchType();
-    }
-
-    function resetMatchForm() {
-      selectedFixtureId = null;
-      document.getElementById('matchType').value = 'league';
-      document.getElementById('matchHome').value = '';
-      document.getElementById('matchAway').value = '';
-      document.getElementById('matchHomeScore').value = '';
-      document.getElementById('matchAwayScore').value = '';
-      document.getElementById('matchPrefillHint').textContent = '';
-      selectedFixtureId = null;
-      document.getElementById('matchPrefillHint').textContent = '';
-      document.getElementById('matchMsg').textContent = '';
+      const home=document.getElementById('matchHome'), away=document.getElementById('matchAway');
+      const opts='<option value="">Select team...</option>'+allCaptains.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      home.innerHTML=opts; away.innerHTML=opts;
     }
 
     function toggleMatchType() {
-      const matchType = document.getElementById('matchType').value;
-      const hint = document.getElementById('matchPrefillHint');
-      if (matchType === 'league') {
-        hint.textContent = selectedFixtureId ? 'Loaded from existing league fixture.' : 'Pick a fixture above or enter teams manually.';
-        return;
-      }
-
-      const seeds = computeFixtureSeeds()[matchType];
-      if (!selectedFixtureId && seeds) {
-        if (seeds.home) document.getElementById('matchHome').value = seeds.home.id;
-        if (seeds.away) document.getElementById('matchAway').value = seeds.away.id;
-        hint.textContent = seeds.home && seeds.away
-          ? `${seeds.label} prefilled from current standings.`
-          : `${seeds.label}. Teams will unlock as earlier rounds finish.`;
-      }
+      // Could pre-fill teams for knockouts in future — for now just a label
     }
 
+    let pendingGoals=[], pendingHomeId=null, pendingAwayId=null, pendingHS=0, pendingAS=0;
+
     async function saveMatch() {
-      const homeId = document.getElementById('matchHome').value, awayId = document.getElementById('matchAway').value;
-      const hs = parseInt(document.getElementById('matchHomeScore').value), as_ = parseInt(document.getElementById('matchAwayScore').value);
-      const matchType = document.getElementById('matchType').value;
-      const msg = document.getElementById('matchMsg');
-      if (!homeId || !awayId || isNaN(hs) || isNaN(as_)) { msg.textContent = 'Fill all fields.'; return; }
-      if (homeId === awayId) { msg.textContent = 'Home and away must be different teams.'; return; }
+      const homeId=document.getElementById('matchHome').value, awayId=document.getElementById('matchAway').value;
+      const hs=parseInt(document.getElementById('matchHomeScore').value), as_=parseInt(document.getElementById('matchAwayScore').value);
+      const matchType=document.getElementById('matchType').value;
+      const msg=document.getElementById('matchMsg');
+      if (!homeId||!awayId||isNaN(hs)||isNaN(as_)) { msg.textContent='Fill all fields.'; return; }
+      if (homeId===awayId) { msg.textContent='Home and away must be different teams.'; return; }
 
       const isKnockout = matchType !== 'league';
       const knockoutLabel = isKnockout ? matchType : null;
 
-      let data, error;
-      if (selectedFixtureId) {
-        ({ data, error } = await db.from('matches').update({
-          home_captain_id: homeId, away_captain_id: awayId,
-          home_score: hs, away_score: as_, played: false,
-          is_knockout: isKnockout, knockout_label: knockoutLabel
-        }).eq('id', selectedFixtureId).select().single());
-      } else {
-        ({ data, error } = await db.from('matches').insert({
-          home_captain_id: homeId, away_captain_id: awayId,
-          home_score: hs, away_score: as_, played: false,
-          is_knockout: isKnockout, knockout_label: knockoutLabel
-        }).select().single());
-      }
-      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+      const {data,error}=await db.from('matches').insert({
+        home_captain_id:homeId, away_captain_id:awayId,
+        home_score:hs, away_score:as_, played:false,
+        is_knockout:isKnockout, knockout_label:knockoutLabel
+      }).select().single();
+      if (error) { msg.textContent='Error: '+error.message; return; }
 
-      pendingMatchId = data.id; pendingHomeId = homeId; pendingAwayId = awayId; pendingHS = hs; pendingAS = as_;
-      pendingGoals = [];
+      pendingMatchId=data.id; pendingHomeId=homeId; pendingAwayId=awayId; pendingHS=hs; pendingAS=as_;
+      pendingGoals=[];
 
-      const totalGoals = hs + as_;
-      const homeCap = allCaptains.find(c => c.id === homeId), awayCap = allCaptains.find(c => c.id === awayId);
-      msg.textContent = `${displayCaptainName(homeCap)} ${hs} – ${as_} ${displayCaptainName(awayCap)} · Now add ${totalGoals} goal scorer(s).`;
+      const totalGoals=hs+as_;
+      const homeCap=allCaptains.find(c=>c.id===homeId), awayCap=allCaptains.find(c=>c.id===awayId);
+      msg.textContent=`${homeCap.name} ${hs} – ${as_} ${awayCap.name} · Now add ${totalGoals} goal scorer(s).`;
 
-      const teamSel = document.getElementById('scorerTeam');
-      teamSel.innerHTML = `<option value="${homeId}">${displayCaptainName(homeCap)}</option><option value="${awayId}">${displayCaptainName(awayCap)}</option>`;
+      const teamSel=document.getElementById('scorerTeam');
+      teamSel.innerHTML=`<option value="${homeId}">${homeCap.name}</option><option value="${awayId}">${awayCap.name}</option>`;
       updateScorerPlayers();
       populateMvpDropdown();
-      document.getElementById('goalScorerSection').style.display = 'block';
-      document.getElementById('goalsList').innerHTML = '';
+      document.getElementById('goalScorerSection').style.display='block';
+      document.getElementById('goalsList').innerHTML='';
     }
 
     function updateScorerPlayers() {
-      const teamId = document.getElementById('scorerTeam').value;
-      const pSel = document.getElementById('scorerPlayer');
-      const teamPlayers = allPlayers.filter(p => p.captain_id === teamId);
-      pSel.innerHTML = '<option value="">Select player...</option>' + teamPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      const teamId=document.getElementById('scorerTeam').value;
+      const pSel=document.getElementById('scorerPlayer');
+      const teamPlayers=allPlayers.filter(p=>p.captain_id===teamId);
+      pSel.innerHTML='<option value="">Select player...</option>'+teamPlayers.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
     }
 
     function addGoal() {
-      const pid = document.getElementById('scorerPlayer').value, tid = document.getElementById('scorerTeam').value;
-      const msg = document.getElementById('scorerMsg');
-      if (!pid) { msg.textContent = 'Select a player.'; return; }
-      pendingGoals.push({ player_id: pid, captain_id: tid, match_id: pendingMatchId });
+      const pid=document.getElementById('scorerPlayer').value, tid=document.getElementById('scorerTeam').value;
+      const msg=document.getElementById('scorerMsg');
+      if (!pid) { msg.textContent='Select a player.'; return; }
+      const player=allPlayers.find(p=>p.id===pid), cap=allCaptains.find(c=>c.id===tid);
+      pendingGoals.push({player_id:pid,captain_id:tid,match_id:pendingMatchId});
       renderPendingGoals();
-      msg.textContent = '';
-      document.getElementById('scorerPlayer').value = '';
+      msg.textContent=''; document.getElementById('scorerPlayer').value='';
     }
 
     function renderPendingGoals() {
       document.getElementById('goalsList').innerHTML = pendingGoals.length
-        ? pendingGoals.map((g, i) => {
-            const p = allPlayers.find(x => x.id === g.player_id), c = allCaptains.find(x => x.id === g.captain_id);
+        ? pendingGoals.map((g,i)=>{
+            const p=allPlayers.find(x=>x.id===g.player_id), c=allCaptains.find(x=>x.id===g.captain_id);
             return `<div class="player-row" style="padding:8px 12px;">
-              <span>⚽ ${p ? p.name : '?'}</span>
-              <span class="player-row-meta">${c ? displayCaptainName(c) : '?'}</span>
+              <span>⚽ ${p?p.name:'?'}</span>
+              <span class="player-row-meta">${c?c.name:'?'}</span>
               <button class="btn-danger" onclick="removeGoal(${i})">✕</button>
             </div>`;
           }).join('')
         : '<div class="text-muted" style="padding:8px 0;">No goals added yet.</div>';
     }
 
-    function removeGoal(i) { pendingGoals.splice(i, 1); renderPendingGoals(); }
+    function removeGoal(i) { pendingGoals.splice(i,1); renderPendingGoals(); }
 
     async function finalizeMatch() {
       if (!pendingMatchId) return;
       if (pendingGoals.length) {
-        const { error } = await db.from('goals').insert(pendingGoals);
-        if (error) { alert('Error saving goals: ' + error.message); return; }
+        const {error}=await db.from('goals').insert(pendingGoals);
+        if (error) { alert('Error saving goals: '+error.message); return; }
       }
-      const mvpId = document.getElementById('mvpPlayer').value || null;
-      await db.from('matches').update({ played: true, mvp_player_id: mvpId }).eq('id', pendingMatchId);
-      pendingMatchId = null; pendingGoals = [];
-      selectedFixtureId = null;
-      document.getElementById('goalScorerSection').style.display = 'none';
-      document.getElementById('matchHome').value = '';
-      document.getElementById('matchAway').value = '';
-      document.getElementById('matchHomeScore').value = '';
-      document.getElementById('matchAwayScore').value = '';
-      document.getElementById('matchMsg').textContent = 'Match saved!';
-      setTimeout(() => document.getElementById('matchMsg').textContent = '', 3000);
+      const mvpId=document.getElementById('mvpPlayer').value||null;
+      await db.from('matches').update({played:true, mvp_player_id:mvpId}).eq('id',pendingMatchId);
+      pendingMatchId=null; pendingGoals=[];
+      document.getElementById('goalScorerSection').style.display='none';
+      document.getElementById('matchHome').value='';
+      document.getElementById('matchAway').value='';
+      document.getElementById('matchHomeScore').value='';
+      document.getElementById('matchAwayScore').value='';
+      document.getElementById('matchMsg').textContent='Match saved!';
+      setTimeout(()=>document.getElementById('matchMsg').textContent='',3000);
       loadData();
     }
 
     async function cancelMatch() {
-      if (pendingMatchId) await db.from('matches').delete().eq('id', pendingMatchId);
-      pendingMatchId = null; pendingGoals = [];
-      selectedFixtureId = null;
-      document.getElementById('goalScorerSection').style.display = 'none';
-      selectedFixtureId = null;
-      document.getElementById('matchPrefillHint').textContent = '';
-      document.getElementById('matchMsg').textContent = '';
+      if (pendingMatchId) await db.from('matches').delete().eq('id',pendingMatchId);
+      pendingMatchId=null; pendingGoals=[];
+      document.getElementById('goalScorerSection').style.display='none';
+      document.getElementById('matchMsg').textContent='';
     }
 
     function renderMatchesList() {
-      const list = document.getElementById('matchesList');
-      const played = allMatches.filter(m => m.played);
-      if (!played.length) { list.innerHTML = '<div class="text-muted">No matches played yet.</div>'; return; }
-      list.innerHTML = [...played].reverse().map(m => {
-        const h = allCaptains.find(c => c.id === m.home_captain_id), a = allCaptains.find(c => c.id === m.away_captain_id);
-        const mGoals = allGoals.filter(g => g.match_id === m.id);
-        const scorers = mGoals.map(g => {
-          const p = allPlayers.find(x => x.id === g.player_id); return p ? p.name : '?';
-        }).join(', ');
-        const label = m.is_knockout ? (m.knockout_label || 'Knockout') : `Group ${h?.tournament_group || a?.tournament_group || '—'}`;
+      const list=document.getElementById('matchesList');
+      const played=allMatches.filter(m=>m.played);
+      if (!played.length) { list.innerHTML='<div class="text-muted">No matches played yet.</div>'; return; }
+      list.innerHTML=[...played].reverse().map(m=>{
+        const h=allCaptains.find(c=>c.id===m.home_captain_id), a=allCaptains.find(c=>c.id===m.away_captain_id);
+        const mGoals=allGoals.filter(g=>g.match_id===m.id);
+        const scorers=mGoals.map(g=>{const p=allPlayers.find(x=>x.id===g.player_id);return p?p.name:'?';}).join(', ');
         return `
           <div class="player-row" style="flex-wrap:wrap;gap:8px;">
-            <span class="unsold-badge">${label}</span>
-            <span style="font-weight:500;">${h ? displayCaptainName(h) : '?'} <span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.home_score}</span></span>
+            <span style="font-weight:500;">${h?h.name:'?'} <span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.home_score}</span></span>
             <span style="color:var(--muted);">–</span>
-            <span style="font-weight:500;"><span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.away_score}</span> ${a ? displayCaptainName(a) : '?'}</span>
-            ${scorers ? `<span class="player-row-meta" style="width:100%;margin-top:2px;">⚽ ${scorers}</span>` : ''}
+            <span style="font-weight:500;"><span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.away_score}</span> ${a?a.name:'?'}</span>
+            ${scorers?`<span class="player-row-meta" style="width:100%;margin-top:2px;">⚽ ${scorers}</span>`:''}
             <div class="player-row-actions">
               <button class="btn-danger" onclick="deleteMatch('${m.id}')">Delete</button>
             </div>
@@ -1124,44 +590,46 @@
 
     async function deleteMatch(id) {
       if (!confirm('Delete this match result?')) return;
-      await db.from('goals').delete().eq('match_id', id);
-      await db.from('matches').delete().eq('id', id);
+      await db.from('goals').delete().eq('match_id',id);
+      await db.from('matches').delete().eq('id',id);
       loadData();
     }
 
+    // ── Standings & Stats ──
     function renderStandings() {
-      document.getElementById('standingsTable').innerHTML = standingsTableHtml(allCaptains, allMatches);
+      document.getElementById('standingsTable').innerHTML=standingsTableHtml(allCaptains,allMatches);
     }
 
     function renderStats() {
-      const scorers = computeTopScorers(allPlayers, allGoals, allCaptains);
-      document.getElementById('topScorers').innerHTML = topScorersHtml(scorers);
-      const mvps = computeMvpLeaderboard(allPlayers, allMatches);
-      document.getElementById('mvpLeaderboard').innerHTML = mvpLeaderboardHtml(mvps, allMatches, allPlayers, allCaptains);
+      const scorers=computeTopScorers(allPlayers,allGoals,allCaptains);
+      document.getElementById('topScorers').innerHTML=topScorersHtml(scorers);
+      const mvps=computeMvpLeaderboard(allPlayers,allMatches);
+      document.getElementById('mvpLeaderboard').innerHTML=mvpLeaderboardHtml(mvps,allMatches,allPlayers,allCaptains);
     }
 
     function renderSchedule() {
       const rows = computeStandings(allCaptains, allMatches);
-      document.getElementById('adminSchedule').innerHTML = matchScheduleHtml(allMatches, allCaptains, allPlayers, rows);
+      document.getElementById('adminSchedule').innerHTML=matchScheduleHtml(allMatches,allCaptains,allPlayers,rows);
     }
 
     function populateMvpDropdown() {
-      const sel = document.getElementById('mvpPlayer');
+      const sel=document.getElementById('mvpPlayer');
       if (!sel) return;
-      const teamPlayers = allPlayers.filter(p => p.captain_id === pendingHomeId || p.captain_id === pendingAwayId);
-      sel.innerHTML = '<option value="">Select MVP (optional)...</option>' +
-        teamPlayers.map(p => {
-          const cap = allCaptains.find(c => c.id === p.captain_id);
-          return `<option value="${p.id}">${p.name} (${cap ? displayCaptainName(cap) : '?'})</option>`;
+      const teamPlayers=allPlayers.filter(p=>p.captain_id===pendingHomeId||p.captain_id===pendingAwayId);
+      sel.innerHTML='<option value="">Select MVP (optional)...</option>'+
+        teamPlayers.map(p=>{
+          const cap=allCaptains.find(c=>c.id===p.captain_id);
+          return `<option value="${p.id}">${p.name} (${cap?cap.name:'?'})</option>`;
         }).join('');
     }
 
+    // ── Realtime ──
     db.channel('bpl-admin')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bidding_state' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' }, loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'bidding_state'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'matches'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'goals'},loadData)
       .subscribe();
 
     loadData();
