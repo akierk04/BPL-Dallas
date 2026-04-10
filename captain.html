@@ -15,6 +15,13 @@
   <link rel="stylesheet" href="style.css" />
   <style>
     .captain-layout { display:flex; flex-direction:column; gap:20px; }
+    .status-ribbon{display:flex;gap:10px;flex-wrap:wrap;}
+    .status-pill{padding:8px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--border);font-size:12px;color:var(--muted);}
+    .status-pill strong{color:var(--text);}
+    details.captains-collapse{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+    details.captains-collapse summary{cursor:pointer;list-style:none;font-family:var(--font-display);letter-spacing:0.06em;color:var(--text);font-size:1.15rem;}
+    details.captains-collapse summary::-webkit-details-marker{display:none;}
+    .captains-collapse-copy{margin-top:6px;font-size:12px;color:var(--muted);} 
 
     .sold-banner {
       display:none;
@@ -412,6 +419,9 @@
       document.getElementById('nextBidStat').textContent = nextBid.toLocaleString();
       document.getElementById('safeSpendStat').textContent = `${safeSpend.toLocaleString()} pts`;
       document.getElementById('playersLeftStat').textContent = `${remainingSlots}`;
+      document.getElementById('ribbonWallet').textContent = `${me ? me.wallet.toLocaleString() : '—'} pts`;
+      document.getElementById('ribbonSlots').textContent = `${remainingSlots}`;
+      document.getElementById('ribbonSafe').textContent = `${safeSpend.toLocaleString()} pts`; 
 
       const panelCard = document.getElementById('bidPanelCard');
       const winLine = document.getElementById('winningLine');
@@ -570,7 +580,7 @@
       if (highestSale > 0) lines.push(`Highest sale so far is <span>${highestSale} pts</span>.`);
       if (!lines.length) lines.push('Auction room is warming up.');
 
-      el.innerHTML = lines[0];
+      el.innerHTML = lines.slice(0,3).map(line => `<div class="story-line">${line}</div>`).join('');
     }
 
     function renderRecentSales() {
