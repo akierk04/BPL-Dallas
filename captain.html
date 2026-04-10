@@ -425,9 +425,12 @@
       document.getElementById('nextBidStat').textContent = nextBid.toLocaleString();
       document.getElementById('safeSpendStat').textContent = `${safeSpend.toLocaleString()} pts`;
       document.getElementById('playersLeftStat').textContent = `${remainingSlots}`;
-      document.getElementById('ribbonWallet').textContent = `${me ? me.wallet.toLocaleString() : '—'} pts`;
-      document.getElementById('ribbonSlots').textContent = `${remainingSlots}`;
-      document.getElementById('ribbonSafe').textContent = `${safeSpend.toLocaleString()} pts`; 
+      const ribbonWallet = document.getElementById('ribbonWallet');
+      const ribbonSlots  = document.getElementById('ribbonSlots');
+      const ribbonSafe   = document.getElementById('ribbonSafe');
+      if (ribbonWallet) ribbonWallet.textContent = `${me ? me.wallet.toLocaleString() : '—'} pts`;
+      if (ribbonSlots)  ribbonSlots.textContent  = `${remainingSlots}`;
+      if (ribbonSafe)   ribbonSafe.textContent   = `${safeSpend.toLocaleString()} pts`;
 
       const panelCard = document.getElementById('bidPanelCard');
       const winLine = document.getElementById('winningLine');
