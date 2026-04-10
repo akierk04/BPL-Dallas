@@ -14,59 +14,147 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <style>
+    .captain-layout { display:flex; flex-direction:column; gap:20px; }
+
+    .sold-banner {
+      display:none;
+      background: linear-gradient(135deg, rgba(62,207,142,0.14), rgba(62,207,142,0.05));
+      border: 1px solid rgba(62,207,142,0.35);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+    }
+    .sold-banner-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--green); margin-bottom: 6px;
+    }
+    .sold-banner-text { color: var(--text); font-weight: 600; font-size: 14px; }
+
     .bid-panel {
       background: linear-gradient(135deg, rgba(240,192,64,0.12), rgba(240,192,64,0.04));
       border: 1px solid rgba(240,192,64,0.5);
       border-radius: var(--radius-lg);
       padding: 20px;
-      margin-bottom: 20px;
+      margin-bottom: 0;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    }
+    .bid-panel.is-winning {
+      border-color: rgba(62,207,142,0.55);
+      box-shadow: 0 0 0 1px rgba(62,207,142,0.18), 0 10px 30px rgba(62,207,142,0.08);
+    }
+    .bid-panel.is-winning::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(62,207,142,0.06), transparent 45%);
+      pointer-events: none;
+    }
+    .bid-top {
+      display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom: 10px;
     }
     .bid-panel-label {
       font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;
       color: var(--accent); margin-bottom: 6px;
     }
     .bid-player-name {
-      font-family: var(--font-display); font-size: 2.2rem;
-      letter-spacing: 0.06em; color: var(--text); line-height: 1; margin-bottom: 4px;
+      font-family: var(--font-display); font-size: 2.4rem;
+      letter-spacing: 0.06em; color: var(--text); line-height: 1; margin-bottom: 6px;
     }
-    .bid-base-price { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+    .bid-base-price { font-size: 12px; color: var(--muted); }
+    .bid-status-pill {
+      font-size: 11px; font-weight: 600; padding: 6px 10px; border-radius: 999px;
+      border: 1px solid var(--border); color: var(--muted); background: var(--surface2); white-space: nowrap;
+    }
+    .bid-status-pill.live { color: var(--accent); border-color: rgba(240,192,64,0.32); background: rgba(240,192,64,0.10); }
+    .bid-status-pill.locked { color: var(--red); border-color: rgba(224,90,43,0.32); background: rgba(224,90,43,0.10); }
+    .bid-status-pill.winning { color: var(--green); border-color: rgba(62,207,142,0.35); background: rgba(62,207,142,0.12); }
+
     .bid-current {
-      display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px;
+      display: flex; align-items: end; justify-content: space-between; gap: 14px; margin: 16px 0 14px; flex-wrap: wrap;
     }
     .bid-current-amount {
-      font-family: var(--font-display); font-size: 2.5rem; color: var(--accent);
+      font-family: var(--font-display); font-size: 3rem; color: var(--accent); line-height: 1;
     }
-    .bid-current-label { font-size: 12px; color: var(--muted); }
-    .bid-current-bidder { font-size: 13px; color: var(--text); font-weight: 500; }
+    .bid-current-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+    .bid-current-bidder { font-size: 15px; color: var(--text); font-weight: 600; margin-top: 4px; }
+    .my-bid-badge {
+      display: inline-block; background: rgba(62,207,142,0.15);
+      color: var(--green); font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 4px; margin-left: 6px;
+    }
+    .winning-line {
+      display:none; margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--green);
+    }
+    .winning-line.show { display:block; }
+
+    .bid-stats {
+      display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px;
+    }
+    .bid-stat {
+      background: rgba(0,0,0,0.16); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 12px 12px;
+    }
+    .bid-stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+    .bid-stat-value { color: var(--text); font-weight: 600; font-size: 14px; }
+    .bid-stat-value.emph { font-family: var(--font-display); font-size: 1.35rem; color: var(--accent); line-height: 1; }
+
     .btn-raise {
-      width: 100%; padding: 16px; border-radius: var(--radius);
-      font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.08em;
+      width: 100%; padding: 18px; border-radius: var(--radius);
+      font-family: var(--font-display); font-size: 1.35rem; letter-spacing: 0.08em;
       border: none; cursor: pointer; transition: all 0.15s;
+      position: sticky; bottom: 10px; z-index: 20;
     }
     .btn-raise-active { background: var(--accent); color: #0a0a0a; }
     .btn-raise-active:hover { opacity: 0.9; }
-    .btn-raise-active:active { transform: scale(0.98); }
+    .btn-raise-active:active { transform: scale(0.985); }
     .btn-raise-locked { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
     .btn-raise-blocked { background: rgba(224,90,43,0.15); color: var(--red); cursor: not-allowed; border: 1px solid rgba(224,90,43,0.3); }
-    .bid-warning { font-size: 12px; margin-top: 10px; text-align: center; color: var(--muted); }
+    .bid-warning { font-size: 12px; margin-top: 10px; text-align: center; color: var(--muted); min-height: 18px; }
+
     .bid-timer {
       display: flex; align-items: center; justify-content: center;
-      gap: 8px; margin-top: 12px;
+      gap: 8px; margin-top: 14px;
     }
     .timer-bar-wrap {
-      flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden;
+      flex: 1; height: 5px; background: var(--surface2); border-radius: 999px; overflow: hidden;
     }
     .timer-bar { height: 100%; background: var(--accent); transition: width 1s linear; }
     .timer-text { font-size: 12px; color: var(--muted); min-width: 28px; text-align: right; }
+    .timer-urgent .timer-text { color: var(--red); font-weight: 700; }
+
     .waiting-panel {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius-lg); padding: 20px; text-align: center;
-      margin-bottom: 20px; color: var(--muted); font-size: 13px;
+      margin-bottom: 0; color: var(--muted); font-size: 13px;
     }
-    .my-bid-badge {
-      display: inline-block; background: rgba(240,192,64,0.15);
-      color: var(--accent); font-size: 11px; font-weight: 600;
-      padding: 2px 8px; border-radius: 4px; margin-left: 6px;
+
+    .insight-grid {
+      display:grid; grid-template-columns: 1.2fr 1fr; gap: 20px;
+    }
+    .story-card, .recent-sales-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px;
+    }
+    .story-title, .recent-sales-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px;
+    }
+    .story-line { font-size: 14px; color: var(--text); line-height: 1.5; }
+    .story-line span { color: var(--accent); font-weight: 600; }
+    .recent-sale-row {
+      padding: 10px 0; border-bottom: 0.5px solid var(--border);
+    }
+    .recent-sale-row:last-child { border-bottom: none; }
+    .recent-sale-name { font-weight: 600; color: var(--text); font-size: 14px; }
+    .recent-sale-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    @media (max-width: 800px) {
+      .insight-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .bid-player-name { font-size: 2rem; }
+      .bid-current-amount { font-size: 2.45rem; }
+      .bid-stats { grid-template-columns: 1fr; }
+      .bid-top { flex-direction: column; }
+      .btn-raise { font-size: 1.2rem; padding: 16px; bottom: 8px; }
     }
   </style>
 </head>
@@ -79,29 +167,72 @@
     </div>
   </nav>
 
-  <div class="page">
+  <div class="page captain-layout">
+    <div id="justSoldBanner" class="sold-banner">
+      <div class="sold-banner-label">Just Sold</div>
+      <div id="justSoldText" class="sold-banner-text">—</div>
+    </div>
+
     <!-- Live Bidding Panel -->
     <div id="biddingPanel" style="display:none;">
-      <div class="bid-panel">
-        <div class="bid-panel-label">⚡ Live Bidding</div>
-        <div class="bid-player-name" id="bidPlayerName">—</div>
-        <div class="bid-base-price" id="bidBasePrice"></div>
-        <div class="bid-current">
-          <div class="bid-current-amount" id="bidCurrentAmount">0</div>
+      <div id="bidPanelCard" class="bid-panel">
+        <div class="bid-top">
           <div>
+            <div class="bid-panel-label">⚡ Live Bidding</div>
+            <div class="bid-player-name" id="bidPlayerName">—</div>
+            <div class="bid-base-price" id="bidBasePrice"></div>
+          </div>
+          <div id="bidStatusPill" class="bid-status-pill live">Live Auction</div>
+        </div>
+
+        <div class="bid-current">
+          <div>
+            <div class="bid-current-amount" id="bidCurrentAmount">0</div>
             <div class="bid-current-label">current bid</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="bid-current-label">highest bidder</div>
             <div class="bid-current-bidder" id="bidCurrentBidder">—</div>
+            <div id="winningLine" class="winning-line">🟢 You are winning</div>
           </div>
         </div>
+
+        <div class="bid-stats">
+          <div class="bid-stat">
+            <div class="bid-stat-label">Next Bid</div>
+            <div id="nextBidStat" class="bid-stat-value emph">—</div>
+          </div>
+          <div class="bid-stat">
+            <div class="bid-stat-label">Safe to Spend</div>
+            <div id="safeSpendStat" class="bid-stat-value">—</div>
+          </div>
+          <div class="bid-stat">
+            <div class="bid-stat-label">Players Left</div>
+            <div id="playersLeftStat" class="bid-stat-value">—</div>
+          </div>
+        </div>
+
         <button class="btn-raise" id="raiseBtn" onclick="placeBid()">—</button>
         <div class="bid-warning" id="bidWarning"></div>
-        <div class="bid-timer">
+        <div id="bidTimerWrap" class="bid-timer">
           <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar"></div></div>
           <div class="timer-text" id="timerText">20</div>
         </div>
       </div>
     </div>
+
     <div id="waitingPanel" class="waiting-panel">Waiting for next player to be presented...</div>
+
+    <div class="insight-grid">
+      <div class="story-card">
+        <div class="story-title">Live Storyline</div>
+        <div id="captainStory" class="story-line">Auction room is warming up.</div>
+      </div>
+      <div class="recent-sales-card">
+        <div class="recent-sales-title">Recent Sales</div>
+        <div id="captainRecentSales"></div>
+      </div>
+    </div>
 
     <!-- My Wallet -->
     <div class="wallet-hero">
@@ -113,7 +244,7 @@
 
     <!-- My Team -->
     <div class="section-title">My Team</div>
-    <div class="captain-card" style="margin-bottom:24px;">
+    <div class="captain-card" style="margin-bottom:4px;">
       <div class="team-roster" id="myRoster"></div>
     </div>
 
@@ -134,11 +265,10 @@
     let allCaptains = [], allPlayers = [], bidState = null;
     let timerInterval = null, timerSeconds = 20;
 
-    // ── Load all data ──
     async function loadData() {
       const [capRes, playRes, bidRes] = await Promise.all([
         db.from('captains').select('*').order('name'),
-        db.from('players').select('*').eq('is_sold', true),
+        db.from('players').select('*').order('name'),
         db.from('bidding_state').select('*').eq('id', 1).single()
       ]);
       allCaptains = capRes.data || [];
@@ -147,141 +277,168 @@
 
       const me = allCaptains.find(c => c.id === user.id);
       if (me) {
-        // Update user wallet from DB (always fresh)
         user.wallet = me.wallet;
-        const myBought = allPlayers.filter(p => p.captain_id === me.id).length;
+        const myBought = allPlayers.filter(p => p.captain_id === me.id && p.is_sold).length;
         document.getElementById('myWalletAmount').textContent = me.wallet.toLocaleString() + ' pts';
-        document.getElementById('myWalletName').textContent   = me.name + ' · Group ' + me.group_name;
+        document.getElementById('myWalletName').textContent   = `${me.name} · Group ${me.group_name}`;
         document.getElementById('myWarning').innerHTML        = warningBadgeHtml(me.wallet, myBought);
       }
 
+      renderBidPanel();
+      renderStoryline();
+      renderRecentSales();
+      renderJustSold();
       renderRoster();
       renderCaptainsGrid();
-      renderBidPanel();
     }
 
-    // ── Bid panel ──
     function renderBidPanel() {
-      const panel   = document.getElementById('biddingPanel');
+      const panel = document.getElementById('biddingPanel');
       const waiting = document.getElementById('waitingPanel');
 
       if (!bidState?.player_id) {
-        panel.style.display   = 'none';
+        panel.style.display = 'none';
         waiting.style.display = 'block';
         clearTimer();
         return;
       }
 
-      // Find player — need to fetch from all players (not just sold)
-      fetchCurrentPlayer(bidState.player_id);
-    }
-
-    async function fetchCurrentPlayer(playerId) {
-      const { data: player } = await db.from('players').select('*').eq('id', playerId).single();
+      const player = allPlayers.find(p => p.id === bidState.player_id);
       if (!player || player.is_sold) {
-        document.getElementById('biddingPanel').style.display = 'none';
-        document.getElementById('waitingPanel').style.display = 'block';
+        panel.style.display = 'none';
+        waiting.style.display = 'block';
         clearTimer();
         return;
       }
 
-      document.getElementById('biddingPanel').style.display = 'block';
-      document.getElementById('waitingPanel').style.display = 'none';
+      panel.style.display = 'block';
+      waiting.style.display = 'none';
 
-      document.getElementById('bidPlayerName').textContent = player.name;
-      document.getElementById('bidBasePrice').textContent  = `Base price: ${player.base_price} pts`;
-
-      const currentBid    = bidState.current_bid || player.base_price;
+      const currentBid = bidState.current_bid || player.base_price;
       const currentBidder = bidState.current_bidder_id
         ? allCaptains.find(c => c.id === bidState.current_bidder_id)
         : null;
+      const me = allCaptains.find(c => c.id === user.id);
+      const myBought = allPlayers.filter(p => p.captain_id === user.id && p.is_sold).length;
+      const safeSpend = me ? budgetWarning(me.wallet, myBought).safe : 0;
+      const nextBid = currentBid + 50;
+      const remainingSlots = Math.max(0, 4 - myBought);
       const isMyBid = bidState.current_bidder_id === user.id;
 
+      document.getElementById('bidPlayerName').textContent = player.name;
+      document.getElementById('bidBasePrice').textContent = `Group ${player.group_name} · Base price ${player.base_price} pts`;
       document.getElementById('bidCurrentAmount').textContent = currentBid.toLocaleString();
-      document.getElementById('bidCurrentBidder').innerHTML   = currentBidder
+      document.getElementById('bidCurrentBidder').innerHTML = currentBidder
         ? `${currentBidder.name}${isMyBid ? '<span class="my-bid-badge">You</span>' : ''}`
         : 'No bids yet';
+
+      document.getElementById('nextBidStat').textContent = nextBid.toLocaleString();
+      document.getElementById('safeSpendStat').textContent = `${safeSpend.toLocaleString()} pts`;
+      document.getElementById('playersLeftStat').textContent = `${remainingSlots}`;
+
+      const panelCard = document.getElementById('bidPanelCard');
+      const winLine = document.getElementById('winningLine');
+      panelCard.classList.toggle('is-winning', isMyBid);
+      winLine.classList.toggle('show', isMyBid);
+
+      const statusPill = document.getElementById('bidStatusPill');
+      statusPill.className = 'bid-status-pill';
+      if (isMyBid) {
+        statusPill.textContent = 'You Are Leading';
+        statusPill.classList.add('winning');
+      } else if (bidState?.bid_locked) {
+        statusPill.textContent = 'Bid Locked';
+        statusPill.classList.add('locked');
+      } else {
+        statusPill.textContent = 'Live Auction';
+        statusPill.classList.add('live');
+      }
 
       updateRaiseButton(currentBid, player.base_price);
       startTimer();
     }
 
     function updateRaiseButton(currentBid, basePrice) {
-      const btn     = document.getElementById('raiseBtn');
+      const btn = document.getElementById('raiseBtn');
       const warning = document.getElementById('bidWarning');
-      const me      = allCaptains.find(c => c.id === user.id);
+      const me = allCaptains.find(c => c.id === user.id);
       if (!me) return;
 
-      const nextBid    = (currentBid || basePrice) + 50;
-      const myBought   = allPlayers.filter(p => p.captain_id === user.id).length;
-      const safeSpend  = budgetWarning(me.wallet, myBought).safe;
-      const isLocked   = bidState?.bid_locked && bidState.current_bidder_id !== user.id;
+      const nextBid = (currentBid || basePrice) + 50;
+      const myBought = allPlayers.filter(p => p.captain_id === user.id && p.is_sold).length;
+      const safeSpend = budgetWarning(me.wallet, myBought).safe;
+      const isLocked = bidState?.bid_locked && bidState.current_bidder_id !== user.id;
+      const isAlreadyLeading = bidState?.current_bidder_id === user.id;
+
+      if (isAlreadyLeading) {
+        btn.textContent = 'You Are Leading';
+        btn.className = 'btn-raise btn-raise-locked';
+        btn.disabled = true;
+        warning.textContent = 'Hold your spot. Another captain needs to raise to beat this bid.';
+        return;
+      }
 
       if (isLocked) {
         btn.textContent = 'Bidding...';
-        btn.className   = 'btn-raise btn-raise-locked';
-        btn.disabled    = true;
+        btn.className = 'btn-raise btn-raise-locked';
+        btn.disabled = true;
         warning.textContent = '';
         return;
       }
 
       if (me.wallet < nextBid) {
-        btn.textContent = `Insufficient funds`;
-        btn.className   = 'btn-raise btn-raise-blocked';
-        btn.disabled    = true;
-        warning.textContent = `Your wallet (${me.wallet} pts) is below the next bid (${nextBid} pts)`;
+        btn.textContent = 'Insufficient Funds';
+        btn.className = 'btn-raise btn-raise-blocked';
+        btn.disabled = true;
+        warning.textContent = `Your wallet (${me.wallet} pts) is below the next bid (${nextBid} pts).`;
         return;
       }
 
       if (nextBid > safeSpend) {
         btn.textContent = `⛔ Raise Bid — ${nextBid} pts`;
-        btn.className   = 'btn-raise btn-raise-blocked';
-        btn.disabled    = true;
-        warning.textContent = `Not enough safe budget. You need to reserve pts for your remaining players. (Safe to spend: ${safeSpend} pts)`;
+        btn.className = 'btn-raise btn-raise-blocked';
+        btn.disabled = true;
+        warning.textContent = `Not enough safe budget. You need to reserve points for your remaining players. Safe to spend: ${safeSpend} pts.`;
         return;
       }
 
       btn.textContent = `Raise Bid — ${nextBid} pts`;
-      btn.className   = 'btn-raise btn-raise-active';
-      btn.disabled    = false;
+      btn.className = 'btn-raise btn-raise-active';
+      btn.disabled = false;
       warning.textContent = '';
     }
 
-    // ── Place bid ──
     async function placeBid() {
       const me = allCaptains.find(c => c.id === user.id);
       if (!me || !bidState?.player_id) return;
 
-      const { data: player } = await db.from('players').select('*').eq('id', bidState.player_id).single();
-      if (!player) return;
+      const player = allPlayers.find(p => p.id === bidState.player_id);
+      if (!player || player.is_sold) return;
 
       const currentBid = bidState.current_bid || player.base_price;
-      const nextBid    = currentBid + 50;
-      const myBought   = allPlayers.filter(p => p.captain_id === user.id).length;
-      const safeSpend  = budgetWarning(me.wallet, myBought).safe;
+      const nextBid = currentBid + 50;
+      const myBought = allPlayers.filter(p => p.captain_id === user.id && p.is_sold).length;
+      const safeSpend = budgetWarning(me.wallet, myBought).safe;
 
-      if (me.wallet < nextBid || nextBid > safeSpend) return;
+      if (me.wallet < nextBid || nextBid > safeSpend || bidState?.current_bidder_id === user.id) return;
 
-      // Lock immediately
-      document.getElementById('raiseBtn').disabled  = true;
-      document.getElementById('raiseBtn').textContent = 'Placing bid...';
-      document.getElementById('raiseBtn').className = 'btn-raise btn-raise-locked';
+      const btn = document.getElementById('raiseBtn');
+      btn.disabled = true;
+      btn.textContent = 'Placing bid...';
+      btn.className = 'btn-raise btn-raise-locked';
 
-      // Set lock + update bid
       await db.from('bidding_state').update({
-        bid_locked:          true,
-        current_bid:         nextBid,
-        current_bidder_id:   user.id,
-        updated_at:          new Date().toISOString()
+        bid_locked: true,
+        current_bid: nextBid,
+        current_bidder_id: user.id,
+        updated_at: new Date().toISOString()
       }).eq('id', 1);
 
-      // Release lock after 3 seconds
       setTimeout(async () => {
         await db.from('bidding_state').update({ bid_locked: false }).eq('id', 1);
       }, 3000);
     }
 
-    // ── Timer ──
     function startTimer() {
       clearTimer();
       timerSeconds = 20;
@@ -300,14 +457,80 @@
     }
 
     function updateTimerDisplay() {
+      const wrap = document.getElementById('bidTimerWrap');
       document.getElementById('timerText').textContent = timerSeconds;
-      document.getElementById('timerBar').style.width  = (timerSeconds / 20 * 100) + '%';
+      document.getElementById('timerBar').style.width = (timerSeconds / 20 * 100) + '%';
       document.getElementById('timerBar').style.background = timerSeconds <= 5 ? 'var(--red)' : timerSeconds <= 10 ? 'var(--groupB)' : 'var(--accent)';
+      wrap.classList.toggle('timer-urgent', timerSeconds <= 5);
     }
 
-    // ── Roster ──
+    function renderStoryline() {
+      const el = document.getElementById('captainStory');
+      const sold = allPlayers.filter(p => p.is_sold);
+      const highestSale = sold.reduce((max, p) => Math.max(max, p.sold_price || 0), 0);
+      const me = allCaptains.find(c => c.id === user.id);
+      const myRoster = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
+
+      const lines = [];
+      if (bidState?.player_id) {
+        const p = allPlayers.find(x => x.id === bidState.player_id);
+        const bidder = bidState?.current_bidder_id ? allCaptains.find(c => c.id === bidState.current_bidder_id) : null;
+        const currentBid = bidState?.current_bid || p?.base_price || 0;
+        if (p && bidder) lines.push(`<span>${p.name}</span> is live at <span>${currentBid} pts</span>, led by <span>${bidder.name}</span>.`);
+        else if (p) lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${p.base_price} pts</span>.`);
+      }
+      if (me) {
+        const safe = budgetWarning(me.wallet, myRoster.length).safe;
+        lines.push(`You have <span>${me.wallet} pts</span> left with <span>${Math.max(0, 4 - myRoster.length)}</span> slots to fill.`);
+        lines.push(`Your current safe spend is <span>${safe} pts</span>.`);
+      }
+      if (highestSale > 0) lines.push(`Highest sale so far is <span>${highestSale} pts</span>.`);
+      if (!lines.length) lines.push('Auction room is warming up.');
+
+      el.innerHTML = lines[0];
+    }
+
+    function renderRecentSales() {
+      const wrap = document.getElementById('captainRecentSales');
+      const sold = allPlayers
+        .filter(p => p.is_sold)
+        .sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))
+        .slice(0, 4);
+
+      if (!sold.length) {
+        wrap.innerHTML = '<div class="text-muted">No completed sales yet.</div>';
+        return;
+      }
+
+      wrap.innerHTML = sold.map(p => {
+        const cap = allCaptains.find(c => c.id === p.captain_id);
+        return `
+          <div class="recent-sale-row">
+            <div class="recent-sale-name">${p.name}</div>
+            <div class="recent-sale-meta">${cap ? cap.name : '—'} · ${p.sold_price || 0} pts</div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderJustSold() {
+      const banner = document.getElementById('justSoldBanner');
+      const text = document.getElementById('justSoldText');
+      const latest = [...allPlayers]
+        .filter(p => p.is_sold)
+        .sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))[0];
+
+      if (!latest) {
+        banner.style.display = 'none';
+        return;
+      }
+
+      const cap = allCaptains.find(c => c.id === latest.captain_id);
+      text.textContent = `${latest.name} sold to ${cap ? cap.name : '—'} for ${latest.sold_price || 0} pts`;
+      banner.style.display = 'block';
+    }
+
     function renderRoster() {
-      const myPlayers = allPlayers.filter(p => p.captain_id === user.id);
+      const myPlayers = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
       document.getElementById('myRoster').innerHTML = myPlayers.length
         ? myPlayers.map(p => `
             <div class="roster-player">
@@ -317,11 +540,10 @@
         : '<div class="roster-empty">No players yet</div>';
     }
 
-    // ── All captains grid ──
     function renderCaptainsGrid() {
       const grid = document.getElementById('captainsGrid');
       grid.innerHTML = allCaptains.filter(c => c.id !== user.id).map(c => {
-        const bought = allPlayers.filter(p => p.captain_id === c.id);
+        const bought = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
         const rosterHtml = bought.length
           ? bought.map(p => `
               <div class="roster-player">
@@ -344,7 +566,6 @@
       }).join('');
     }
 
-    // ── Realtime ──
     db.channel('bpl-captain')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
