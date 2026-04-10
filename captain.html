@@ -274,6 +274,7 @@
     if (!user || sessionStorage.getItem('bpl_role') !== 'captain') window.location.href = 'index.html';
     document.getElementById('navName').textContent = user.name;
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
+    function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
 
     let allCaptains = [], allPlayers = [], bidState = null;
     let timerInterval = null, timerSeconds = 20;
@@ -310,7 +311,7 @@
           const cap = allCaptains.find(c => c.id === p.captain_id);
           lastSoldEvent = {
             player: p.name,
-            captain: cap ? cap.name : '—',
+            captain: cap ? displayCaptainName(cap) : '—',
             price: p.sold_price || 0,
             at: Date.now(),
             key: `${p.id}:${p.captain_id || ''}:${p.sold_price || 0}:${p.sold_at || ''}`
@@ -340,7 +341,7 @@
         user.wallet = me.wallet;
         const myBought = allPlayers.filter(p => p.captain_id === me.id && p.is_sold).length;
         document.getElementById('myWalletAmount').textContent = me.wallet.toLocaleString() + ' pts';
-        document.getElementById('myWalletName').textContent   = `${me.name} · Group ${me.group_name}`;
+        document.getElementById('myWalletName').textContent   = `${displayCaptainName(me)} · Group ${me.group_name}`;
         document.getElementById('myWarning').innerHTML        = warningBadgeHtml(me.wallet, myBought);
       }
 
@@ -413,7 +414,7 @@
       document.getElementById('bidBasePrice').textContent = `Group ${player.group_name} · Base price ${player.base_price} pts`;
       document.getElementById('bidCurrentAmount').textContent = currentBid.toLocaleString();
       document.getElementById('bidCurrentBidder').innerHTML = currentBidder
-        ? `${currentBidder.name}${isMyBid ? '<span class="my-bid-badge">You</span>' : ''}`
+        ? `${displayCaptainName(currentBidder)}${isMyBid ? '<span class="my-bid-badge">You</span>' : ''}`
         : 'No bids yet';
 
       document.getElementById('nextBidStat').textContent = nextBid.toLocaleString();
@@ -569,7 +570,7 @@
         const p = allPlayers.find(x => x.id === bidState.player_id);
         const bidder = bidState?.current_bidder_id ? allCaptains.find(c => c.id === bidState.current_bidder_id) : null;
         const currentBid = bidState?.current_bid || p?.base_price || 0;
-        if (p && bidder) lines.push(`<span>${p.name}</span> is live at <span>${currentBid} pts</span>, led by <span>${bidder.name}</span>.`);
+        if (p && bidder) lines.push(`<span>${p.name}</span> is live at <span>${currentBid} pts</span>, led by <span>${displayCaptainName(bidder)}</span>.`);
         else if (p) lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${p.base_price} pts</span>.`);
       }
       if (me) {
@@ -600,7 +601,7 @@
         return `
           <div class="recent-sale-row">
             <div class="recent-sale-name">${p.name}</div>
-            <div class="recent-sale-meta">${cap ? cap.name : '—'} · ${p.sold_price || 0} pts</div>
+            <div class="recent-sale-meta">${cap ? displayCaptainName(cap) : '—'} · ${p.sold_price || 0} pts</div>
           </div>`;
       }).join('');
     }
@@ -623,7 +624,7 @@
         return;
       }
 
-      const capName = lastSoldEvent ? lastSoldEvent.captain : ((allCaptains.find(c => c.id === latest.captain_id) || {}).name || '—');
+      const capName = lastSoldEvent ? lastSoldEvent.captain : (displayCaptainName(allCaptains.find(c => c.id === latest.captain_id)));
       text.textContent = `${latest.name} sold to ${capName} for ${latest.sold_price || 0} pts`;
       banner.style.display = 'block';
     }
@@ -654,7 +655,7 @@
           <div class="captain-card">
             <div class="captain-card-header">
               <div style="width:100%;">
-                <div class="captain-name">${c.name}</div>
+                <div class="captain-name">${displayCaptainName(c)}</div>
                 <div class="captain-wallet-label">Purse</div>
                 <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.8rem;color:var(--muted)">pts</span></div>
                 ${warningBadgeHtml(c.wallet, bought.length)}
