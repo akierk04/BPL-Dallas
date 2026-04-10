@@ -49,6 +49,12 @@
       background: linear-gradient(135deg, rgba(62,207,142,0.06), transparent 45%);
       pointer-events: none;
     }
+    .bid-pulse { animation: bidPulse 0.45s ease; }
+    @keyframes bidPulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 rgba(240,192,64,0); }
+      50% { transform: scale(1.01); box-shadow: 0 0 28px rgba(240,192,64,0.25); }
+      100% { transform: scale(1); box-shadow: 0 0 0 rgba(240,192,64,0); }
+    }
     .bid-top {
       display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom: 10px;
     }
@@ -264,6 +270,50 @@
 
     let allCaptains = [], allPlayers = [], bidState = null;
     let timerInterval = null, timerSeconds = 20;
+    let previousBidValue = 0, previousBidPlayerId = null, previousSoldKey = '', countdownPlayed = false;
+    let previousSoldState = new Map(), lastSoldEvent = null, audioUnlocked = false;
+    const sounds = {
+      bid: new Audio('sounds/bid.mp3'),
+      sold: new Audio('sounds/sold.mp3'),
+      countdown: new Audio('sounds/countdown.mp3')
+    };
+    Object.values(sounds).forEach(sound => { sound.preload = 'auto'; sound.volume = 0.9; });
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+      Object.values(sounds).forEach(sound => {
+        sound.play().then(() => {
+          sound.pause();
+          sound.currentTime = 0;
+        }).catch(() => {});
+      });
+    }
+    function playSound(type) {
+      if (!audioUnlocked || !sounds[type]) return;
+      try {
+        sounds[type].pause();
+        sounds[type].currentTime = 0;
+        sounds[type].play().catch(() => {});
+      } catch (e) {}
+    }
+    function detectSoldTransition(nextPlayers) {
+      for (const p of nextPlayers) {
+        const prev = previousSoldState.get(p.id);
+        if (p.is_sold && (!prev || !prev.is_sold || prev.captain_id !== p.captain_id || prev.sold_price !== p.sold_price)) {
+          const cap = allCaptains.find(c => c.id === p.captain_id);
+          lastSoldEvent = {
+            player: p.name,
+            captain: cap ? cap.name : '—',
+            price: p.sold_price || 0,
+            at: Date.now(),
+            key: `${p.id}:${p.captain_id || ''}:${p.sold_price || 0}:${p.sold_at || ''}`
+          };
+        }
+      }
+      previousSoldState = new Map(nextPlayers.map(p => [p.id, { is_sold: p.is_sold, captain_id: p.captain_id, sold_price: p.sold_price }]));
+    }
+    document.addEventListener('click', unlockAudio, { once: true });
+    document.addEventListener('touchstart', unlockAudio, { once: true });
 
     async function loadData() {
       const [capRes, playRes, bidRes] = await Promise.all([
@@ -272,8 +322,11 @@
         db.from('bidding_state').select('*').eq('id', 1).single()
       ]);
       allCaptains = capRes.data || [];
+      detectSoldTransition(playRes.data || []);
       allPlayers  = playRes.data || [];
       bidState    = bidRes.data;
+
+      handleAuctionDrama();
 
       const me = allCaptains.find(c => c.id === user.id);
       if (me) {
@@ -290,6 +343,30 @@
       renderJustSold();
       renderRoster();
       renderCaptainsGrid();
+    }
+
+
+    function triggerBidPulse() {
+      const el = document.getElementById('bidPanelCard');
+      if (!el) return;
+      el.classList.remove('bid-pulse');
+      void el.offsetWidth;
+      el.classList.add('bid-pulse');
+    }
+
+    function handleAuctionDrama() {
+      const activePlayerId = bidState?.player_id || null;
+      const currentBid = bidState?.current_bid || 0;
+      if (activePlayerId && previousBidPlayerId === activePlayerId && currentBid > previousBidValue) {
+        playSound('bid');
+        triggerBidPulse();
+      }
+      if (lastSoldEvent?.key && lastSoldEvent.key !== previousSoldKey) {
+        playSound('sold');
+        previousSoldKey = lastSoldEvent.key;
+      }
+      previousBidValue = currentBid;
+      previousBidPlayerId = activePlayerId;
     }
 
     function renderBidPanel() {
@@ -442,6 +519,7 @@
     function startTimer() {
       clearTimer();
       timerSeconds = 20;
+      countdownPlayed = false;
       updateTimerDisplay();
       timerInterval = setInterval(() => {
         timerSeconds--;
@@ -453,6 +531,7 @@
     function clearTimer() {
       if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
       timerSeconds = 20;
+      countdownPlayed = false;
       updateTimerDisplay();
     }
 
@@ -462,6 +541,10 @@
       document.getElementById('timerBar').style.width = (timerSeconds / 20 * 100) + '%';
       document.getElementById('timerBar').style.background = timerSeconds <= 5 ? 'var(--red)' : timerSeconds <= 10 ? 'var(--groupB)' : 'var(--accent)';
       wrap.classList.toggle('timer-urgent', timerSeconds <= 5);
+      if (timerSeconds === 5 && !countdownPlayed) {
+        playSound('countdown');
+        countdownPlayed = true;
+      }
     }
 
     function renderStoryline() {
@@ -515,17 +598,23 @@
     function renderJustSold() {
       const banner = document.getElementById('justSoldBanner');
       const text = document.getElementById('justSoldText');
-      const latest = [...allPlayers]
-        .filter(p => p.is_sold)
-        .sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))[0];
+      const latest = lastSoldEvent
+        ? {
+            name: lastSoldEvent.player,
+            sold_price: lastSoldEvent.price,
+            captain_id: (allCaptains.find(c => c.name === lastSoldEvent.captain) || {}).id
+          }
+        : [...allPlayers]
+            .filter(p => p.is_sold)
+            .sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))[0];
 
       if (!latest) {
         banner.style.display = 'none';
         return;
       }
 
-      const cap = allCaptains.find(c => c.id === latest.captain_id);
-      text.textContent = `${latest.name} sold to ${cap ? cap.name : '—'} for ${latest.sold_price || 0} pts`;
+      const capName = lastSoldEvent ? lastSoldEvent.captain : ((allCaptains.find(c => c.id === latest.captain_id) || {}).name || '—');
+      text.textContent = `${latest.name} sold to ${capName} for ${latest.sold_price || 0} pts`;
       banner.style.display = 'block';
     }
 
