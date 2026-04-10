@@ -113,8 +113,10 @@
         <div class="form-row" style="margin-bottom:10px;">
           <select id="matchType" onchange="toggleMatchType()" style="flex:1;">
             <option value="league">League Match</option>
-            <option value="SF1">Semi-Final 1 (1st vs 4th)</option>
-            <option value="SF2">Semi-Final 2 (2nd vs 3rd)</option>
+            <option value="QF1">Quarter-Final 1 (G1 2nd vs G2 3rd)</option>
+            <option value="QF2">Quarter-Final 2 (G2 2nd vs G1 3rd)</option>
+            <option value="SF1">Semi-Final 1 (G1 1st vs QF1 Winner)</option>
+            <option value="SF2">Semi-Final 2 (G2 1st vs QF2 Winner)</option>
             <option value="Final">🏆 Final</option>
           </select>
         </div>
@@ -589,8 +591,7 @@
 
     // ── Standings & Stats ──
     function renderStandings() {
-      const rows=computeStandings(allCaptains,allMatches);
-      document.getElementById('standingsTable').innerHTML=standingsTableHtml(rows);
+      document.getElementById('standingsTable').innerHTML=standingsTableHtml(allCaptains,allMatches);
     }
 
     function renderStats() {

@@ -249,8 +249,7 @@
     }
 
     function renderBoardStandings() {
-      const rows=computeStandings(allCaptains,allMatches);
-      document.getElementById('boardStandings').innerHTML=standingsTableHtml(rows);
+      document.getElementById('boardStandings').innerHTML=standingsTableHtml(allCaptains,allMatches);
     }
 
     function renderBoardStats() {
