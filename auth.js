@@ -21,7 +21,7 @@ async function handleLogin() {
 
   try {
     // Fetch all captains and match client-side to avoid query issues
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('captains')
       .select('*');
 
