@@ -411,7 +411,7 @@
       const me = allCaptains.find(c => c.id === user.id);
       const myBought = allPlayers.filter(p => p.captain_id === user.id && p.is_sold).length;
       const safeSpend = me ? budgetWarning(me.wallet, myBought).safe : 0;
-      const nextBid = currentBid + 25;
+      const nextBid = bidState.current_bid === 0 ? player.base_price : currentBid + 25;
       const remainingSlots = Math.max(0, 4 - myBought);
       const isMyBid = bidState.current_bidder_id === user.id;
 
@@ -467,7 +467,7 @@
       const me = allCaptains.find(c => c.id === user.id);
       if (!me) return;
 
-      const nextBid = (currentBid || basePrice) + 25;
+      const nextBid = (bidState?.current_bid === 0) ? basePrice : (currentBid || basePrice) + 25;
       const myBought = allPlayers.filter(p => p.captain_id === user.id && p.is_sold).length;
       const safeSpend = budgetWarning(me.wallet, myBought).safe;
       const isLocked = bidState?.bid_locked && bidState.current_bidder_id !== user.id;
@@ -519,7 +519,7 @@
       if (!player || player.is_sold) return;
 
       const currentBid = bidState.current_bid || player.base_price;
-      const nextBid = currentBid + 25;
+      const nextBid = bidState.current_bid === 0 ? player.base_price : currentBid + 25;
       const myBought = allPlayers.filter(p => p.captain_id === user.id && p.is_sold).length;
       const safeSpend = budgetWarning(me.wallet, myBought).safe;
 
