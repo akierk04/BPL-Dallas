@@ -14,6 +14,7 @@
     .board-title{font-family:var(--font-display);font-size:2.2rem;letter-spacing:0.1em;color:var(--accent);}
     .board-sub{font-size:12px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-top:4px;}
     .board-viewers{font-size:12px;color:var(--green);margin-top:6px;letter-spacing:0.04em;}
+    .board-phase{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:0.04em;}
     .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 1.5s infinite;}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
     .event-banner{background:linear-gradient(135deg,rgba(240,192,64,0.14),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.35);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:16px;text-align:center;}
@@ -32,7 +33,12 @@
     .now-bidding-status.locked{background:rgba(224,90,43,0.12);color:var(--red);border:1px solid rgba(224,90,43,0.3);}
     .waiting-banner{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:20px;text-align:center;color:var(--muted);font-size:13px;}
     .auction-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,0.9fr);gap:16px;margin-bottom:20px;align-items:start;}
-    .story-card,.recent-sales-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;}
+    .story-card,.recent-sales-card,.spotlight-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;}
+    .story-stack{display:grid;gap:16px;}
+    .spotlight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+    .spotlight-title{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;}
+    .spotlight-name{font-weight:600;color:var(--text);font-size:15px;}
+    .spotlight-copy{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45;}
     .story-title,.recent-sales-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:10px;}
     .story-line{padding:10px 0;border-bottom:0.5px solid var(--border);font-size:13px;color:var(--text);}
     .story-line:last-child{border-bottom:none;padding-bottom:0;}
@@ -79,6 +85,7 @@
     <div class="board-title">Brownish Premier League</div>
     <div class="board-sub"><span class="live-dot"></span>Live · Season 1 · Dallas</div>
     <div class="board-viewers" id="viewerCount"></div>
+    <div class="board-phase" id="boardPhase">Auction phase live</div>
   </div>
 
   <div class="page">
@@ -118,9 +125,23 @@
       <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
 
       <div class="auction-grid">
-        <div class="story-card">
-          <div class="story-title">Live Storyline</div>
-          <div id="boardStory"></div>
+        <div class="story-stack">
+          <div class="story-card">
+            <div class="story-title">Live Storyline</div>
+            <div id="boardStory"></div>
+          </div>
+          <div class="spotlight-grid">
+            <div class="spotlight-card">
+              <div class="spotlight-title">Top Spender</div>
+              <div class="spotlight-name" id="topSpenderName">—</div>
+              <div class="spotlight-copy" id="topSpenderCopy">Waiting for the first big spend.</div>
+            </div>
+            <div class="spotlight-card">
+              <div class="spotlight-title">Pressure Watch</div>
+              <div class="spotlight-name" id="pressureWatchName">—</div>
+              <div class="spotlight-copy" id="pressureWatchCopy">Nobody is under purse pressure yet.</div>
+            </div>
+          </div>
         </div>
         <div class="recent-sales-card">
           <div class="recent-sales-title">Recent Sales</div>
@@ -404,7 +425,86 @@
       wrap.innerHTML = lines.slice(0,4).map(line => `<div class="story-line">${line}</div>`).join('');
     }
 
-    function renderRecentSales() {
+    function renderBoardPhase() {
+      const el = document.getElementById('boardPhase');
+      const soldCount = allPlayers.filter(p => p.is_sold).length;
+      if (soldCount >= 32) {
+        el.textContent = 'Auction complete · tournament mode next';
+      } else if (currentPlayerId) {
+        el.textContent = 'Auction phase live · board updates in real time';
+      } else {
+        el.textContent = 'Auction room standing by for the next player';
+      }
+    }
+
+    function renderSpotlights() {
+      const sold = allPlayers.filter(p => p.is_sold);
+      const spendRows = allCaptains.map(c => {
+        const spent = sold.filter(p => p.captain_id === c.id).reduce((sum, p) => sum + (p.sold_price || 0), 0);
+        const roster = sold.filter(p => p.captain_id === c.id).length;
+        return { captain: c, spent, roster };
+      }).sort((a,b) => b.spent - a.spent || b.roster - a.roster);
+
+      const top = spendRows[0];
+      const pressure = [...allCaptains].map(c => {
+        const roster = sold.filter(p => p.captain_id === c.id).length;
+        const safe = budgetWarning(c.wallet, roster).safe;
+        return { captain: c, roster, safe, wallet: c.wallet };
+      }).sort((a,b) => a.safe - b.safe || a.wallet - b.wallet)[0];
+
+      document.getElementById('topSpenderName').textContent = top && top.spent > 0 ? top.captain.name : 'No leader yet';
+      document.getElementById('topSpenderCopy').textContent = top && top.spent > 0
+        ? `${top.spent} pts spent across ${top.roster}/4 slots. They are setting the auction pace.`
+        : 'The board is waiting for the first statement buy.';
+
+      document.getElementById('pressureWatchName').textContent = pressure ? pressure.captain.name : 'No alert';
+      document.getElementById('pressureWatchCopy').textContent = pressure && allPlayers.filter(p => p.is_sold).length
+        ? `${pressure.wallet} pts left with ${Math.max(0, 4 - pressure.roster)} slots remaining. Safe spend: ${pressure.safe} pts.`
+        : 'Nobody is under purse pressure yet.';
+    }
+
+    function renderStoryline() {
+      const el = document.getElementById('boardStory');
+      const sold = allPlayers.filter(p => p.is_sold).sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0));
+      const lines = [];
+      const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
+      const current = currentPlayerId ? allPlayers.find(p => p.id === currentPlayerId) : null;
+      const currentBidder = bidState?.current_bidder_id ? allCaptains.find(c => c.id === bidState.current_bidder_id) : null;
+      const spendRows = allCaptains.map(c => ({
+        captain: c,
+        spent: sold.filter(p => p.captain_id === c.id).reduce((sum,p) => sum + (p.sold_price||0), 0),
+        roster: sold.filter(p => p.captain_id === c.id).length,
+        safe: budgetWarning(c.wallet, sold.filter(p => p.captain_id === c.id).length).safe
+      })).sort((a,b) => b.spent - a.spent);
+      const topSpender = spendRows[0];
+      const pressure = [...spendRows].sort((a,b) => a.safe - b.safe || a.captain.wallet - b.captain.wallet)[0];
+
+      if (current && currentBidder && bidState?.current_bid) {
+        lines.push(`<div class="story-line"><span>${current.name}</span> is live at <span>${bidState.current_bid} pts</span>, led by <span>${currentBidder.name}</span>.</div>`);
+      } else if (current) {
+        lines.push(`<div class="story-line"><span>${current.name}</span> is on the block. Opening value is <span>${current.base_price} pts</span>.</div>`);
+      }
+      if (lastSoldEvent) {
+        lines.push(`<div class="story-line"><span>${lastSoldEvent.player}</span> just moved to <span>${lastSoldEvent.captain}</span> for <span>${lastSoldEvent.price} pts</span>.</div>`);
+      } else if (sold[0]) {
+        const cap = allCaptains.find(c => c.id === sold[0].captain_id);
+        lines.push(`<div class="story-line">Most recent sale: <span>${sold[0].name}</span> to <span>${cap ? cap.name : '—'}</span> for <span>${sold[0].sold_price || 0} pts</span>.</div>`);
+      }
+      if (topSale) {
+        const cap = allCaptains.find(c => c.id === topSale.captain_id);
+        lines.push(`<div class="story-line">Highest ticket so far is <span>${topSale.sold_price} pts</span> for <span>${topSale.name}</span>${cap ? `, landed by <span>${cap.name}</span>` : ''}.</div>`);
+      }
+      if (topSpender && topSpender.spent > 0) {
+        lines.push(`<div class="story-line"><span>${topSpender.captain.name}</span> leads spending at <span>${topSpender.spent} pts</span> across <span>${topSpender.roster}</span> players.</div>`);
+      }
+      if (pressure && sold.length) {
+        lines.push(`<div class="story-line"><span>${pressure.captain.name}</span> is under the most purse pressure with only <span>${pressure.safe} pts</span> safe to spend.</div>`);
+      }
+      if (!lines.length) lines.push('<div class="story-line">Auction room is warming up. First bid will set the tone.</div>');
+      el.innerHTML = lines.slice(0,4).join('');
+    }
+
+function renderRecentSales() {
       const wrap = document.getElementById('recentSales');
       const sold = [...allPlayers]
         .filter(p => p.is_sold)
