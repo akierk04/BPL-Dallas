@@ -309,6 +309,12 @@
 
     <!-- Matches -->
     <div id="tab-matches" style="display:none;">
+      <div class="section-title">Upcoming Fixtures</div>
+      <div class="form-card">
+        <div class="fixture-tip">Click any upcoming fixture to prefill teams and start score entry faster.</div>
+        <div id="fixtureGrid" class="fixture-grid"></div>
+      </div>
+
       <div class="section-title">Enter Match Result</div>
       <div class="form-card">
         <div class="form-row" style="margin-bottom:10px;">
@@ -320,15 +326,19 @@
             <option value="SF2">Semi-Final 2 (G2 1st vs QF2 Winner)</option>
             <option value="Final">🏆 Final</option>
           </select>
+          <button class="btn-sm" onclick="resetMatchForm()" style="width:auto;">Clear Form</button>
         </div>
         <div class="form-row">
           <select id="matchHome" style="flex:2;"><option value="">Home team...</option></select>
-          <input type="number" id="matchHomeScore" placeholder="Score" min="0" style="flex:0.5;min-width:60px;" />
-          <span style="align-self:center;color:var(--muted);font-size:14px;padding:0 4px;">vs</span>
-          <input type="number" id="matchAwayScore" placeholder="Score" min="0" style="flex:0.5;min-width:60px;" />
+          <div class="score-shell">
+            <input type="number" id="matchHomeScore" placeholder="0" min="0" />
+            <span style="align-self:center;color:var(--muted);font-size:14px;padding:0 4px;">vs</span>
+            <input type="number" id="matchAwayScore" placeholder="0" min="0" />
+          </div>
           <select id="matchAway" style="flex:2;"><option value="">Away team...</option></select>
           <button class="btn-primary" onclick="saveMatch()">Save</button>
         </div>
+        <div id="matchPrefillHint" class="fixture-tip"></div>
         <p id="matchMsg" class="text-muted mt-8"></p>
       </div>
 
@@ -414,6 +424,7 @@
 
     let allCaptains = [], allPlayers = [], allMatches = [], allGoals = [], currentPlayerId = null, bidState = null;
     let pendingMatchId = null;
+    let selectedFixtureId = null;
     let lastSale = null;
     let undoTimer = null;
     let pendingGoals = [], pendingHomeId = null, pendingAwayId = null, pendingHS = 0, pendingAS = 0;
@@ -451,6 +462,7 @@
       populateConsoleDropdowns();
       populateBiddingDropdown();
       populateMatchDropdowns();
+      renderFixtures();
       renderMatchesList();
       renderStandings();
       renderStats();
@@ -896,12 +908,88 @@
 
     function populateMatchDropdowns() {
       const home = document.getElementById('matchHome'), away = document.getElementById('matchAway');
+      const currentHome = home.value, currentAway = away.value;
       const opts = '<option value="">Select team...</option>' + allCaptains.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
       home.innerHTML = opts; away.innerHTML = opts;
+      if (currentHome) home.value = currentHome;
+      if (currentAway) away.value = currentAway;
+    }
+
+    function computeFixtureSeeds() {
+      const rows = computeStandings(allCaptains, allMatches);
+      const groupOne = rows.filter(r => r.captain.tournament_group === '1');
+      const groupTwo = rows.filter(r => r.captain.tournament_group === '2');
+      return {
+        QF1: { home: groupOne[1]?.captain || null, away: groupTwo[2]?.captain || null, label: 'QF1 · G1 2nd vs G2 3rd' },
+        QF2: { home: groupTwo[1]?.captain || null, away: groupOne[2]?.captain || null, label: 'QF2 · G2 2nd vs G1 3rd' },
+        SF1: { home: groupOne[0]?.captain || null, away: null, label: 'SF1 · G1 1st vs QF1 Winner' },
+        SF2: { home: groupTwo[0]?.captain || null, away: null, label: 'SF2 · G2 1st vs QF2 Winner' },
+        Final: { home: null, away: null, label: 'Final · Winner SF1 vs Winner SF2' }
+      };
+    }
+
+    function renderFixtures() {
+      const grid = document.getElementById('fixtureGrid');
+      const upcoming = allMatches.filter(m => !m.played);
+      if (!upcoming.length) {
+        grid.innerHTML = '<div class="text-muted">No upcoming fixtures loaded yet.</div>';
+        return;
+      }
+      grid.innerHTML = upcoming.map(m => {
+        const h = allCaptains.find(c => c.id === m.home_captain_id);
+        const a = allCaptains.find(c => c.id === m.away_captain_id);
+        const label = m.is_knockout ? (m.knockout_label || 'Knockout') : ((h?.tournament_group || a?.tournament_group) ? `Group ${h?.tournament_group || a?.tournament_group}` : 'League');
+        return `<div class="fixture-card" onclick="loadFixture('${m.id}')">
+          <div class="fixture-label">${label}</div>
+          <div class="fixture-teamline">${h ? h.name : 'TBD'} vs ${a ? a.name : 'TBD'}</div>
+          <div class="fixture-meta">Click to load into score entry</div>
+        </div>`;
+      }).join('');
+    }
+
+    function loadFixture(matchId) {
+      const match = allMatches.find(m => m.id === matchId);
+      if (!match) return;
+      selectedFixtureId = matchId;
+      document.getElementById('matchType').value = match.is_knockout ? (match.knockout_label || 'league') : 'league';
+      populateMatchDropdowns();
+      document.getElementById('matchHome').value = match.home_captain_id || '';
+      document.getElementById('matchAway').value = match.away_captain_id || '';
+      document.getElementById('matchHomeScore').value = '';
+      document.getElementById('matchAwayScore').value = '';
+      document.getElementById('matchPrefillHint').textContent = 'Fixture loaded. Enter the score, then add scorers and MVP.';
+      toggleMatchType();
+    }
+
+    function resetMatchForm() {
+      selectedFixtureId = null;
+      document.getElementById('matchType').value = 'league';
+      document.getElementById('matchHome').value = '';
+      document.getElementById('matchAway').value = '';
+      document.getElementById('matchHomeScore').value = '';
+      document.getElementById('matchAwayScore').value = '';
+      document.getElementById('matchPrefillHint').textContent = '';
+      selectedFixtureId = null;
+      document.getElementById('matchPrefillHint').textContent = '';
+      document.getElementById('matchMsg').textContent = '';
     }
 
     function toggleMatchType() {
-      // Could pre-fill teams for knockouts in future — for now just a label
+      const matchType = document.getElementById('matchType').value;
+      const hint = document.getElementById('matchPrefillHint');
+      if (matchType === 'league') {
+        hint.textContent = selectedFixtureId ? 'Loaded from existing league fixture.' : 'Pick a fixture above or enter teams manually.';
+        return;
+      }
+
+      const seeds = computeFixtureSeeds()[matchType];
+      if (!selectedFixtureId && seeds) {
+        if (seeds.home) document.getElementById('matchHome').value = seeds.home.id;
+        if (seeds.away) document.getElementById('matchAway').value = seeds.away.id;
+        hint.textContent = seeds.home && seeds.away
+          ? `${seeds.label} prefilled from current standings.`
+          : `${seeds.label}. Teams will unlock as earlier rounds finish.`;
+      }
     }
 
     async function saveMatch() {
@@ -915,11 +1003,20 @@
       const isKnockout = matchType !== 'league';
       const knockoutLabel = isKnockout ? matchType : null;
 
-      const { data, error } = await db.from('matches').insert({
-        home_captain_id: homeId, away_captain_id: awayId,
-        home_score: hs, away_score: as_, played: false,
-        is_knockout: isKnockout, knockout_label: knockoutLabel
-      }).select().single();
+      let data, error;
+      if (selectedFixtureId) {
+        ({ data, error } = await db.from('matches').update({
+          home_captain_id: homeId, away_captain_id: awayId,
+          home_score: hs, away_score: as_, played: false,
+          is_knockout: isKnockout, knockout_label: knockoutLabel
+        }).eq('id', selectedFixtureId).select().single());
+      } else {
+        ({ data, error } = await db.from('matches').insert({
+          home_captain_id: homeId, away_captain_id: awayId,
+          home_score: hs, away_score: as_, played: false,
+          is_knockout: isKnockout, knockout_label: knockoutLabel
+        }).select().single());
+      }
       if (error) { msg.textContent = 'Error: ' + error.message; return; }
 
       pendingMatchId = data.id; pendingHomeId = homeId; pendingAwayId = awayId; pendingHS = hs; pendingAS = as_;
@@ -978,6 +1075,7 @@
       const mvpId = document.getElementById('mvpPlayer').value || null;
       await db.from('matches').update({ played: true, mvp_player_id: mvpId }).eq('id', pendingMatchId);
       pendingMatchId = null; pendingGoals = [];
+      selectedFixtureId = null;
       document.getElementById('goalScorerSection').style.display = 'none';
       document.getElementById('matchHome').value = '';
       document.getElementById('matchAway').value = '';
@@ -991,7 +1089,10 @@
     async function cancelMatch() {
       if (pendingMatchId) await db.from('matches').delete().eq('id', pendingMatchId);
       pendingMatchId = null; pendingGoals = [];
+      selectedFixtureId = null;
       document.getElementById('goalScorerSection').style.display = 'none';
+      selectedFixtureId = null;
+      document.getElementById('matchPrefillHint').textContent = '';
       document.getElementById('matchMsg').textContent = '';
     }
 
@@ -1005,8 +1106,10 @@
         const scorers = mGoals.map(g => {
           const p = allPlayers.find(x => x.id === g.player_id); return p ? p.name : '?';
         }).join(', ');
+        const label = m.is_knockout ? (m.knockout_label || 'Knockout') : `Group ${h?.tournament_group || a?.tournament_group || '—'}`;
         return `
           <div class="player-row" style="flex-wrap:wrap;gap:8px;">
+            <span class="unsold-badge">${label}</span>
             <span style="font-weight:500;">${h ? h.name : '?'} <span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.home_score}</span></span>
             <span style="color:var(--muted);">–</span>
             <span style="font-weight:500;"><span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.away_score}</span> ${a ? a.name : '?'}</span>
