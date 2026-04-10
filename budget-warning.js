@@ -1,11 +1,11 @@
 // Shared budget warning logic
-// Each captain needs 4 players total. Minimum cost per remaining slot = 50 pts.
-// Safe to spend = Wallet - (50 × (remaining slots - 1))
+// Each captain needs 4 players total. Minimum cost per remaining slot = 25 pts.
+// Safe to spend = Wallet - (25 × (remaining slots - 1))
 // The -1 accounts for the fact that the captain is currently bidding on one of those slots.
 
 function budgetWarning(wallet, playersBought) {
   const remaining = 4 - playersBought;
-  const reserve   = Math.max(0, (remaining - 1)) * 50;
+  const reserve   = Math.max(0, (remaining - 1)) * 25;
   const safe      = wallet - reserve;
 
   if (remaining === 0) return { color: 'var(--green)', msg: 'Full team — no more bids needed', safe: 0 };
