@@ -16,10 +16,31 @@
     .board-viewers{font-size:12px;color:var(--green);margin-top:6px;letter-spacing:0.04em;}
     .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 1.5s infinite;}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+    .event-banner{background:linear-gradient(135deg,rgba(240,192,64,0.14),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.35);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:16px;text-align:center;}
+    .event-banner-title{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin-bottom:4px;}
+    .event-banner-copy{font-size:13px;color:var(--text);}
+    .sold-banner{background:linear-gradient(135deg,rgba(62,207,142,0.16),rgba(62,207,142,0.05));border:1px solid rgba(62,207,142,0.35);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:16px;text-align:center;animation:fadeIn 0.25s ease;}
+    .sold-banner-label{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--green);margin-bottom:6px;}
+    .sold-banner-main{font-family:var(--font-display);font-size:2.3rem;line-height:1;color:var(--text);letter-spacing:0.04em;}
+    .sold-banner-sub{font-size:13px;color:var(--muted);margin-top:6px;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     .now-bidding{background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.5);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:20px;text-align:center;}
     .now-bidding-label{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin-bottom:6px;}
     .now-bidding-name{font-family:var(--font-display);font-size:3rem;letter-spacing:0.06em;color:var(--text);line-height:1;}
+    .now-bidding-status{display:inline-flex;gap:6px;align-items:center;margin-top:10px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;}
+    .now-bidding-status.live{background:rgba(240,192,64,0.12);color:var(--accent);border:1px solid rgba(240,192,64,0.3);}
+    .now-bidding-status.locked{background:rgba(224,90,43,0.12);color:var(--red);border:1px solid rgba(224,90,43,0.3);}
     .waiting-banner{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 20px;margin-bottom:20px;text-align:center;color:var(--muted);font-size:13px;}
+    .auction-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,0.9fr);gap:16px;margin-bottom:20px;align-items:start;}
+    .story-card,.recent-sales-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;}
+    .story-title,.recent-sales-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:10px;}
+    .story-line{padding:10px 0;border-bottom:0.5px solid var(--border);font-size:13px;color:var(--text);}
+    .story-line:last-child{border-bottom:none;padding-bottom:0;}
+    .story-line span{color:var(--accent);font-weight:600;}
+    .recent-sale-row{padding:10px 0;border-bottom:0.5px solid var(--border);}
+    .recent-sale-row:last-child{border-bottom:none;padding-bottom:0;}
+    .recent-sale-name{font-weight:600;color:var(--text);font-size:14px;}
+    .recent-sale-meta{font-size:12px;color:var(--muted);margin-top:4px;}
     .stats-bar{display:flex;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 20px;margin-bottom:20px;flex-wrap:wrap;}
     .stat-item{display:flex;flex-direction:column;}
     .stat-val{font-family:var(--font-display);font-size:1.5rem;color:var(--accent);letter-spacing:0.04em;line-height:1;}
@@ -44,10 +65,11 @@
     .pool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
     .pool-player-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;transition:border-color 0.15s;}
     .pool-player-card.is-sold{border-color:rgba(62,207,142,0.3);background:rgba(62,207,142,0.04);}
-    .pool-player-card.is-current{border-color:var(--accent);background:rgba(240,192,64,0.07);}
+    .pool-player-card.is-current{border-color:var(--accent);background:rgba(240,192,64,0.07);box-shadow:0 0 0 1px rgba(240,192,64,0.1) inset;}
     .pool-player-card-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
     .pool-player-card-sold{font-size:11px;color:var(--green);font-weight:500;margin-top:4px;}
-    @media(max-width:480px){.board-grid{grid-template-columns:1fr;}.pool-grid{grid-template-columns:repeat(2,1fr);}.board-title{font-size:1.6rem;}.now-bidding-name{font-size:2rem;}}
+    @media(max-width:900px){.auction-grid{grid-template-columns:1fr;}}
+    @media(max-width:480px){.board-grid{grid-template-columns:1fr;}.pool-grid{grid-template-columns:repeat(2,1fr);}.board-title{font-size:1.6rem;}.now-bidding-name,.sold-banner-main{font-size:2rem;}}
   </style>
 </head>
 <body>
@@ -67,25 +89,51 @@
 
     <!-- Auction tab -->
     <div id="btab-auction">
+      <div class="event-banner">
+        <div class="event-banner-title">Live Auction In Progress</div>
+        <div class="event-banner-copy">Watch bids rise, squads fill up, and the board update in real time.</div>
+      </div>
+
+      <div id="soldBanner" class="sold-banner" style="display:none;">
+        <div class="sold-banner-label">Just Sold</div>
+        <div class="sold-banner-main" id="soldBannerMain">SOLD</div>
+        <div class="sold-banner-sub" id="soldBannerSub">—</div>
+      </div>
+
       <div id="nowBidding" class="now-bidding" style="display:none;">
         <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
         <div class="now-bidding-name" id="nowBiddingName">—</div>
         <div id="nowBiddingBase" style="font-size:13px;color:var(--muted);margin-top:6px;letter-spacing:0.04em;"></div>
+        <div id="boardAuctionStatus" class="now-bidding-status live">Live Auction</div>
         <div id="nowBiddingLive" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(240,192,64,0.2);display:none;">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Current Bid</div>
-          <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;">
+          <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;flex-wrap:wrap;">
             <div style="font-family:var(--font-display);font-size:2.5rem;color:var(--accent);" id="boardBidAmount">0</div>
             <div style="font-size:14px;font-weight:500;color:var(--text);" id="boardBidder">—</div>
           </div>
         </div>
       </div>
       <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
+
+      <div class="auction-grid">
+        <div class="story-card">
+          <div class="story-title">Live Storyline</div>
+          <div id="boardStory"></div>
+        </div>
+        <div class="recent-sales-card">
+          <div class="recent-sales-title">Recent Sales</div>
+          <div id="recentSales"></div>
+        </div>
+      </div>
+
       <div class="stats-bar">
         <div class="stat-item"><div class="stat-val" id="statSold">—</div><div class="stat-label">Players Sold</div></div>
         <div class="stat-div"></div>
         <div class="stat-item"><div class="stat-val" id="statAvail">—</div><div class="stat-label">Available</div></div>
         <div class="stat-div"></div>
         <div class="stat-item"><div class="stat-val" id="statSpent">—</div><div class="stat-label">Total Pts Spent</div></div>
+        <div class="stat-div"></div>
+        <div class="stat-item"><div class="stat-val" id="statTopSale">—</div><div class="stat-label">Highest Sale</div></div>
       </div>
       <div class="section-title">Captains & Teams</div>
       <div class="board-grid" id="boardCaptains"></div>
@@ -133,6 +181,8 @@
   <script src="standings.js"></script>
   <script>
     let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], currentFilter='all', currentPlayerId=null, bidState=null;
+    let previousSoldState = new Map();
+    let lastSoldEvent = null;
     const BTABS=['auction','standings','stats','schedule'];
 
     function switchBoardTab(tab) {
@@ -147,6 +197,22 @@
       renderPool();
     }
 
+    function detectSoldTransition(nextPlayers) {
+      for (const p of nextPlayers) {
+        const prev = previousSoldState.get(p.id);
+        if (p.is_sold && (!prev || !prev.is_sold || prev.captain_id !== p.captain_id || prev.sold_price !== p.sold_price)) {
+          const cap = allCaptains.find(c => c.id === p.captain_id);
+          lastSoldEvent = {
+            player: p.name,
+            captain: cap ? cap.name : '—',
+            price: p.sold_price || 0,
+            at: Date.now()
+          };
+        }
+      }
+      previousSoldState = new Map(nextPlayers.map(p => [p.id, { is_sold: p.is_sold, captain_id: p.captain_id, sold_price: p.sold_price }]));
+    }
+
     async function loadData() {
       const [capRes,playRes,bidRes,matchRes,goalRes]=await Promise.all([
         db.from('captains').select('*').order('name'),
@@ -155,12 +221,25 @@
         db.from('matches').select('*').order('created_at'),
         db.from('goals').select('*')
       ]);
-      allCaptains=capRes.data||[]; allPlayers=playRes.data||[];
-      allMatches=matchRes.data||[]; allGoals=goalRes.data||[];
+
+      allCaptains=capRes.data||[];
+      detectSoldTransition(playRes.data||[]);
+      allPlayers=playRes.data||[];
+      allMatches=matchRes.data||[];
+      allGoals=goalRes.data||[];
       currentPlayerId=bidRes.data?.player_id||null;
       bidState=bidRes.data||null;
-      renderCurrentPlayer(); renderStats_(); renderCaptains(); renderPool();
-      renderBoardStandings(); renderBoardStats(); renderBoardSchedule();
+
+      renderCurrentPlayer();
+      renderSoldBanner();
+      renderStory();
+      renderRecentSales();
+      renderStats_();
+      renderCaptains();
+      renderPool();
+      renderBoardStandings();
+      renderBoardStats();
+      renderBoardSchedule();
     }
 
     function renderCurrentPlayer() {
@@ -171,22 +250,31 @@
       const liveSection = document.getElementById('nowBiddingLive');
       const amountEl    = document.getElementById('boardBidAmount');
       const bidderEl    = document.getElementById('boardBidder');
+      const statusEl    = document.getElementById('boardAuctionStatus');
 
       if (currentPlayerId) {
         const p = allPlayers.find(x => x.id === currentPlayerId);
         if (p && !p.is_sold) {
           nm.textContent = p.name;
-          bp.textContent = `Base price: ${p.base_price} pts`;
+          bp.textContent = `Group ${p.group_name} · Base price ${p.base_price} pts`;
 
-          // Show live bid if any
           const currentBid    = bidState?.current_bid || 0;
           const currentBidder = bidState?.current_bidder_id
             ? allCaptains.find(c => c.id === bidState.current_bidder_id)
             : null;
 
+          statusEl.className = 'now-bidding-status';
+          if (bidState?.bid_locked) {
+            statusEl.textContent = 'Bid Locked';
+            statusEl.classList.add('locked');
+          } else {
+            statusEl.textContent = 'Live Auction';
+            statusEl.classList.add('live');
+          }
+
           if (currentBid > 0) {
             amountEl.textContent    = currentBid.toLocaleString() + ' pts';
-            bidderEl.textContent    = currentBidder ? currentBidder.name : '—';
+            bidderEl.textContent    = currentBidder ? `Highest bid · ${currentBidder.name}` : '—';
             liveSection.style.display = 'block';
           } else {
             liveSection.style.display = 'none';
@@ -201,11 +289,93 @@
       wb.style.display = 'block';
     }
 
+    function renderSoldBanner() {
+      const banner = document.getElementById('soldBanner');
+      const main = document.getElementById('soldBannerMain');
+      const sub = document.getElementById('soldBannerSub');
+
+      if (!lastSoldEvent || (Date.now() - lastSoldEvent.at) > 25000) {
+        banner.style.display = 'none';
+        return;
+      }
+
+      main.textContent = `${lastSoldEvent.player}`;
+      sub.textContent = `Sold to ${lastSoldEvent.captain} for ${lastSoldEvent.price} pts`;
+      banner.style.display = 'block';
+    }
+
+    function renderStory() {
+      const wrap = document.getElementById('boardStory');
+      const sold = allPlayers.filter(p => p.is_sold);
+      const available = allPlayers.filter(p => !p.is_sold);
+      const sortedWallets = [...allCaptains].sort((a,b) => b.wallet - a.wallet);
+      const fullest = allCaptains.map(c => ({
+        captain: c,
+        count: allPlayers.filter(p => p.captain_id === c.id).length
+      })).sort((a,b)=>b.count-a.count || a.captain.wallet-b.captain.wallet);
+      const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
+      const lines = [];
+
+      if (currentPlayerId) {
+        const p = allPlayers.find(x => x.id === currentPlayerId);
+        if (p && !p.is_sold) {
+          const currentBid = bidState?.current_bid || 0;
+          const bidder = bidState?.current_bidder_id ? allCaptains.find(c=>c.id===bidState.current_bidder_id) : null;
+          if (currentBid > 0 && bidder) {
+            lines.push(`<span>${p.name}</span> is live at <span>${currentBid} pts</span>, led by <span>${bidder.name}</span>.`);
+          } else {
+            lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${p.base_price} pts</span>.`);
+          }
+        }
+      } else if (lastSoldEvent) {
+        lines.push(`<span>${lastSoldEvent.player}</span> just went to <span>${lastSoldEvent.captain}</span> for <span>${lastSoldEvent.price} pts</span>.`);
+      } else {
+        lines.push(`Auction is between nominations right now. <span>${available.length}</span> players are still available.`);
+      }
+
+      if (sortedWallets[0]) {
+        lines.push(`<span>${sortedWallets[0].name}</span> has the biggest purse left at <span>${sortedWallets[0].wallet.toLocaleString()} pts</span>.`);
+      }
+      if (fullest[0]) {
+        lines.push(`<span>${fullest[0].captain.name}</span> currently has the fullest squad with <span>${fullest[0].count}</span> player${fullest[0].count !== 1 ? 's' : ''} bought.`);
+      }
+      if (topSale) {
+        const cap = allCaptains.find(c=>c.id===topSale.captain_id);
+        lines.push(`Highest sale so far: <span>${topSale.name}</span> to <span>${cap ? cap.name : '—'}</span> for <span>${topSale.sold_price || 0} pts</span>.`);
+      }
+
+      wrap.innerHTML = lines.slice(0,4).map(line => `<div class="story-line">${line}</div>`).join('');
+    }
+
+    function renderRecentSales() {
+      const wrap = document.getElementById('recentSales');
+      const sold = [...allPlayers]
+        .filter(p => p.is_sold)
+        .sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))
+        .slice(0,5);
+
+      if (!sold.length) {
+        wrap.innerHTML = '<div class="text-muted">No completed sales yet.</div>';
+        return;
+      }
+
+      wrap.innerHTML = sold.map(p => {
+        const cap = allCaptains.find(c => c.id === p.captain_id);
+        return `
+          <div class="recent-sale-row">
+            <div class="recent-sale-name">${p.name}</div>
+            <div class="recent-sale-meta">${cap ? cap.name : '—'} · ${p.sold_price || 0} pts</div>
+          </div>`;
+      }).join('');
+    }
+
     function renderStats_() {
       const sold=allPlayers.filter(p=>p.is_sold), spent=sold.reduce((s,p)=>s+(p.sold_price||0),0);
+      const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
       document.getElementById('statSold').textContent=sold.length;
       document.getElementById('statAvail').textContent=allPlayers.filter(p=>!p.is_sold).length;
       document.getElementById('statSpent').textContent=spent.toLocaleString();
+      document.getElementById('statTopSale').textContent=topSale ? `${topSale.sold_price}` : '—';
     }
 
     function renderCaptains() {
@@ -243,7 +413,7 @@
         return `
           <div class="pool-player-card ${p.is_sold?'is-sold':''} ${isCurrent?'is-current':''}">
             <div class="pool-player-card-name">${p.name}${isCurrent?' <span style="font-size:10px;color:var(--accent);">● Bidding</span>':''}</div>
-            ${p.is_sold?`<div class="pool-player-card-sold">✓ ${cap?cap.name:'?'} · ${p.sold_price} pts</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'':'Available'}</div>`}
+            ${p.is_sold?`<div class="pool-player-card-sold">✓ ${cap?cap.name:'?'} · ${p.sold_price} pts</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'Live now':'Available'}</div>`}
           </div>`;
       }).join('');
     }
@@ -272,7 +442,6 @@
       .on('postgres_changes',{event:'*',schema:'public',table:'goals'},loadData)
       .subscribe();
 
-    // ── Presence: live viewer count ──
     const presenceChannel = db.channel('bpl-presence', { config: { presence: { key: crypto.randomUUID() } } });
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
