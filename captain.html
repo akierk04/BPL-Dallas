@@ -225,7 +225,7 @@
           </div>
         </div>
 
-        <button class="btn-raise" id="raiseBtn" onclick="placeBid()">—</button>
+        <button class="btn-raise btn-raise-locked" id="raiseBtn" onclick="placeBid()" disabled>Waiting...</button>
         <div class="bid-warning" id="bidWarning"></div>
         <div id="bidTimerWrap" class="bid-timer">
           <div class="timer-bar-wrap"><div class="timer-bar" id="timerBar"></div></div>
@@ -536,7 +536,7 @@
 
       setTimeout(async () => {
         await db.from('bidding_state').update({ bid_locked: false }).eq('id', 1);
-      }, 3000);
+      }, 1500);
     }
 
     function startTimer() {
@@ -547,8 +547,47 @@
       timerInterval = setInterval(() => {
         timerSeconds--;
         updateTimerDisplay();
-        if (timerSeconds <= 0) clearTimer();
+        if (timerSeconds <= 0) {
+          clearTimer();
+          autoCloseBidding();
+        }
       }, 1000);
+    }
+
+    async function autoCloseBidding() {
+      // Re-fetch fresh bidding state to avoid acting on stale data
+      const { data: fresh } = await db.from('bidding_state').select('*').eq('id', 1).single();
+      if (!fresh || !fresh.player_id) return; // Already closed by another client
+
+      const playerId = fresh.player_id;
+      const currentBid = fresh.current_bid || 0;
+      const currentBidderId = fresh.current_bidder_id;
+
+      // Race-safe: atomically clear player_id only if it's still set
+      // All clients attempt this; only the first succeeds meaningfully
+      const { error } = await db.from('bidding_state').update({
+        player_id: null,
+        current_bid: 0,
+        current_bidder_id: null,
+        bid_locked: false,
+        updated_at: new Date().toISOString()
+      }).eq('id', 1).eq('player_id', playerId); // Guard: only act if player still live
+
+      if (error) return; // Another client already cleared it
+
+      if (!currentBidderId || currentBid === 0) return; // No bids placed — admin handles re-listing
+
+      // Assign player to winning captain
+      const { data: freshCap } = await db.from('captains').select('wallet').eq('id', currentBidderId).single();
+      if (!freshCap) return;
+      await db.from('players').update({
+        captain_id: currentBidderId,
+        sold_price: currentBid,
+        is_sold: true
+      }).eq('id', playerId);
+      await db.from('captains').update({
+        wallet: freshCap.wallet - currentBid
+      }).eq('id', currentBidderId);
     }
 
     function clearTimer() {
