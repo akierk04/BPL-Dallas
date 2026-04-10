@@ -629,7 +629,8 @@
       await db.from('players').update({
         captain_id: currentBidderId,
         sold_price: currentBid,
-        is_sold: true
+        is_sold: true,
+        sold_at: new Date().toISOString()
       }).eq('id', currentPlayerId);
 
       await db.from('captains').update({ wallet: currentWallet - currentBid }).eq('id', currentBidderId);
@@ -678,7 +679,8 @@
       await db.from('players').update({
         captain_id: null,
         sold_price: null,
-        is_sold: false
+        is_sold: false,
+        sold_at: null
       }).eq('id', lastSale.playerId);
 
       await db.from('captains').update({
@@ -851,7 +853,8 @@
       await db.from('players').update({
         captain_id: captainId,
         sold_price: price,
-        is_sold: true
+        is_sold: true,
+        sold_at: new Date().toISOString()
       }).eq('id', playerId);
 
       await db.from('captains').update({ wallet: captain.wallet - price }).eq('id', captainId);
@@ -886,7 +889,7 @@
       if (!confirm('Unassign this player and refund the points?')) return;
       const { data: fresh } = await db.from('captains').select('wallet').eq('id', captainId).single();
       const currentWallet = fresh?.wallet ?? allCaptains.find(c => c.id === captainId)?.wallet ?? 0;
-      await db.from('players').update({ captain_id: null, sold_price: null, is_sold: false }).eq('id', playerId);
+      await db.from('players').update({ captain_id: null, sold_price: null, is_sold: false, sold_at: null }).eq('id', playerId);
       await db.from('captains').update({ wallet: currentWallet + soldPrice }).eq('id', captainId);
       loadData();
     }
