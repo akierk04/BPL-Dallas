@@ -66,6 +66,8 @@
     .pool-player-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;transition:border-color 0.15s;}
     .pool-player-card.is-sold{border-color:rgba(62,207,142,0.3);background:rgba(62,207,142,0.04);}
     .pool-player-card.is-current{border-color:var(--accent);background:rgba(240,192,64,0.07);box-shadow:0 0 0 1px rgba(240,192,64,0.1) inset;}
+    .bid-pulse{animation:bidPulse 0.45s ease;}
+    @keyframes bidPulse{0%{transform:scale(1);box-shadow:0 0 0 rgba(240,192,64,0);}50%{transform:scale(1.01);box-shadow:0 0 28px rgba(240,192,64,0.22);}100%{transform:scale(1);box-shadow:0 0 0 rgba(240,192,64,0);}}
     .pool-player-card-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
     .pool-player-card-sold{font-size:11px;color:var(--green);font-weight:500;margin-top:4px;}
     @media(max-width:900px){.auction-grid{grid-template-columns:1fr;}}
@@ -183,6 +185,36 @@
     let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], currentFilter='all', currentPlayerId=null, bidState=null;
     let previousSoldState = new Map();
     let lastSoldEvent = null;
+    let previousBidValue = 0;
+    let previousBidPlayerId = null;
+    let previousSoldKey = '';
+    let audioUnlocked = false;
+    const sounds = {
+      bid: new Audio('sounds/bid.mp3'),
+      sold: new Audio('sounds/sold.mp3'),
+      countdown: new Audio('sounds/countdown.mp3')
+    };
+    Object.values(sounds).forEach(sound => { sound.preload = 'auto'; sound.volume = 0.9; });
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+      Object.values(sounds).forEach(sound => {
+        sound.play().then(() => {
+          sound.pause();
+          sound.currentTime = 0;
+        }).catch(() => {});
+      });
+    }
+    function playSound(type) {
+      if (!audioUnlocked || !sounds[type]) return;
+      try {
+        sounds[type].pause();
+        sounds[type].currentTime = 0;
+        sounds[type].play().catch(() => {});
+      } catch (e) {}
+    }
+    document.addEventListener('click', unlockAudio, { once: true });
+    document.addEventListener('touchstart', unlockAudio, { once: true });
     const BTABS=['auction','standings','stats','schedule'];
 
     function switchBoardTab(tab) {
@@ -206,7 +238,8 @@
             player: p.name,
             captain: cap ? cap.name : '—',
             price: p.sold_price || 0,
-            at: Date.now()
+            at: Date.now(),
+            key: `${p.id}:${p.captain_id || ''}:${p.sold_price || 0}:${p.sold_at || ''}`
           };
         }
       }
@@ -230,6 +263,7 @@
       currentPlayerId=bidRes.data?.player_id||null;
       bidState=bidRes.data||null;
 
+      handleAuctionDrama();
       renderCurrentPlayer();
       renderSoldBanner();
       renderStory();
@@ -240,6 +274,29 @@
       renderBoardStandings();
       renderBoardStats();
       renderBoardSchedule();
+    }
+
+
+    function triggerBidPulse() {
+      const el = document.getElementById('nowBidding');
+      if (!el || el.style.display === 'none') return;
+      el.classList.remove('bid-pulse');
+      void el.offsetWidth;
+      el.classList.add('bid-pulse');
+    }
+
+    function handleAuctionDrama() {
+      const currentBid = bidState?.current_bid || 0;
+      if (currentPlayerId && previousBidPlayerId === currentPlayerId && currentBid > previousBidValue) {
+        playSound('bid');
+        triggerBidPulse();
+      }
+      if (lastSoldEvent?.key && lastSoldEvent.key !== previousSoldKey) {
+        playSound('sold');
+        previousSoldKey = lastSoldEvent.key;
+      }
+      previousBidValue = currentBid;
+      previousBidPlayerId = currentPlayerId || null;
     }
 
     function renderCurrentPlayer() {
