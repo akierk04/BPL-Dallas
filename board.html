@@ -71,6 +71,13 @@
         <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
         <div class="now-bidding-name" id="nowBiddingName">—</div>
         <div id="nowBiddingBase" style="font-size:13px;color:var(--muted);margin-top:6px;letter-spacing:0.04em;"></div>
+        <div id="nowBiddingLive" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(240,192,64,0.2);display:none;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Current Bid</div>
+          <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;">
+            <div style="font-family:var(--font-display);font-size:2.5rem;color:var(--accent);" id="boardBidAmount">0</div>
+            <div style="font-size:14px;font-weight:500;color:var(--text);" id="boardBidder">—</div>
+          </div>
+        </div>
       </div>
       <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
       <div class="stats-bar">
@@ -125,7 +132,7 @@
   <script src="budget-warning.js"></script>
   <script src="standings.js"></script>
   <script>
-    let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], currentFilter='all', currentPlayerId=null;
+    let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], currentFilter='all', currentPlayerId=null, bidState=null;
     const BTABS=['auction','standings','stats','schedule'];
 
     function switchBoardTab(tab) {
@@ -151,22 +158,47 @@
       allCaptains=capRes.data||[]; allPlayers=playRes.data||[];
       allMatches=matchRes.data||[]; allGoals=goalRes.data||[];
       currentPlayerId=bidRes.data?.player_id||null;
+      bidState=bidRes.data||null;
       renderCurrentPlayer(); renderStats_(); renderCaptains(); renderPool();
       renderBoardStandings(); renderBoardStats(); renderBoardSchedule();
     }
 
     function renderCurrentPlayer() {
-      const nb=document.getElementById('nowBidding'), wb=document.getElementById('waitingBanner');
-      const nm=document.getElementById('nowBiddingName'), bp=document.getElementById('nowBiddingBase');
+      const nb  = document.getElementById('nowBidding');
+      const wb  = document.getElementById('waitingBanner');
+      const nm  = document.getElementById('nowBiddingName');
+      const bp  = document.getElementById('nowBiddingBase');
+      const liveSection = document.getElementById('nowBiddingLive');
+      const amountEl    = document.getElementById('boardBidAmount');
+      const bidderEl    = document.getElementById('boardBidder');
+
       if (currentPlayerId) {
-        const p=allPlayers.find(x=>x.id===currentPlayerId);
-        if (p&&!p.is_sold) {
-          nm.textContent=p.name;
-          bp.textContent=`Base price: ${p.base_price} pts`;
-          nb.style.display='block'; wb.style.display='none'; return;
+        const p = allPlayers.find(x => x.id === currentPlayerId);
+        if (p && !p.is_sold) {
+          nm.textContent = p.name;
+          bp.textContent = `Base price: ${p.base_price} pts`;
+
+          // Show live bid if any
+          const currentBid    = bidState?.current_bid || 0;
+          const currentBidder = bidState?.current_bidder_id
+            ? allCaptains.find(c => c.id === bidState.current_bidder_id)
+            : null;
+
+          if (currentBid > 0) {
+            amountEl.textContent    = currentBid.toLocaleString() + ' pts';
+            bidderEl.textContent    = currentBidder ? currentBidder.name : '—';
+            liveSection.style.display = 'block';
+          } else {
+            liveSection.style.display = 'none';
+          }
+
+          nb.style.display = 'block';
+          wb.style.display = 'none';
+          return;
         }
       }
-      nb.style.display='none'; wb.style.display='block';
+      nb.style.display = 'none';
+      wb.style.display = 'block';
     }
 
     function renderStats_() {
