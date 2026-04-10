@@ -417,12 +417,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="budget-warning.js"></script>
-  <script src="standings.js"></script>
+  <script src="standings_teamname.js"></script>
   <script>
     if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
 
     let allCaptains = [], allPlayers = [], allMatches = [], allGoals = [], currentPlayerId = null, bidState = null;
+    function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
     let pendingMatchId = null;
     let selectedFixtureId = null;
     let lastSale = null;
@@ -497,7 +498,7 @@
       document.getElementById('liveBidPlayerName').textContent = player.name;
       document.getElementById('liveBidMeta').textContent = `Group ${player.group_name} · Base ${player.base_price} pts`;
       document.getElementById('liveBidAmount').textContent = currentBid.toLocaleString();
-      document.getElementById('liveBidder').textContent = currentBidder ? currentBidder.name : 'No bids yet';
+      document.getElementById('liveBidder').textContent = currentBidder ? displayCaptainName(currentBidder) : 'No bids yet';
 
       const afterEl = document.getElementById('liveBidWalletAfter');
       if (currentBidder) {
@@ -533,7 +534,7 @@
         return `
           <div class="captain-status-row">
             <div class="captain-status-top">
-              <div class="captain-status-name">${c.name}</div>
+              <div class="captain-status-name">${displayCaptainName(c)}</div>
               <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.75rem;color:var(--muted)">pts</span></div>
             </div>
             <div class="captain-status-meta">${bought}/4 players bought</div>
@@ -571,7 +572,7 @@
         return `
           <div class="recent-sale-row">
             <div style="font-weight:600;color:var(--text);">${p.name}</div>
-            <div class="captain-status-meta">${cap ? cap.name : '—'} · ${p.sold_price || 0} pts</div>
+            <div class="captain-status-meta">${cap ? displayCaptainName(cap) : '—'} · ${p.sold_price || 0} pts</div>
           </div>`;
       }).join('');
     }
@@ -601,7 +602,7 @@
 
       text.innerHTML = `
         <div><strong>Player:</strong> ${player.name}</div>
-        <div class="mt-8"><strong>Winner:</strong> ${captain ? captain.name : '—'}</div>
+        <div class="mt-8"><strong>Winner:</strong> ${captain ? displayCaptainName(captain) : '—'}</div>
         <div class="mt-8"><strong>Sold Price:</strong> ${currentBid} pts</div>
         <div class="mt-8"><strong>Wallet After Sale:</strong> ${afterWallet} pts</div>`;
 
@@ -658,13 +659,13 @@
         playerId: player.id,
         playerName: player.name,
         captainId: currentBidderId,
-        captainName: captain?.name || '—',
+        captainName: displayCaptainName(captain),
         soldPrice: currentBid
       };
 
       showUndoBar();
 
-      msg.textContent = `✓ ${captain.name} wins for ${currentBid} pts!`;
+      msg.textContent = `✓ ${displayCaptainName(captain)} wins for ${currentBid} pts!`;
       setTimeout(() => msg.textContent = '', 4000);
       loadData();
     }
@@ -726,7 +727,7 @@
             <div class="captain-card-header">
               <div style="width:100%;">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
-                  <div class="captain-name">${c.name}</div>
+                  <div class="captain-name">${displayCaptainName(c)}</div>
                   <span class="group-badge group-${c.group_name}">Group ${c.group_name}</span>
                 </div>
                 <div style="display:flex;gap:20px;margin-top:8px;">
@@ -758,7 +759,7 @@
               <option value="C" ${p.group_name === 'C' ? 'selected' : ''}>Group C</option>
             </select>
             <span class="player-row-meta">${p.base_price} pts base</span>
-            ${p.is_sold ? `<span class="sold-badge">Sold → ${cap ? cap.name : '?'} · ${p.sold_price} pts</span>` : `<span class="unsold-badge">Available</span>`}
+            ${p.is_sold ? `<span class="sold-badge">Sold → ${cap ? displayCaptainName(cap) : '?'} · ${p.sold_price} pts</span>` : `<span class="unsold-badge">Available</span>`}
             <div class="player-row-actions">
               ${!p.is_sold ? `<button class="btn-sm" onclick="quickAssign('${p.id}')">Assign →</button>` : ''}
               <button class="btn-danger" onclick="deletePlayer('${p.id}')">Delete</button>
@@ -837,7 +838,7 @@
           <option value="${p.id}" ${p.id === cur_p ? 'selected' : ''}>${p.name} · Group ${p.group_name}</option>`).join('');
       cSel.innerHTML = '<option value="">Select captain...</option>' +
         allCaptains.map(c => `
-          <option value="${c.id}" ${c.id === cur_c ? 'selected' : ''}>${c.name} · ${c.wallet.toLocaleString()} pts left</option>`).join('');
+          <option value="${c.id}" ${c.id === cur_c ? 'selected' : ''}>${displayCaptainName(c)} · ${c.wallet.toLocaleString()} pts left</option>`).join('');
     }
 
     function quickAssign(playerId) {
@@ -860,7 +861,7 @@
       const price = parseInt(document.getElementById('consolePrice').value), msg = document.getElementById('consoleMsg');
       if (!playerId || !captainId || isNaN(price) || price < 0) { msg.textContent = 'Fill all fields.'; return; }
       const captain = allCaptains.find(c => c.id === captainId);
-      if (price > captain.wallet) { msg.textContent = `${captain.name} only has ${captain.wallet} pts left.`; return; }
+      if (price > captain.wallet) { msg.textContent = `${displayCaptainName(captain)} only has ${captain.wallet} pts left.`; return; }
 
       await db.from('players').update({
         captain_id: captainId,
@@ -884,7 +885,7 @@
         playerId,
         playerName: allPlayers.find(p => p.id === playerId)?.name || 'Player',
         captainId,
-        captainName: captain.name,
+        captainName: displayCaptainName(captain),
         soldPrice: price
       };
       showUndoBar();
@@ -909,7 +910,7 @@
     function populateMatchDropdowns() {
       const home = document.getElementById('matchHome'), away = document.getElementById('matchAway');
       const currentHome = home.value, currentAway = away.value;
-      const opts = '<option value="">Select team...</option>' + allCaptains.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+      const opts = '<option value="">Select team...</option>' + allCaptains.map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
       home.innerHTML = opts; away.innerHTML = opts;
       if (currentHome) home.value = currentHome;
       if (currentAway) away.value = currentAway;
@@ -941,7 +942,7 @@
         const label = m.is_knockout ? (m.knockout_label || 'Knockout') : ((h?.tournament_group || a?.tournament_group) ? `Group ${h?.tournament_group || a?.tournament_group}` : 'League');
         return `<div class="fixture-card" onclick="loadFixture('${m.id}')">
           <div class="fixture-label">${label}</div>
-          <div class="fixture-teamline">${h ? h.name : 'TBD'} vs ${a ? a.name : 'TBD'}</div>
+          <div class="fixture-teamline">${h ? displayCaptainName(h) : 'TBD'} vs ${a ? displayCaptainName(a) : 'TBD'}</div>
           <div class="fixture-meta">Click to load into score entry</div>
         </div>`;
       }).join('');
@@ -1024,10 +1025,10 @@
 
       const totalGoals = hs + as_;
       const homeCap = allCaptains.find(c => c.id === homeId), awayCap = allCaptains.find(c => c.id === awayId);
-      msg.textContent = `${homeCap.name} ${hs} – ${as_} ${awayCap.name} · Now add ${totalGoals} goal scorer(s).`;
+      msg.textContent = `${displayCaptainName(homeCap)} ${hs} – ${as_} ${displayCaptainName(awayCap)} · Now add ${totalGoals} goal scorer(s).`;
 
       const teamSel = document.getElementById('scorerTeam');
-      teamSel.innerHTML = `<option value="${homeId}">${homeCap.name}</option><option value="${awayId}">${awayCap.name}</option>`;
+      teamSel.innerHTML = `<option value="${homeId}">${displayCaptainName(homeCap)}</option><option value="${awayId}">${displayCaptainName(awayCap)}</option>`;
       updateScorerPlayers();
       populateMvpDropdown();
       document.getElementById('goalScorerSection').style.display = 'block';
@@ -1057,7 +1058,7 @@
             const p = allPlayers.find(x => x.id === g.player_id), c = allCaptains.find(x => x.id === g.captain_id);
             return `<div class="player-row" style="padding:8px 12px;">
               <span>⚽ ${p ? p.name : '?'}</span>
-              <span class="player-row-meta">${c ? c.name : '?'}</span>
+              <span class="player-row-meta">${c ? displayCaptainName(c) : '?'}</span>
               <button class="btn-danger" onclick="removeGoal(${i})">✕</button>
             </div>`;
           }).join('')
@@ -1110,9 +1111,9 @@
         return `
           <div class="player-row" style="flex-wrap:wrap;gap:8px;">
             <span class="unsold-badge">${label}</span>
-            <span style="font-weight:500;">${h ? h.name : '?'} <span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.home_score}</span></span>
+            <span style="font-weight:500;">${h ? displayCaptainName(h) : '?'} <span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.home_score}</span></span>
             <span style="color:var(--muted);">–</span>
-            <span style="font-weight:500;"><span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.away_score}</span> ${a ? a.name : '?'}</span>
+            <span style="font-weight:500;"><span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.away_score}</span> ${a ? displayCaptainName(a) : '?'}</span>
             ${scorers ? `<span class="player-row-meta" style="width:100%;margin-top:2px;">⚽ ${scorers}</span>` : ''}
             <div class="player-row-actions">
               <button class="btn-danger" onclick="deleteMatch('${m.id}')">Delete</button>
@@ -1151,7 +1152,7 @@
       sel.innerHTML = '<option value="">Select MVP (optional)...</option>' +
         teamPlayers.map(p => {
           const cap = allCaptains.find(c => c.id === p.captain_id);
-          return `<option value="${p.id}">${p.name} (${cap ? cap.name : '?'})</option>`;
+          return `<option value="${p.id}">${p.name} (${cap ? displayCaptainName(cap) : '?'})</option>`;
         }).join('');
     }
 
