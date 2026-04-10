@@ -796,8 +796,14 @@
     function populateBiddingDropdown() {
       const sel = document.getElementById('biddingPlayer');
       const cur = sel.value;
+      const unsold = allPlayers.filter(p => !p.is_sold);
+      // Shuffle for random presentation order
+      for (let i = unsold.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [unsold[i], unsold[j]] = [unsold[j], unsold[i]];
+      }
       sel.innerHTML = '<option value="">Select player to go live...</option>' +
-        allPlayers.filter(p => !p.is_sold).map(p => `
+        unsold.map(p => `
           <option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.name} · Group ${p.group_name} · ${p.base_price} pts</option>`).join('');
       if (currentPlayerId) sel.value = currentPlayerId;
     }
@@ -1156,8 +1162,7 @@
         }).join('');
     }
 
-    const _cid = Math.random().toString(36).slice(2);
-    db.channel('bpl-admin-' + _cid)
+    db.channel('bpl-admin')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bidding_state' }, loadData)
