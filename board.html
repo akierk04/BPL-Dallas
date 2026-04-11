@@ -338,7 +338,7 @@
         const p = allPlayers.find(x => x.id === currentPlayerId);
         if (p && !p.is_sold) {
           nm.textContent = p.name;
-          bp.textContent = `Group ${p.group_name} · Base price ${p.base_price} pts`;
+          bp.textContent = `Base price ${p.base_price} pts`;
 
           const currentBid    = bidState?.current_bid || 0;
           const currentBidder = bidState?.current_bidder_id
@@ -452,7 +452,8 @@
       const top = spendRows[0];
       const pressure = [...allCaptains].map(c => {
         const roster = sold.filter(p => p.captain_id === c.id).length;
-        const safe = budgetWarning(c.wallet, roster).safe;
+        const hasGroupX = sold.some(p => p.captain_id === c.id && p.group_name === 'X');
+        const safe = budgetWarning(c.wallet, roster, hasGroupX).safe;
         return { captain: c, roster, safe, wallet: c.wallet };
       }).sort((a,b) => a.safe - b.safe || a.wallet - b.wallet)[0];
 
@@ -478,7 +479,7 @@
         captain: c,
         spent: sold.filter(p => p.captain_id === c.id).reduce((sum,p) => sum + (p.sold_price||0), 0),
         roster: sold.filter(p => p.captain_id === c.id).length,
-        safe: budgetWarning(c.wallet, sold.filter(p => p.captain_id === c.id).length).safe
+        safe: budgetWarning(c.wallet, sold.filter(p => p.captain_id === c.id).length, sold.some(p => p.captain_id === c.id && p.group_name === 'X')).safe
       })).sort((a,b) => b.spent - a.spent);
       const topSpender = spendRows[0];
       const pressure = [...spendRows].sort((a,b) => a.safe - b.safe || a.captain.wallet - b.captain.wallet)[0];
@@ -557,7 +558,7 @@ function renderRecentSales() {
                 <div class="board-purse-label">pts left</div>
               </div>
             </div>
-            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet,roster.length)}</div>
+            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet, roster.length, roster.some(p => p.group_name === 'X'))}</div>
             <div class="board-roster">${rHtml}</div>
           </div>`;
       }).join('');
