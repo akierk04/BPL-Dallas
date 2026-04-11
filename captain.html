@@ -341,9 +341,10 @@
       if (me) {
         user.wallet = me.wallet;
         const myBought = allPlayers.filter(p => p.captain_id === me.id && p.is_sold).length;
+        const myHasGroupX = allPlayers.some(p => p.captain_id === me.id && p.is_sold && p.group_name === 'X');
         document.getElementById('myWalletAmount').textContent = me.wallet.toLocaleString() + ' pts';
-        document.getElementById('myWalletName').textContent   = `${displayCaptainName(me)} · Group ${me.group_name}`;
-        document.getElementById('myWarning').innerHTML        = warningBadgeHtml(me.wallet, myBought);
+        document.getElementById('myWalletName').textContent   = `${displayCaptainName(me)}`;
+        document.getElementById('myWarning').innerHTML        = warningBadgeHtml(me.wallet, myBought, myHasGroupX);
       }
 
       renderBidPanel();
@@ -410,13 +411,14 @@
         : null;
       const me = allCaptains.find(c => c.id === user.id);
       const myBought = allPlayers.filter(p => p.captain_id === user.id && p.is_sold).length;
-      const safeSpend = me ? budgetWarning(me.wallet, myBought).safe : 0;
+      const myHasGroupX = allPlayers.some(p => p.captain_id === user.id && p.is_sold && p.group_name === 'X');
+      const safeSpend = me ? budgetWarning(me.wallet, myBought, myHasGroupX).safe : 0;
       const nextBid = bidState.current_bid === 0 ? player.base_price : currentBid + 25;
       const remainingSlots = Math.max(0, 4 - myBought);
       const isMyBid = bidState.current_bidder_id === user.id;
 
       document.getElementById('bidPlayerName').textContent = player.name;
-      document.getElementById('bidBasePrice').textContent = `Group ${player.group_name} · Base price ${player.base_price} pts`;
+      document.getElementById('bidBasePrice').textContent = `Base price ${player.base_price} pts`;
       document.getElementById('bidCurrentAmount').textContent = currentBid.toLocaleString();
       document.getElementById('bidCurrentBidder').innerHTML = currentBidder
         ? `${displayCaptainName(currentBidder)}${isMyBid ? '<span class="my-bid-badge">You</span>' : ''}`
@@ -469,7 +471,8 @@
 
       const nextBid = (bidState?.current_bid === 0) ? basePrice : (currentBid || basePrice) + 25;
       const myBought = allPlayers.filter(p => p.captain_id === user.id && p.is_sold).length;
-      const safeSpend = budgetWarning(me.wallet, myBought).safe;
+      const myHasGroupX = allPlayers.some(p => p.captain_id === user.id && p.is_sold && p.group_name === 'X');
+      const safeSpend = budgetWarning(me.wallet, myBought, myHasGroupX).safe;
       const isLocked = bidState?.bid_locked && bidState.current_bidder_id !== user.id;
       const isAlreadyLeading = bidState?.current_bidder_id === user.id;
 
@@ -489,6 +492,26 @@
         return;
       }
 
+      // Block bidding on a 2nd Group X player
+      const currentPlayer = allPlayers.find(p => p.id === bidState?.player_id);
+      if (currentPlayer?.group_name === 'X' && myHasGroupX) {
+        btn.textContent = 'Already have a Group X player';
+        btn.className = 'btn-raise btn-raise-blocked';
+        btn.disabled = true;
+        warning.textContent = 'Each team can only have 1 Group X player.';
+        return;
+      }
+
+      // Block bidding on a Group Y player if last slot must be Group X
+      const remainingSlots = Math.max(0, 4 - myBought);
+      if (currentPlayer?.group_name === 'Y' && !myHasGroupX && remainingSlots === 1) {
+        btn.textContent = 'Must buy a Group X player';
+        btn.className = 'btn-raise btn-raise-blocked';
+        btn.disabled = true;
+        warning.textContent = 'Your last slot must be filled with a Group X player.';
+        return;
+      }
+
       if (me.wallet < nextBid) {
         btn.textContent = 'Insufficient Funds';
         btn.className = 'btn-raise btn-raise-blocked';
@@ -501,7 +524,7 @@
         btn.textContent = `⛔ Raise Bid — ${nextBid} pts`;
         btn.className = 'btn-raise btn-raise-blocked';
         btn.disabled = true;
-        warning.textContent = `Not enough safe budget. You need to reserve points for your remaining players. Safe to spend: ${safeSpend} pts.`;
+        warning.textContent = `Not enough safe budget. Safe to spend: ${safeSpend} pts.`;
         return;
       }
 
@@ -521,9 +544,13 @@
       const currentBid = bidState.current_bid || player.base_price;
       const nextBid = bidState.current_bid === 0 ? player.base_price : currentBid + 25;
       const myBought = allPlayers.filter(p => p.captain_id === user.id && p.is_sold).length;
-      const safeSpend = budgetWarning(me.wallet, myBought).safe;
+      const myHasGroupX = allPlayers.some(p => p.captain_id === user.id && p.is_sold && p.group_name === 'X');
+      const safeSpend = budgetWarning(me.wallet, myBought, myHasGroupX).safe;
+      const remainingSlots = Math.max(0, 4 - myBought);
 
       if (me.wallet < nextBid || nextBid > safeSpend || bidState?.current_bidder_id === user.id) return;
+      if (player.group_name === 'X' && myHasGroupX) return; // Already have Group X
+      if (player.group_name === 'Y' && !myHasGroupX && remainingSlots === 1) return; // Last slot must be X
 
       const btn = document.getElementById('raiseBtn');
       btn.disabled = true;
@@ -605,7 +632,7 @@
       const wrap = document.getElementById('bidTimerWrap');
       document.getElementById('timerText').textContent = timerSeconds;
       document.getElementById('timerBar').style.width = (timerSeconds / 20 * 100) + '%';
-      document.getElementById('timerBar').style.background = timerSeconds <= 5 ? 'var(--red)' : timerSeconds <= 10 ? 'var(--groupB)' : 'var(--accent)';
+      document.getElementById('timerBar').style.background = timerSeconds <= 5 ? 'var(--red)' : timerSeconds <= 10 ? 'var(--groupX)' : 'var(--accent)';
       wrap.classList.toggle('timer-urgent', timerSeconds <= 5);
       if (timerSeconds === 5 && !countdownPlayed) {
         playSound('countdown');
@@ -629,7 +656,8 @@
         else if (p) lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${p.base_price} pts</span>.`);
       }
       if (me) {
-        const safe = budgetWarning(me.wallet, myRoster.length).safe;
+        const meHasGroupX = myRoster.some(p => p.group_name === 'X');
+        const safe = budgetWarning(me.wallet, myRoster.length, meHasGroupX).safe;
         lines.push(`You have <span>${me.wallet} pts</span> left with <span>${Math.max(0, 4 - myRoster.length)}</span> slots to fill.`);
         lines.push(`Your current safe spend is <span>${safe} pts</span>.`);
       }
@@ -713,7 +741,7 @@
                 <div class="captain-name">${displayCaptainName(c)}</div>
                 <div class="captain-wallet-label">Purse</div>
                 <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.8rem;color:var(--muted)">pts</span></div>
-                ${warningBadgeHtml(c.wallet, bought.length)}
+                ${warningBadgeHtml(c.wallet, bought.length, bought.some(p => p.group_name === 'X'))}
               </div>
             </div>
             <div class="team-roster">${rosterHtml}</div>
