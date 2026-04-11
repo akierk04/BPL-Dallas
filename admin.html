@@ -295,9 +295,8 @@
         <div class="form-row">
           <input type="text" id="playerName" placeholder="Player name" />
           <select id="playerGroup">
-            <option value="A">Group A (200 pts base)</option>
-            <option value="B">Group B (100 pts base)</option>
-            <option value="C">Group C (50 pts base)</option>
+            <option value="X">Group X (150 pts base)</option>
+            <option value="Y">Group Y (50 pts base)</option>
           </select>
           <button class="btn-primary" onclick="addPlayer()">Add</button>
         </div>
@@ -538,7 +537,7 @@
               <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.75rem;color:var(--muted)">pts</span></div>
             </div>
             <div class="captain-status-meta">${bought}/4 players bought</div>
-            ${warningBadgeHtml(c.wallet, bought)}
+            ${warningBadgeHtml(c.wallet, bought, allPlayers.some(p => p.captain_id === c.id && p.is_sold && p.group_name === 'X'))}
           </div>`;
       }).join('');
     }
@@ -728,7 +727,6 @@
               <div style="width:100%;">
                 <div style="display:flex;align-items:center;justify-content:space-between;">
                   <div class="captain-name">${displayCaptainName(c)}</div>
-                  <span class="group-badge group-${c.group_name}">Group ${c.group_name}</span>
                 </div>
                 <div style="display:flex;gap:20px;margin-top:8px;">
                   <div><div class="captain-wallet-label">Purse left</div>
@@ -754,9 +752,8 @@
           <div class="player-row">
             <span class="player-row-name">${p.name}</span>
             <select onchange="updatePlayerGroup('${p.id}', this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);width:auto;">
-              <option value="A" ${p.group_name === 'A' ? 'selected' : ''}>Group A</option>
-              <option value="B" ${p.group_name === 'B' ? 'selected' : ''}>Group B</option>
-              <option value="C" ${p.group_name === 'C' ? 'selected' : ''}>Group C</option>
+              <option value="X" ${p.group_name === 'X' ? 'selected' : ''}>Group X</option>
+              <option value="Y" ${p.group_name === 'Y' ? 'selected' : ''}>Group Y</option>
             </select>
             <span class="player-row-meta">${p.base_price} pts base</span>
             ${p.is_sold ? `<span class="sold-badge">Sold → ${cap ? displayCaptainName(cap) : '?'} · ${p.sold_price} pts</span>` : `<span class="unsold-badge">Available</span>`}
@@ -772,7 +769,7 @@
       const name = document.getElementById('playerName').value.trim(), group = document.getElementById('playerGroup').value;
       const msg = document.getElementById('playerMsg');
       if (!name) { msg.textContent = 'Enter a player name.'; return; }
-      const basePrice = group === 'A' ? 200 : group === 'B' ? 100 : 50;
+      const basePrice = group === 'X' ? 150 : 50;
       const { error } = await db.from('players').insert({ name, group_name: group, base_price: basePrice });
       if (error) { msg.textContent = 'Error: ' + error.message; return; }
       document.getElementById('playerName').value = '';
@@ -788,7 +785,7 @@
     }
 
     async function updatePlayerGroup(id, newGroup) {
-      const basePrice = newGroup === 'A' ? 200 : newGroup === 'B' ? 100 : 50;
+      const basePrice = newGroup === 'X' ? 150 : 50;
       await db.from('players').update({ group_name: newGroup, base_price: basePrice }).eq('id', id);
       loadData();
     }
@@ -859,7 +856,8 @@
       if (!captainId) { warn.innerHTML = ''; return; }
       const captain = allCaptains.find(c => c.id === captainId);
       const bought = allPlayers.filter(p => p.captain_id === captainId && p.is_sold).length;
-      warn.innerHTML = warningBadgeHtml(captain.wallet, bought);
+      const hasGroupX = allPlayers.some(p => p.captain_id === captainId && p.is_sold && p.group_name === 'X');
+      warn.innerHTML = warningBadgeHtml(captain.wallet, bought, hasGroupX);
     }
 
     async function doAssign() {
@@ -1162,7 +1160,8 @@
         }).join('');
     }
 
-    db.channel('bpl-admin')
+    const _cid = Math.random().toString(36).slice(2);
+    db.channel('bpl-admin-' + _cid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bidding_state' }, loadData)
