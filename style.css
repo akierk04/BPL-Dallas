@@ -12,9 +12,8 @@
   --muted:    #888;
   --green:    #3ecf8e;
   --red:      #e05a2b;
-  --groupA:   #e05a2b;
-  --groupB:   #f0c040;
-  --groupC:   #3ecf8e;
+  --groupX:   #f0c040;
+  --groupY:   #3ecf8e;
   --font-display: 'Bebas Neue', sans-serif;
   --font-body:    'DM Sans', sans-serif;
   --radius:   10px;
@@ -242,9 +241,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   text-transform: uppercase;
 }
 
-.group-A { background: rgba(224,90,43,0.15); color: var(--groupA); }
-.group-B { background: rgba(240,192,64,0.15); color: var(--groupB); }
-.group-C { background: rgba(62,207,142,0.15); color: var(--groupC); }
+.group-X { background: rgba(240,192,64,0.15); color: var(--groupX); }
+.group-Y { background: rgba(62,207,142,0.15); color: var(--groupY); }
 
 /* ── Team roster ── */
 .team-roster { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
