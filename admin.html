@@ -481,7 +481,7 @@
 
     async function loadData() {
       const [capRes, playRes, bidRes, matchRes, goalRes] = await Promise.all([
-        db.from('captains').select('*').order('group_name').order('name'),
+        db.from('captains').select('*').order('name'),
         db.from('players').select('*').order('group_name').order('name'),
         db.from('bidding_state').select('*').eq('id', 1).single(),
         db.from('matches').select('*').order('created_at'),
