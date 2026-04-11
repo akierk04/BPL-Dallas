@@ -179,6 +179,46 @@
         grid-template-columns: 1fr;
       }
     }
+    .fixture-tip {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .fixture-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .fixture-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .fixture-card:hover {
+      border-color: var(--accent);
+      background: rgba(240,192,64,0.06);
+    }
+    .fixture-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .fixture-teamline {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .fixture-meta {
+      font-size: 11px;
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
@@ -416,7 +456,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="budget-warning.js"></script>
-  <script src="standings_teamname.js"></script>
+  <script src="standings.js"></script>
   <script>
     if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
