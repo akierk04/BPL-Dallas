@@ -610,6 +610,8 @@
       // Assign player to winning captain
       const { data: freshCap } = await db.from('captains').select('wallet').eq('id', currentBidderId).single();
       if (!freshCap) return;
+      const { data: soldPlayer } = await db.from('players').select('status').eq('id', playerId).single();
+      const tentativeBonus = soldPlayer?.status === 'tentative' ? 50 : 0;
       await db.from('players').update({
         captain_id: currentBidderId,
         sold_price: currentBid,
@@ -617,7 +619,7 @@
         sold_at: new Date().toISOString()
       }).eq('id', playerId);
       await db.from('captains').update({
-        wallet: freshCap.wallet - currentBid
+        wallet: freshCap.wallet - currentBid + tentativeBonus
       }).eq('id', currentBidderId);
     }
 
