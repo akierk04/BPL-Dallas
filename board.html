@@ -622,22 +622,52 @@ function renderRecentSales() {
     function renderCaptains() {
       const grid=document.getElementById('boardCaptains');
       if (!allCaptains.length) { grid.innerHTML='<div class="text-muted">Loading...</div>'; return; }
-      grid.innerHTML=allCaptains.map(c=>{
-        const roster=allPlayers.filter(p=>p.captain_id===c.id);
-        const rHtml=roster.length
-          ? roster.map(p=>`<div class="board-player-row"><span class="board-player-name">${p.name}</span><span class="board-player-price">${p.sold_price} pts</span></div>`).join('')
+
+      // Sort by tournament group then name
+      const sorted = [...allCaptains].sort((a,b) => (a.tournament_group||'').localeCompare(b.tournament_group||'') || a.name.localeCompare(b.name));
+
+      grid.innerHTML=sorted.map(c=>{
+        const roster = allPlayers.filter(p=>p.captain_id===c.id && p.is_sold);
+        const hasGroupX    = roster.some(p=>p.group_name==='X');
+        const hasTentative = roster.some(p=>p.status==='tentative');
+        const totalSlots   = hasTentative ? 5 : 4;
+        const slotsUsed    = roster.length;
+        const teamName     = c.team_name || null;
+        const groupColor   = c.tournament_group === '1' ? 'var(--groupX)' : 'var(--green)';
+
+        const rHtml = roster.length
+          ? roster.map(p=>`
+              <div class="board-player-row">
+                <span class="board-player-name">
+                  ${p.name}
+                  ${p.group_name==='X' ? '<span style="font-size:10px;background:rgba(240,192,64,0.15);color:var(--groupX);padding:1px 5px;border-radius:3px;margin-left:4px;">X</span>' : ''}
+                  ${p.status==='tentative' ? '<span style="font-size:10px;background:rgba(62,207,142,0.1);color:var(--green);padding:1px 5px;border-radius:3px;margin-left:2px;">T</span>' : ''}
+                </span>
+                <span class="board-player-price">${p.sold_price} pts</span>
+              </div>`).join('')
           : '<div class="board-empty">No players yet</div>';
+
         return `
           <div class="board-captain-card">
             <div class="board-captain-header">
-              <div class="board-captain-name">${displayCaptainName(c)}</div>
+              <div style="flex:1;min-width:0;">
+                ${teamName
+                  ? `<div class="board-captain-name" style="font-size:16px;font-weight:700;">${teamName}</div>
+                     <div style="font-size:12px;color:var(--muted);margin-top:2px;">Cap: ${c.name}</div>`
+                  : `<div class="board-captain-name">${c.name}</div>`
+                }
+                <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:${groupColor}18;border:1px solid ${groupColor}55;color:${groupColor};">Group ${c.tournament_group||'?'}</span>
+                  <span style="font-size:11px;color:var(--muted);">${slotsUsed}/${totalSlots} players</span>
+                </div>
+              </div>
               <div class="board-purse-wrap">
                 <div class="board-purse-label">Purse</div>
                 <div class="board-purse">${c.wallet.toLocaleString()}</div>
                 <div class="board-purse-label">pts left</div>
               </div>
             </div>
-            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet, roster.length, roster.some(p => p.group_name === 'X'), roster.some(p => p.status === 'tentative'))}</div>
+            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet, slotsUsed, hasGroupX, hasTentative)}</div>
             <div class="board-roster">${rHtml}</div>
           </div>`;
       }).join('');
