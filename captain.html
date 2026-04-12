@@ -136,17 +136,21 @@
 
     .waiting-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; text-align: center; margin-bottom: 0; color: var(--muted); font-size: 13px; }
 
-    .insight-grid { display:grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
-    .story-card, .recent-sales-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
-    .story-title, .recent-sales-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px; }
+    .insight-grid { display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 20px; }
+    .story-card, .recent-sales-card, .available-players-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+    .story-title, .recent-sales-title, .available-players-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px; }
     .story-line { font-size: 14px; color: var(--text); line-height: 1.5; }
     .story-line span { color: var(--accent); font-weight: 600; }
     .recent-sale-row { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
     .recent-sale-row:last-child { border-bottom: none; }
     .recent-sale-name { font-weight: 600; color: var(--text); font-size: 14px; }
     .recent-sale-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .avail-player-row { padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; color: var(--text); }
+    .avail-player-row:last-child { border-bottom: none; }
+    .avail-player-row.is-current { color: var(--accent); font-weight: 600; }
 
-    @media (max-width: 800px) { .insight-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .insight-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .insight-grid { grid-template-columns: 1fr; } }
     @media (max-width: 560px) {
       .bid-player-name { font-size: 2rem; }
       .bid-current-amount { font-size: 2.45rem; }
@@ -246,6 +250,10 @@
       <div class="recent-sales-card">
         <div class="recent-sales-title">Recent Sales</div>
         <div id="captainRecentSales"></div>
+      </div>
+      <div class="available-players-card">
+        <div class="available-players-title">Available Players</div>
+        <div id="captainAvailablePlayers"></div>
       </div>
     </div>
 
@@ -363,6 +371,7 @@
       renderBidPanel();
       renderStoryline();
       renderRecentSales();     // #2
+      renderAvailablePlayers();
       renderJustSold();
       renderRoster();          // #3 #5
       renderCaptainsGrid();    // #3
@@ -711,6 +720,26 @@
         return `<div class="recent-sale-row">
           <div class="recent-sale-name">${p.name}</div>
           <div class="recent-sale-meta">${cap ? displayCaptainName(cap) : '—'} · ${p.sold_price || 0} pts</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Available Players list ──
+    function renderAvailablePlayers() {
+      const wrap = document.getElementById('captainAvailablePlayers');
+      const available = allPlayers
+        .filter(p => !p.is_sold)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      const currentBidPlayerId = bidState?.player_id || null;
+
+      if (!available.length) {
+        wrap.innerHTML = '<div class="text-muted" style="font-size:13px;">No players remaining.</div>';
+        return;
+      }
+      wrap.innerHTML = available.map(p => {
+        const isCurrent = p.id === currentBidPlayerId;
+        return `<div class="avail-player-row${isCurrent ? ' is-current' : ''}">
+          ${isCurrent ? '⚡ ' : ''}${p.name}
         </div>`;
       }).join('');
     }
