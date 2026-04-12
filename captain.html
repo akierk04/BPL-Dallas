@@ -463,7 +463,10 @@
       const myHasTentative = myRoster.some(p => p.status === 'tentative');
       const totalSlots    = myHasTentative ? 5 : 4;
       const remainingSlots = Math.max(0, totalSlots - myBought);
-      const safeSpend     = me ? budgetWarning(me.wallet, myBought, myHasGroupX, myHasTentative).safe : 0;
+      // Safe spend is context-aware: if current player is Group X, no X reserve needed
+      const biddingOnX    = player.group_name === 'X';
+      const effectiveHasX = myHasGroupX || biddingOnX;
+      const safeSpend     = me ? budgetWarning(me.wallet, myBought, effectiveHasX, myHasTentative).safe : 0;
       const nextBid       = bidState.current_bid === 0 ? player.base_price : currentBid + 25;
       const isMyBid       = bidState.current_bidder_id === user.id;
 
@@ -514,7 +517,11 @@
       const myHasTentative = myRoster.some(p => p.status === 'tentative');
       const totalSlots     = myHasTentative ? 5 : 4;
       const remainingSlots = Math.max(0, totalSlots - myBought);
-      const safeSpend      = budgetWarning(me.wallet, myBought, myHasGroupX, myHasTentative).safe;
+      // Context-aware safe spend: if bidding on Group X, remove the X reserve
+      const currentPlayer  = allPlayers.find(p => p.id === bidState?.player_id);
+      const biddingOnX     = currentPlayer?.group_name === 'X';
+      const effectiveHasX  = myHasGroupX || biddingOnX;
+      const safeSpend      = budgetWarning(me.wallet, myBought, effectiveHasX, myHasTentative).safe;
       const nextBid        = (bidState?.current_bid === 0) ? basePrice : (currentBid || basePrice) + 25;
       const isLocked       = bidState?.bid_locked && bidState.current_bidder_id !== user.id;
       const isAlreadyLeading = bidState?.current_bidder_id === user.id;
@@ -529,8 +536,6 @@
         warning.textContent = '';
         return;
       }
-
-      const currentPlayer = allPlayers.find(p => p.id === bidState?.player_id);
 
       // Block 2nd Group X
       if (currentPlayer?.group_name === 'X' && myHasGroupX) {
@@ -579,7 +584,10 @@
       const myHasTentative = myRoster.some(p => p.status === 'tentative');
       const totalSlots     = myHasTentative ? 5 : 4;
       const remainingSlots = Math.max(0, totalSlots - myBought);
-      const safeSpend      = budgetWarning(me.wallet, myBought, myHasGroupX, myHasTentative).safe;
+      // Context-aware safe spend for final bid guard
+      const biddingOnXNow  = player.group_name === 'X';
+      const effectiveHasX2 = myHasGroupX || biddingOnXNow;
+      const safeSpend      = budgetWarning(me.wallet, myBought, effectiveHasX2, myHasTentative).safe;
       const currentBid     = bidState.current_bid || player.base_price;
       const nextBid        = bidState.current_bid === 0 ? player.base_price : currentBid + 25;
 
