@@ -289,7 +289,7 @@
 
     let allCaptains = [], allPlayers = [], bidState = null;
     let timerInterval = null, timerSeconds = 20;
-    let lastTimerPlayerId = null, lastTimerBid = null;
+    let lastTimerPlayerId = null, lastTimerBid = null, lastTimerStartedAt = null;
     let previousBidValue = 0, previousBidPlayerId = null, previousSoldKey = '', countdownPlayed = false;
     let previousSoldState = new Map(), lastSoldEvent = null, audioUnlocked = false;
 
@@ -454,7 +454,7 @@
       if (!bidState?.player_id) {
         panel.style.display = 'none';
         waiting.style.display = 'block';
-        lastTimerPlayerId = null; lastTimerBid = null;
+        lastTimerPlayerId = null; lastTimerBid = null; lastTimerStartedAt = null;
         clearTimer();
         return;
       }
@@ -463,7 +463,7 @@
       if (!player || player.is_sold) {
         panel.style.display = 'none';
         waiting.style.display = 'block';
-        lastTimerPlayerId = null; lastTimerBid = null;
+        lastTimerPlayerId = null; lastTimerBid = null; lastTimerStartedAt = null;
         clearTimer();
         return;
       }
@@ -516,11 +516,13 @@
       updateRaiseButton(currentBid, player.base_price);
 
       // #4: Use server timestamp to set timer
-      const bidChanged = bidState.player_id !== lastTimerPlayerId || currentBid !== lastTimerBid;
-      if (bidChanged) {
+      // Only restart timer when bid_started_at changes (new player or new bid placed)
+      const newStartedAt = bidState.bid_started_at || null;
+      const timerShouldRestart = bidState.player_id !== lastTimerPlayerId || newStartedAt !== lastTimerStartedAt;
+      if (timerShouldRestart) {
         lastTimerPlayerId = bidState.player_id;
         lastTimerBid = currentBid;
-        // Calculate remaining seconds from server timestamp
+        lastTimerStartedAt = newStartedAt;
         const serverSeconds = calcSecondsRemaining(bidState.bid_started_at);
         startTimer(serverSeconds);
       }
@@ -647,9 +649,36 @@
     }
 
     async function autoCloseBidding() {
-      // Admin is the single source of truth for closing bids and deducting wallets.
-      // Captain page does nothing on timer expiry — admin's "Close Bidding" button
-      // (or their own timer logic) handles the assignment to prevent double-deduction.
+      // Re-fetch fresh state — if admin already closed it, player_id will be null
+      const { data: fresh } = await db.from('bidding_state').select('*').eq('id', 1).single();
+      if (!fresh || !fresh.player_id) return; // Admin already handled it
+
+      const playerId       = fresh.player_id;
+      const currentBid     = fresh.current_bid || 0;
+      const currentBidderId = fresh.current_bidder_id;
+
+      // Race-safe: only proceed if player_id still matches (first client wins)
+      const { error } = await db.from('bidding_state').update({
+        player_id: null, current_bid: 0, current_bidder_id: null,
+        bid_locked: false, updated_at: new Date().toISOString()
+      }).eq('id', 1).eq('player_id', playerId);
+
+      if (error) return; // Another client already cleared it
+
+      if (!currentBidderId || currentBid === 0) return; // No bids — admin will re-list
+
+      // Assign player to winning captain
+      const { data: freshCap } = await db.from('captains').select('wallet').eq('id', currentBidderId).single();
+      if (!freshCap) return;
+      const { data: soldPlayer } = await db.from('players').select('status').eq('id', playerId).single();
+      const tentativeBonus = soldPlayer?.status === 'tentative' ? 50 : 0;
+      await db.from('players').update({
+        captain_id: currentBidderId, sold_price: currentBid,
+        is_sold: true, sold_at: new Date().toISOString()
+      }).eq('id', playerId);
+      await db.from('captains').update({
+        wallet: freshCap.wallet - currentBid + tentativeBonus
+      }).eq('id', currentBidderId);
     }
 
     function clearTimer() {
