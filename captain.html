@@ -627,7 +627,6 @@
         bid_locked: true,
         current_bid: nextBid,
         current_bidder_id: user.id,
-        bid_started_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }).eq('id', 1);
 
@@ -662,49 +661,12 @@
       }, 1000);
     }
 
-    async function autoCloseBidding() {
-      // Re-fetch fresh state — if admin already closed it, player_id will be null
-      const { data: fresh } = await db.from('bidding_state').select('*').eq('id', 1).single();
-      if (!fresh || !fresh.player_id) return; // Admin already handled it
-
-      // If bid is locked (someone just placed a bid), wait for lock to release
-      // then restart the full 20s timer — don't sell while lock is active
-      if (fresh.bid_locked) {
-        setTimeout(() => {
-          // After lock window, restart timer from fresh server state
-          lastTimerPlayerId = null;
-          lastTimerStartedAt = null;
-          loadData();
-        }, 2000); // slightly longer than the 1.5s lock release
-        return;
-      }
-
-      const playerId        = fresh.player_id;
-      const currentBid      = fresh.current_bid || 0;
-      const currentBidderId = fresh.current_bidder_id;
-
-      // Race-safe: only proceed if player_id still matches (first client wins)
-      const { error } = await db.from('bidding_state').update({
-        player_id: null, current_bid: 0, current_bidder_id: null,
-        bid_locked: false, updated_at: new Date().toISOString()
-      }).eq('id', 1).eq('player_id', playerId);
-
-      if (error) return; // Another client already cleared it
-
-      if (!currentBidderId || currentBid === 0) return; // No bids — admin will re-list
-
-      // Assign player to winning captain
-      const { data: freshCap } = await db.from('captains').select('wallet').eq('id', currentBidderId).single();
-      if (!freshCap) return;
-      const { data: soldPlayer } = await db.from('players').select('status').eq('id', playerId).single();
-      const tentativeBonus = soldPlayer?.status === 'tentative' ? 50 : 0;
-      await db.from('players').update({
-        captain_id: currentBidderId, sold_price: currentBid,
-        is_sold: true, sold_at: new Date().toISOString()
-      }).eq('id', playerId);
-      await db.from('captains').update({
-        wallet: freshCap.wallet - currentBid + tentativeBonus
-      }).eq('id', currentBidderId);
+    function autoCloseBidding() {
+      // Timer is display-only on the captain page.
+      // All closing, assignment and wallet deduction is handled exclusively by admin.
+      // This prevents any captain's device from triggering double-deductions or
+      // race conditions regardless of timer state, background/foreground switches,
+      // or stacked intervals.
     }
 
     function clearTimer() {
