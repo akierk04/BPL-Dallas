@@ -288,8 +288,8 @@
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
 
     let allCaptains = [], allPlayers = [], bidState = null;
-    let timerInterval = null, timerSeconds = 20;
-    window._bplTimerInterval = null; // extra safety — single global timer slot
+    let timerSeconds = 20;
+    let _timerToken = 0; // incremented on every startTimer — stale intervals self-invalidate
     let lastTimerPlayerId = null, lastTimerBid = null, lastTimerStartedAt = null;
     let previousBidValue = 0, previousBidPlayerId = null, previousSoldKey = '', countdownPlayed = false;
     let previousSoldState = new Map(), lastSoldEvent = null, audioUnlocked = false;
@@ -641,21 +641,25 @@
       }, 1500);
     }
 
-    // ── #4 Timer: accepts a starting seconds value ──
+    // ── #4 Timer: token-based, self-invalidating intervals ──
+    // Each startTimer call increments _timerToken. The interval checks its
+    // captured token on every tick — if it no longer matches, it self-destructs.
+    // This means stale intervals from previous loads/sessions are harmless.
     function startTimer(initialSeconds) {
-      // Kill ANY existing interval — both local and global safety net
-      if (timerInterval)        { clearInterval(timerInterval);        timerInterval = null; }
-      if (window._bplTimerInterval) { clearInterval(window._bplTimerInterval); window._bplTimerInterval = null; }
+      _timerToken++;                          // invalidate ALL previously created intervals
+      const myToken = _timerToken;            // this interval's unique identity
 
-      timerSeconds = (typeof initialSeconds === 'number' && !isNaN(initialSeconds) && initialSeconds > 0) ? Math.min(initialSeconds, 20) : 20;
+      timerSeconds = (typeof initialSeconds === 'number' && !isNaN(initialSeconds) && initialSeconds > 0)
+        ? Math.min(Math.round(initialSeconds), 20) : 20;
       countdownPlayed = false;
       updateTimerDisplay();
-      timerInterval = setInterval(() => {
+
+      const id = setInterval(() => {
+        if (_timerToken !== myToken) { clearInterval(id); return; } // stale — self-destruct
         timerSeconds--;
         updateTimerDisplay();
-        if (timerSeconds <= 0) { clearTimer(); autoCloseBidding(); }
+        if (timerSeconds <= 0) { _timerToken++; clearInterval(id); autoCloseBidding(); }
       }, 1000);
-      window._bplTimerInterval = timerInterval; // mirror to global slot
     }
 
     async function autoCloseBidding() {
@@ -704,9 +708,9 @@
     }
 
     function clearTimer() {
-      if (timerInterval)             { clearInterval(timerInterval);             timerInterval = null; }
-      if (window._bplTimerInterval)  { clearInterval(window._bplTimerInterval);  window._bplTimerInterval = null; }
-      timerSeconds = 20; countdownPlayed = false;
+      _timerToken++;        // invalidate any running interval
+      timerSeconds = 20;
+      countdownPlayed = false;
       updateTimerDisplay();
     }
 
