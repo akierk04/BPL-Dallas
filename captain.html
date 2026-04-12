@@ -302,7 +302,15 @@
     document.addEventListener('click', unlockAudio, { once: true });
     document.addEventListener('touchstart', unlockAudio, { once: true });
 
+    let isFirstLoad = true;
     function detectSoldTransition(nextPlayers) {
+      // On first load, just seed the map — don't fire sold events for pre-existing sales.
+      // renderJustSold() will fall back to DB sort to show the latest sold player.
+      if (isFirstLoad) {
+        isFirstLoad = false;
+        previousSoldState = new Map(nextPlayers.map(p => [p.id, { is_sold: p.is_sold, captain_id: p.captain_id, sold_price: p.sold_price, sold_at: p.sold_at }]));
+        return;
+      }
       for (const p of nextPlayers) {
         const prev = previousSoldState.get(p.id);
         if (p.is_sold && (!prev || !prev.is_sold || prev.captain_id !== p.captain_id || prev.sold_price !== p.sold_price || prev.sold_at !== p.sold_at)) {
