@@ -699,7 +699,7 @@
       const wrap = document.getElementById('captainRecentSales');
       const sold = [...allPlayers]
         .filter(p => p.is_sold)
-        .sort((a, b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))
+        .sort((a, b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))
         .slice(0, 5);
 
       if (!sold.length) {
@@ -720,7 +720,7 @@
       const text   = document.getElementById('justSoldText');
       const latest = lastSoldEvent
         ? { name: lastSoldEvent.player, sold_price: lastSoldEvent.price, captain_id: (allCaptains.find(c => c.name === lastSoldEvent.captain) || {}).id }
-        : [...allPlayers].filter(p => p.is_sold).sort((a, b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))[0];
+        : [...allPlayers].filter(p => p.is_sold).sort((a, b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))[0];
       if (!latest) { banner.style.display = 'none'; return; }
       const capName = lastSoldEvent ? lastSoldEvent.captain : (displayCaptainName(allCaptains.find(c => c.id === latest.captain_id)));
       text.textContent = `${latest.name} sold to ${capName} for ${latest.sold_price || 0} pts`;
