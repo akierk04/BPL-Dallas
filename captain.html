@@ -289,6 +289,7 @@
 
     let allCaptains = [], allPlayers = [], bidState = null;
     let timerInterval = null, timerSeconds = 20;
+    window._bplTimerInterval = null; // extra safety — single global timer slot
     let lastTimerPlayerId = null, lastTimerBid = null, lastTimerStartedAt = null;
     let previousBidValue = 0, previousBidPlayerId = null, previousSoldKey = '', countdownPlayed = false;
     let previousSoldState = new Map(), lastSoldEvent = null, audioUnlocked = false;
@@ -637,8 +638,11 @@
 
     // ── #4 Timer: accepts a starting seconds value ──
     function startTimer(initialSeconds) {
-      clearTimer();
-      timerSeconds = (typeof initialSeconds === 'number' && !isNaN(initialSeconds)) ? initialSeconds : 20;
+      // Kill ANY existing interval — both local and global safety net
+      if (timerInterval)        { clearInterval(timerInterval);        timerInterval = null; }
+      if (window._bplTimerInterval) { clearInterval(window._bplTimerInterval); window._bplTimerInterval = null; }
+
+      timerSeconds = (typeof initialSeconds === 'number' && !isNaN(initialSeconds) && initialSeconds > 0) ? Math.min(initialSeconds, 20) : 20;
       countdownPlayed = false;
       updateTimerDisplay();
       timerInterval = setInterval(() => {
@@ -646,6 +650,7 @@
         updateTimerDisplay();
         if (timerSeconds <= 0) { clearTimer(); autoCloseBidding(); }
       }, 1000);
+      window._bplTimerInterval = timerInterval; // mirror to global slot
     }
 
     async function autoCloseBidding() {
@@ -682,7 +687,8 @@
     }
 
     function clearTimer() {
-      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      if (timerInterval)             { clearInterval(timerInterval);             timerInterval = null; }
+      if (window._bplTimerInterval)  { clearInterval(window._bplTimerInterval);  window._bplTimerInterval = null; }
       timerSeconds = 20; countdownPlayed = false;
       updateTimerDisplay();
     }
