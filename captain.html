@@ -488,7 +488,11 @@
       const isMyBid       = bidState.current_bidder_id === user.id;
 
       document.getElementById('bidPlayerName').textContent = player.name;
-      document.getElementById('bidBasePrice').textContent  = `Base price ${player.base_price} pts${player.status === 'tentative' ? ' · Tentative (+50 bonus)' : ''}`;
+      const groupColor = player.group_name === 'X' ? 'var(--groupX)' : 'var(--green)';
+      document.getElementById('bidBasePrice').innerHTML =
+        `Base price ${player.base_price} pts` +
+        ` <span style="margin-left:6px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${groupColor}18;border:1px solid ${groupColor}55;color:${groupColor};">Group ${player.group_name}</span>` +
+        (player.status === 'tentative' ? ` <span style="margin-left:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);color:var(--green);">Tentative +50</span>` : '');
       document.getElementById('bidCurrentAmount').textContent = currentBid.toLocaleString();
       document.getElementById('bidCurrentBidder').innerHTML = currentBidder
         ? `${displayCaptainName(currentBidder)}${isMyBid ? '<span class="my-bid-badge">You</span>' : ''}`
