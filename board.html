@@ -407,7 +407,7 @@
       // Fallback: show the most recently sold player from allPlayers (survives page refresh)
       const latestSold = [...allPlayers]
         .filter(p => p.is_sold && p.captain_id)
-        .sort((a, b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))[0];
+        .sort((a, b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))[0];
 
       if (!latestSold) {
         banner.style.display = 'none';
@@ -449,7 +449,7 @@
           ? lastSoldEvent
           : (() => {
               const p = [...allPlayers].filter(s => s.is_sold && s.captain_id)
-                .sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))[0];
+                .sort((a,b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))[0];
               if (!p) return null;
               const cap = allCaptains.find(c => c.id === p.captain_id);
               return { player: p.name, captain: cap ? displayCaptainName(cap) : '—', price: p.sold_price || 0 };
@@ -542,7 +542,7 @@
 
     function renderStoryline() {
       const el = document.getElementById('boardStory');
-      const sold = allPlayers.filter(p => p.is_sold).sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0));
+      const sold = allPlayers.filter(p => p.is_sold).sort((a,b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0));
       const lines = [];
       const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
       const current = currentPlayerId ? allPlayers.find(p => p.id === currentPlayerId) : null;
@@ -585,7 +585,7 @@ function renderRecentSales() {
       const wrap = document.getElementById('recentSales');
       const sold = [...allPlayers]
         .filter(p => p.is_sold)
-        .sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))
+        .sort((a,b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))
         .slice(0,5);
 
       if (!sold.length) {
