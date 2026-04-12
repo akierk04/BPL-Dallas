@@ -595,6 +595,7 @@
         bid_locked: true,
         current_bid: nextBid,
         current_bidder_id: user.id,
+        bid_started_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }).eq('id', 1);
 
