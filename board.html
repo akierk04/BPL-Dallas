@@ -396,13 +396,27 @@
       const main = document.getElementById('soldBannerMain');
       const sub = document.getElementById('soldBannerSub');
 
-      if (!lastSoldEvent || (Date.now() - lastSoldEvent.at) > 25000) {
+      // Use in-memory event if fresh (within 25s), otherwise fall back to DB data
+      if (lastSoldEvent && (Date.now() - lastSoldEvent.at) <= 25000) {
+        main.textContent = lastSoldEvent.player;
+        sub.textContent = `Sold to ${lastSoldEvent.captain} for ${lastSoldEvent.price} pts`;
+        banner.style.display = 'block';
+        return;
+      }
+
+      // Fallback: show the most recently sold player from allPlayers (survives page refresh)
+      const latestSold = [...allPlayers]
+        .filter(p => p.is_sold && p.captain_id)
+        .sort((a, b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))[0];
+
+      if (!latestSold) {
         banner.style.display = 'none';
         return;
       }
 
-      main.textContent = `${lastSoldEvent.player}`;
-      sub.textContent = `Sold to ${lastSoldEvent.captain} for ${lastSoldEvent.price} pts`;
+      const cap = allCaptains.find(c => c.id === latestSold.captain_id);
+      main.textContent = latestSold.name;
+      sub.textContent = `Sold to ${cap ? displayCaptainName(cap) : '—'} for ${latestSold.sold_price || 0} pts`;
       banner.style.display = 'block';
     }
 
@@ -429,10 +443,22 @@
             lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${p.base_price} pts</span>.`);
           }
         }
-      } else if (lastSoldEvent) {
-        lines.push(`<span>${lastSoldEvent.player}</span> just went to <span>${lastSoldEvent.captain}</span> for <span>${lastSoldEvent.price} pts</span>.`);
       } else {
-        lines.push(`Auction is between nominations right now. <span>${available.length}</span> players are still available.`);
+        // Show most recent sale from DB (works on refresh), prefer in-memory event if fresh
+        const recentSale = lastSoldEvent
+          ? lastSoldEvent
+          : (() => {
+              const p = [...allPlayers].filter(s => s.is_sold && s.captain_id)
+                .sort((a,b) => new Date(b.sold_at || b.created_at || 0) - new Date(a.sold_at || a.created_at || 0))[0];
+              if (!p) return null;
+              const cap = allCaptains.find(c => c.id === p.captain_id);
+              return { player: p.name, captain: cap ? displayCaptainName(cap) : '—', price: p.sold_price || 0 };
+            })();
+        if (recentSale) {
+          lines.push(`<span>${recentSale.player}</span> just went to <span>${recentSale.captain}</span> for <span>${recentSale.price} pts</span>.`);
+        } else {
+          lines.push(`Auction is between nominations right now. <span>${available.length}</span> players are still available.`);
+        }
       }
 
       if (sortedWallets[0]) {
