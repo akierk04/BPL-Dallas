@@ -76,6 +76,19 @@
     @keyframes bidPulse{0%{transform:scale(1);box-shadow:0 0 0 rgba(240,192,64,0);}50%{transform:scale(1.01);box-shadow:0 0 28px rgba(240,192,64,0.22);}100%{transform:scale(1);box-shadow:0 0 0 rgba(240,192,64,0);}}
     .pool-player-card-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;}
     .pool-player-card-sold{font-size:11px;color:var(--green);font-weight:500;margin-top:4px;}
+
+    /* ── #10 Tournament Mode ── */
+    .tournament-mode-banner{
+      background:linear-gradient(135deg,rgba(240,192,64,0.18),rgba(240,192,64,0.06));
+      border:1px solid rgba(240,192,64,0.45);
+      border-radius:var(--radius-lg);
+      padding:20px 24px;
+      text-align:center;
+      margin-bottom:20px;
+    }
+    .tournament-mode-icon{font-size:2.5rem;margin-bottom:8px;}
+    .tournament-mode-title{font-family:var(--font-display);font-size:2rem;letter-spacing:0.08em;color:var(--accent);}
+    .tournament-mode-sub{font-size:13px;color:var(--muted);margin-top:6px;}
     @media(max-width:900px){.auction-grid{grid-template-columns:1fr;}}
     @media(max-width:480px){.board-grid{grid-template-columns:1fr;}.pool-grid{grid-template-columns:repeat(2,1fr);}.board-title{font-size:1.6rem;}.now-bidding-name,.sold-banner-main{font-size:2rem;}}
   </style>
@@ -89,6 +102,13 @@
   </div>
 
   <div class="page">
+  <!-- #10 Tournament Mode Banner (shown when auction is done) -->
+  <div id="tournamentModeBanner" class="tournament-mode-banner" style="display:none;">
+    <div class="tournament-mode-icon">🏆</div>
+    <div class="tournament-mode-title">Tournament Mode</div>
+    <div class="tournament-mode-sub">The auction is complete. Let the games begin!</div>
+  </div>
+
     <div class="tabs" style="flex-wrap:wrap;margin-bottom:20px;">
       <button class="tab active" onclick="switchBoardTab('auction')">Auction</button>
       <button class="tab" onclick="switchBoardTab('standings')">Standings</button>
@@ -431,13 +451,39 @@
 
     function renderBoardPhase() {
       const el = document.getElementById('boardPhase');
-      const soldCount = allPlayers.filter(p => p.is_sold).length;
-      if (soldCount >= 32) {
-        el.textContent = 'Auction complete · tournament mode next';
-      } else if (currentPlayerId) {
-        el.textContent = 'Auction phase live · board updates in real time';
+      const tournamentBanner = document.getElementById('tournamentModeBanner');
+      const auctionTab = document.getElementById('btab-auction');
+      const waitingBanner = document.getElementById('waitingBanner');
+
+      const unsoldCount = allPlayers.filter(p => !p.is_sold).length;
+      const auctionDone = allPlayers.length > 0 && unsoldCount === 0;
+
+      if (auctionDone) {
+        // #10 Tournament mode: hide auction UI, show tournament banner, auto-switch to standings
+        el.textContent = 'Tournament mode · auction complete';
+        tournamentBanner.style.display = 'block';
+
+        // Hide the auction-specific elements
+        const nowBidding = document.getElementById('nowBidding');
+        const soldBanner = document.getElementById('soldBanner');
+        const eventBanner = auctionTab.querySelector('.event-banner');
+        if (nowBidding) nowBidding.style.display = 'none';
+        if (waitingBanner) waitingBanner.style.display = 'none';
+        if (soldBanner) soldBanner.style.display = 'none';
+        if (eventBanner) eventBanner.style.display = 'none';
+
+        // Auto-switch to standings tab if still on auction tab
+        const activeTab = document.querySelector('.tab.active');
+        if (!activeTab || activeTab.textContent === 'Auction') {
+          switchBoardTab('standings');
+        }
       } else {
-        el.textContent = 'Auction room standing by for the next player';
+        tournamentBanner.style.display = 'none';
+        if (currentPlayerId) {
+          el.textContent = 'Auction phase live · board updates in real time';
+        } else {
+          el.textContent = 'Auction room standing by for the next player';
+        }
       }
     }
 
@@ -453,7 +499,7 @@
       const pressure = [...allCaptains].map(c => {
         const roster = sold.filter(p => p.captain_id === c.id).length;
         const hasGroupX = sold.some(p => p.captain_id === c.id && p.group_name === 'X');
-        const safe = budgetWarning(c.wallet, roster, hasGroupX).safe;
+        const safe = budgetWarning(c.wallet, roster, hasGroupX, sold.some(p => p.captain_id === c.id && p.status === 'tentative')).safe;
         return { captain: c, roster, safe, wallet: c.wallet };
       }).sort((a,b) => a.safe - b.safe || a.wallet - b.wallet)[0];
 
@@ -479,7 +525,7 @@
         captain: c,
         spent: sold.filter(p => p.captain_id === c.id).reduce((sum,p) => sum + (p.sold_price||0), 0),
         roster: sold.filter(p => p.captain_id === c.id).length,
-        safe: budgetWarning(c.wallet, sold.filter(p => p.captain_id === c.id).length, sold.some(p => p.captain_id === c.id && p.group_name === 'X')).safe
+        safe: budgetWarning(c.wallet, sold.filter(p => p.captain_id === c.id).length, sold.some(p => p.captain_id === c.id && p.group_name === 'X'), sold.some(p => p.captain_id === c.id && p.status === 'tentative')).safe
       })).sort((a,b) => b.spent - a.spent);
       const topSpender = spendRows[0];
       const pressure = [...spendRows].sort((a,b) => a.safe - b.safe || a.captain.wallet - b.captain.wallet)[0];
@@ -558,7 +604,7 @@ function renderRecentSales() {
                 <div class="board-purse-label">pts left</div>
               </div>
             </div>
-            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet, roster.length, roster.some(p => p.group_name === 'X'))}</div>
+            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet, roster.length, roster.some(p => p.group_name === 'X'), roster.some(p => p.status === 'tentative'))}</div>
             <div class="board-roster">${rHtml}</div>
           </div>`;
       }).join('');
