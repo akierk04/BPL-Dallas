@@ -870,6 +870,7 @@
         current_bid: 0,
         current_bidder_id: null,
         bid_locked: false,
+        bid_started_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }).eq('id', 1);
       msg.textContent = 'Player set live!';
