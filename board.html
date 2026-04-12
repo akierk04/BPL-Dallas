@@ -358,7 +358,11 @@
         const p = allPlayers.find(x => x.id === currentPlayerId);
         if (p && !p.is_sold) {
           nm.textContent = p.name;
-          bp.textContent = `Base price ${p.base_price} pts`;
+          const grpColor = p.group_name === 'X' ? 'var(--groupX)' : 'var(--green)';
+          bp.innerHTML =
+            `Base price ${p.base_price} pts` +
+            ` <span style="margin-left:6px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${grpColor}18;border:1px solid ${grpColor}55;color:${grpColor};">Group ${p.group_name}</span>` +
+            (p.status === 'tentative' ? ` <span style="margin-left:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);color:var(--green);">Tentative +50</span>` : '');
 
           const currentBid    = bidState?.current_bid || 0;
           const currentBidder = bidState?.current_bidder_id
