@@ -632,7 +632,12 @@
       }).eq('id', 1);
 
       setTimeout(async () => {
-        await db.from('bidding_state').update({ bid_locked: false }).eq('id', 1);
+        // Release lock AND reset bid_started_at so all clients get a fresh 20s window
+        await db.from('bidding_state').update({
+          bid_locked: false,
+          bid_started_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }).eq('id', 1);
       }, 1500);
     }
 
@@ -658,8 +663,20 @@
       const { data: fresh } = await db.from('bidding_state').select('*').eq('id', 1).single();
       if (!fresh || !fresh.player_id) return; // Admin already handled it
 
-      const playerId       = fresh.player_id;
-      const currentBid     = fresh.current_bid || 0;
+      // If bid is locked (someone just placed a bid), wait for lock to release
+      // then restart the full 20s timer — don't sell while lock is active
+      if (fresh.bid_locked) {
+        setTimeout(() => {
+          // After lock window, restart timer from fresh server state
+          lastTimerPlayerId = null;
+          lastTimerStartedAt = null;
+          loadData();
+        }, 2000); // slightly longer than the 1.5s lock release
+        return;
+      }
+
+      const playerId        = fresh.player_id;
+      const currentBid      = fresh.current_bid || 0;
       const currentBidderId = fresh.current_bidder_id;
 
       // Race-safe: only proceed if player_id still matches (first client wins)
@@ -841,6 +858,27 @@
           </div>`;
       }).join('');
     }
+
+    // Kill stale intervals when page comes back from background (mobile tab switching)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        // Nuke any stale intervals, then re-sync from server
+        clearTimer();
+        lastTimerPlayerId = null;
+        lastTimerStartedAt = null;
+        loadData();
+      }
+    });
+
+    // Also handle iOS "page show" from bfcache
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) {
+        clearTimer();
+        lastTimerPlayerId = null;
+        lastTimerStartedAt = null;
+        loadData();
+      }
+    });
 
     const _cid = Math.random().toString(36).slice(2);
     db.channel('bpl-captain-' + _cid)
