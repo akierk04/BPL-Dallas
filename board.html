@@ -117,6 +117,7 @@
       <button class="tab" onclick="switchBoardTab('standings')">Standings</button>
       <button class="tab" onclick="switchBoardTab('stats')">Stats</button>
       <button class="tab" onclick="switchBoardTab('schedule')">Schedule</button>
+      <button class="tab" onclick="switchBoardTab('teams')">Teams</button>
     </div>
 
     <!-- Auction tab -->
@@ -219,6 +220,12 @@
         <div id="boardSchedule"></div>
       </div>
     </div>
+
+    <!-- Teams tab -->
+    <div id="btab-teams" style="display:none;">
+      <div class="section-title">Teams</div>
+      <div id="boardTeamsGrid" class="board-grid"></div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -261,7 +268,7 @@
     }
     document.addEventListener('click', unlockAudio, { once: true });
     document.addEventListener('touchstart', unlockAudio, { once: true });
-    const BTABS=['auction','standings','stats','schedule'];
+    const BTABS=['auction','standings','stats','schedule','teams'];
 
     function switchBoardTab(tab) {
       BTABS.forEach(t=>document.getElementById('btab-'+t).style.display=t===tab?'block':'none');
@@ -322,6 +329,7 @@
       renderBoardStandings();
       renderBoardStats();
       renderBoardSchedule();
+      renderTeams();
     }
 
 
@@ -703,6 +711,37 @@ function renderRecentSales() {
     function renderBoardSchedule() {
       const rows = computeStandings(allCaptains, allMatches);
       document.getElementById('boardSchedule').innerHTML=matchScheduleHtml(allMatches,allCaptains,allPlayers,rows);
+    }
+
+    function renderTeams() {
+      const grid = document.getElementById('boardTeamsGrid');
+      if (!allCaptains.length) { grid.innerHTML = '<div class="text-muted">Loading...</div>'; return; }
+      const sorted = [...allCaptains].sort((a,b) =>
+        (a.tournament_group||'').localeCompare(b.tournament_group||'') || a.name.localeCompare(b.name)
+      );
+      grid.innerHTML = sorted.map(c => {
+        const roster = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
+        const teamName = c.team_name || c.name;
+        const groupColor = c.tournament_group === '1' ? 'var(--groupX)' : 'var(--green)';
+        const playersHtml = roster.length
+          ? roster.map(p =>
+              '<div class="board-player-row" style="border-bottom:0.5px solid var(--border);padding:7px 0;">' +
+              '<span class="board-player-name">' + p.name +
+              (p.group_name==='X' ? ' <span style="font-size:10px;background:rgba(240,192,64,0.15);color:var(--groupX);padding:1px 5px;border-radius:3px;margin-left:4px;">X</span>' : '') +
+              (p.status==='tentative' ? ' <span style="font-size:10px;background:rgba(62,207,142,0.1);color:var(--green);padding:1px 5px;border-radius:3px;margin-left:2px;">T</span>' : '') +
+              '</span></div>'
+            ).join('')
+          : '<div class="board-empty">No players signed yet</div>';
+        return '<div class="board-captain-card">' +
+          '<div class="board-captain-header" style="padding-bottom:12px;">' +
+          '<div style="flex:1;min-width:0;">' +
+          '<div style="font-family:var(--font-display);font-size:1.5rem;letter-spacing:0.06em;color:var(--text);line-height:1;">' + teamName + '</div>' +
+          '<div style="font-size:13px;color:var(--muted);margin-top:4px;">' + c.name + ' <span style="color:var(--accent);font-weight:600;">(C)</span></div>' +
+          '<span style="display:inline-block;margin-top:6px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:' + groupColor + '18;border:1px solid ' + groupColor + '55;color:' + groupColor + ';">Group ' + (c.tournament_group||'?') + '</span>' +
+          '</div></div>' +
+          '<div class="board-roster" style="padding-top:4px;">' + playersHtml + '</div>' +
+          '</div>';
+      }).join('');
     }
 
     const _cid = Math.random().toString(36).slice(2);
