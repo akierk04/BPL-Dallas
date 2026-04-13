@@ -245,6 +245,8 @@
       border-radius: var(--radius);
       padding: 12px 14px;
       cursor: grab;
+      user-select: none;
+      -webkit-user-drag: element;
       transition: border-color 0.15s, transform 0.1s, opacity 0.15s;
     }
 
@@ -1627,6 +1629,8 @@
       draggedScheduleSection = card.dataset.sectionKey;
       card.classList.add('dragging');
       event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.dropEffect = 'move';
+      event.dataTransfer.setData('text/plain', draggedScheduleMatchId || '');
     }
 
     function handleScheduleDragEnd(event) {
@@ -1654,6 +1658,11 @@
 
       const targetMatchId = targetCard.dataset.matchId;
       const targetSection = targetCard.dataset.sectionKey;
+      const draggedIdFromTransfer = event.dataTransfer.getData('text/plain');
+
+      if (!draggedScheduleMatchId && draggedIdFromTransfer) {
+        draggedScheduleMatchId = draggedIdFromTransfer;
+      }
 
       if (!draggedScheduleMatchId || !targetMatchId) return;
       if (draggedScheduleMatchId === targetMatchId) return;
