@@ -554,6 +554,29 @@
     </div>
   </div>
 
+
+
+  <div id="fixtureConflictModal" class="modal-overlay" style="display:none;">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-title">Match # Conflict</div>
+      <div class="modal-sub" id="fixtureConflictSummary">—</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        <button id="conflictSwapBtn" class="btn-sm" style="width:auto;" onclick="setFixtureConflictMode('swap')">Swap Numbers</button>
+        <button id="conflictReplaceBtn" class="btn-sm" style="width:auto;" onclick="setFixtureConflictMode('replace')">Enter Replacement Match #</button>
+      </div>
+      <div id="fixtureConflictHelp" class="modal-sub" style="margin-top:6px;">The current fixture and displaced fixture will swap Match # values.</div>
+      <div id="fixtureConflictReplaceWrap" style="display:none;margin-top:8px;">
+        <div class="modal-sub" style="margin-bottom:8px;">Choose a new Match # for the displaced fixture.</div>
+        <select id="fixtureConflictReplacementSelect" style="width:100%;"></select>
+      </div>
+      <p id="fixtureConflictError" class="text-muted mt-8" style="color:var(--red);"></p>
+      <div class="modal-actions">
+        <button class="btn-cancel" style="width:auto;" onclick="closeFixtureConflictModal()">Cancel</button>
+        <button class="btn-primary" style="width:auto;" onclick="confirmFixtureConflictResolution()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <div id="saleConfirmModal" class="modal-overlay" style="display:none;">
     <div class="modal">
       <div class="modal-title">Confirm Sale</div>
@@ -583,6 +606,7 @@
     let pendingMatchId = null;
     let selectedFixtureId = null;
     let selectedFixtureForEditId = null;
+    let fixtureConflictState = null;
     let draggedScheduleMatchId = null;
     let draggedScheduleSection = null;
     let lastSale = null;
@@ -1305,6 +1329,150 @@
       });
     }
 
+    function getRoundMatchesForType(matchType) {
+      return allMatches.filter(m => matchType === 'league'
+        ? !m.is_knockout
+        : (m.is_knockout && m.knockout_label === matchType));
+    }
+
+    function getAvailableReplacementOrders(matchType, requestedOrder, currentFixtureId, displacedFixtureId, currentOrder) {
+      const poolMax = matchType === 'league' ? 12 : 20;
+      const roundMatches = getRoundMatchesForType(matchType);
+      const used = new Set(
+        roundMatches
+          .filter(m => String(m.id) !== String(currentFixtureId) && String(m.id) !== String(displacedFixtureId))
+          .map(m => Number(m.display_order))
+          .filter(n => !Number.isNaN(n) && n > 0)
+      );
+      const options = [];
+      for (let i = 1; i <= poolMax; i++) {
+        if (i === Number(requestedOrder)) continue;
+        if (used.has(i)) continue;
+        options.push(i);
+      }
+      if (currentOrder && !options.includes(Number(currentOrder)) && Number(currentOrder) !== Number(requestedOrder)) {
+        options.unshift(Number(currentOrder));
+      }
+      return [...new Set(options)].sort((a,b) => a-b);
+    }
+
+    function closeFixtureConflictModal() {
+      fixtureConflictState = null;
+      const modal = document.getElementById('fixtureConflictModal');
+      if (modal) modal.style.display = 'none';
+      const err = document.getElementById('fixtureConflictError');
+      if (err) err.textContent = '';
+    }
+
+    function setFixtureConflictMode(mode) {
+      if (!fixtureConflictState) return;
+      fixtureConflictState.mode = mode;
+      const swapBtn = document.getElementById('conflictSwapBtn');
+      const replaceBtn = document.getElementById('conflictReplaceBtn');
+      const wrap = document.getElementById('fixtureConflictReplaceWrap');
+      const help = document.getElementById('fixtureConflictHelp');
+      if (swapBtn) swapBtn.style.borderColor = mode === 'swap' ? 'rgba(240,192,64,0.5)' : 'var(--border)';
+      if (replaceBtn) replaceBtn.style.borderColor = mode === 'replace' ? 'rgba(240,192,64,0.5)' : 'var(--border)';
+      if (wrap) wrap.style.display = mode === 'replace' ? 'block' : 'none';
+      if (help) help.textContent = mode === 'swap'
+        ? 'The current fixture and displaced fixture will swap Match # values.'
+        : 'Choose a replacement Match # for the displaced fixture.';
+    }
+
+    function openFixtureConflictModal(payload) {
+      fixtureConflictState = payload;
+      const summary = document.getElementById('fixtureConflictSummary');
+      const select = document.getElementById('fixtureConflictReplacementSelect');
+      const err = document.getElementById('fixtureConflictError');
+      const swapBtn = document.getElementById('conflictSwapBtn');
+      if (summary) {
+        summary.innerHTML = `Match #${payload.requestedOrder} is already used by <strong>${payload.displacedHome}</strong> vs <strong>${payload.displacedAway}</strong>.<br><br>You are trying to move <strong>${payload.currentHome}</strong> vs <strong>${payload.currentAway}</strong> to Match #${payload.requestedOrder}.`;
+      }
+      if (select) {
+        const opts = payload.replacementOptions || [];
+        select.innerHTML = opts.length
+          ? opts.map(n => `<option value="${n}">Match #${n}</option>`).join('')
+          : '<option value="">No available match numbers</option>';
+      }
+      if (err) err.textContent = '';
+      if (swapBtn) swapBtn.disabled = !payload.canSwap;
+      setFixtureConflictMode(payload.canSwap ? 'swap' : 'replace');
+      document.getElementById('fixtureConflictModal').style.display = 'flex';
+    }
+
+    async function commitFixtureUpdate(matchId, values) {
+      await db.from('goals').delete().eq('match_id', matchId);
+      return db.from('matches').update({
+        home_captain_id: values.home_captain_id,
+        away_captain_id: values.away_captain_id,
+        home_score: 0,
+        away_score: 0,
+        played: false,
+        is_knockout: values.is_knockout,
+        knockout_label: values.knockout_label,
+        display_order: values.display_order,
+        mvp_player_id: null
+      }).eq('id', matchId);
+    }
+
+    async function confirmFixtureConflictResolution() {
+      if (!fixtureConflictState) return;
+      const state = fixtureConflictState;
+      const err = document.getElementById('fixtureConflictError');
+      if (err) err.textContent = '';
+
+      let displacedNewOrder = null;
+      if (state.mode === 'swap') {
+        if (!state.canSwap) {
+          if (err) err.textContent = 'Swap is only available when editing an existing fixture that already has a Match #.';
+          return;
+        }
+        displacedNewOrder = state.currentOrder;
+      } else {
+        const select = document.getElementById('fixtureConflictReplacementSelect');
+        displacedNewOrder = select && select.value ? parseInt(select.value, 10) : null;
+        if (!displacedNewOrder || displacedNewOrder < 1) {
+          if (err) err.textContent = 'Choose a replacement Match #.';
+          return;
+        }
+        if (displacedNewOrder === state.requestedOrder) {
+          if (err) err.textContent = 'Replacement Match # must be different from the requested Match #.';
+          return;
+        }
+      }
+
+      const displacedPayload = {
+        home_captain_id: state.displaced.home_captain_id,
+        away_captain_id: state.displaced.away_captain_id,
+        is_knockout: state.displaced.is_knockout,
+        knockout_label: state.displaced.knockout_label,
+        display_order: displacedNewOrder
+      };
+
+      const currentPayload = {
+        home_captain_id: state.form.homeId,
+        away_captain_id: state.form.awayId,
+        is_knockout: state.form.isKnockout,
+        knockout_label: state.form.knockoutLabel,
+        display_order: state.requestedOrder
+      };
+
+      const currentMsg = document.getElementById('fixtureEditMsg');
+      const [displacedRes, currentRes] = await Promise.all([
+        commitFixtureUpdate(state.displaced.id, displacedPayload),
+        commitFixtureUpdate(state.currentId, currentPayload)
+      ]);
+
+      if (displacedRes.error || currentRes.error) {
+        if (err) err.textContent = displacedRes.error?.message || currentRes.error?.message || 'Unable to update fixtures.';
+        return;
+      }
+
+      closeFixtureConflictModal();
+      if (currentMsg) currentMsg.textContent = `Fixture updated. Match #${state.requestedOrder} assigned successfully.`;
+      await loadData();
+    }
+
     async function saveFixtureEdit() {
       const homeId = document.getElementById('fixtureEditHome').value;
       const awayId = document.getElementById('fixtureEditAway').value;
@@ -1322,36 +1490,53 @@
         return;
       }
 
+      const isKnockout = matchType !== 'league';
+      const knockoutLabel = isKnockout ? matchType : null;
       const orderConflict = allMatches.find(m => {
-        if (selectedFixtureForEditId && m.id === selectedFixtureForEditId) return false;
+        if (selectedFixtureForEditId && String(m.id) === String(selectedFixtureForEditId)) return false;
         const sameType = matchType === 'league'
           ? !m.is_knockout
           : (m.is_knockout && m.knockout_label === matchType);
         return sameType && Number(m.display_order) === orderVal;
       });
+
+      if (orderConflict && selectedFixtureForEditId) {
+        const currentFixture = allMatches.find(m => String(m.id) === String(selectedFixtureForEditId));
+        const currentHome = allCaptains.find(c => c.id === homeId);
+        const currentAway = allCaptains.find(c => c.id === awayId);
+        const displacedHome = allCaptains.find(c => c.id === orderConflict.home_captain_id);
+        const displacedAway = allCaptains.find(c => c.id === orderConflict.away_captain_id);
+        openFixtureConflictModal({
+          currentId: selectedFixtureForEditId,
+          currentOrder: Number(currentFixture?.display_order) || null,
+          requestedOrder: orderVal,
+          displaced: orderConflict,
+          currentHome: displayCaptainName(currentHome),
+          currentAway: displayCaptainName(currentAway),
+          displacedHome: displayCaptainName(displacedHome),
+          displacedAway: displayCaptainName(displacedAway),
+          canSwap: !!(currentFixture && currentFixture.display_order),
+          replacementOptions: getAvailableReplacementOrders(matchType, orderVal, selectedFixtureForEditId, orderConflict.id, Number(currentFixture?.display_order) || null),
+          form: { homeId, awayId, isKnockout, knockoutLabel }
+        });
+        msg.textContent = '';
+        return;
+      }
+
       if (orderConflict) {
         msg.textContent = `Another ${matchType === 'league' ? 'league' : matchType} fixture already uses Match #${orderVal}.`;
         return;
       }
 
-      const isKnockout = matchType !== 'league';
-      const knockoutLabel = isKnockout ? matchType : null;
       let error;
-
       if (selectedFixtureForEditId) {
-        if (!confirm('Update this fixture? This will reset any saved score, goals, and MVP for that match.')) return;
-        await db.from('goals').delete().eq('match_id', selectedFixtureForEditId);
-        ({ error } = await db.from('matches').update({
+        ({ error } = await commitFixtureUpdate(selectedFixtureForEditId, {
           home_captain_id: homeId,
           away_captain_id: awayId,
-          home_score: 0,
-          away_score: 0,
-          played: false,
           is_knockout: isKnockout,
           knockout_label: knockoutLabel,
-          display_order: orderVal,
-          mvp_player_id: null
-        }).eq('id', selectedFixtureForEditId));
+          display_order: orderVal
+        }));
       } else {
         ({ error } = await db.from('matches').insert({
           home_captain_id: homeId,
@@ -1372,10 +1557,7 @@
       msg.textContent = selectedFixtureForEditId
         ? `Fixture updated: Match ${orderVal} · ${displayCaptainName(homeCap)} vs ${displayCaptainName(awayCap)}`
         : `Fixture created: Match ${orderVal} · ${displayCaptainName(homeCap)} vs ${displayCaptainName(awayCap)}`;
-      resetMatchForm();
-      resetFixtureEditor();
-      loadData();
-      setTimeout(() => { document.getElementById('fixtureEditMsg').textContent = ''; }, 3000);
+      await loadData();
     }
 
     async function saveMatch() {
