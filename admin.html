@@ -1150,25 +1150,29 @@
       const isLeague  = matchType === 'league';
       const poolMax   = isLeague ? 12 : 6;
 
-      // Find all used Match #s in this round, excluding the currently-edited fixture
-      const used = new Set(
-        allMatches
-          .filter(m => {
-            if (selectedFixtureForEditId && String(m.id) === String(selectedFixtureForEditId)) return false;
-            return isLeague ? !m.is_knockout : (m.is_knockout && m.knockout_label === matchType);
-          })
-          .map(m => Number(m.display_order))
-          .filter(n => !Number.isNaN(n) && n > 0)
-      );
+      // Build a map of taken slots: Match# → "Team A vs Team B"
+      const takenMap = {};
+      allMatches
+        .filter(m => {
+          if (selectedFixtureForEditId && String(m.id) === String(selectedFixtureForEditId)) return false;
+          return isLeague ? !m.is_knockout : (m.is_knockout && m.knockout_label === matchType);
+        })
+        .forEach(m => {
+          const n = Number(m.display_order);
+          if (!Number.isNaN(n) && n > 0) {
+            const h = allCaptains.find(c => c.id === m.home_captain_id);
+            const a = allCaptains.find(c => c.id === m.away_captain_id);
+            takenMap[n] = `${displayCaptainName(h)} vs ${displayCaptainName(a)}`;
+          }
+        });
 
-      const options = [];
+      orderSel.innerHTML = '<option value="">Match #...</option>';
       for (let i = 1; i <= poolMax; i++) {
-        if (!used.has(i)) options.push(i);
+        const taken = !!takenMap[i];
+        const sel   = String(i) === String(preserveValue) ? 'selected' : '';
+        const label = taken ? `Match #${i}  ↔  ${takenMap[i]}` : `Match #${i}`;
+        orderSel.innerHTML += `<option value="${i}" ${sel} ${taken ? 'data-taken="true"' : ''}>${label}</option>`;
       }
-      options.sort((a, b) => a - b);
-
-      orderSel.innerHTML = '<option value="">Match #...</option>' +
-        options.map(n => `<option value="${n}" ${String(n) === String(preserveValue) ? 'selected' : ''}>Match #${n}</option>`).join('');
     }
 
     function fixtureSortValue(m) {
@@ -1536,31 +1540,31 @@
         return sameType && Number(m.display_order) === orderVal;
       });
 
-      if (orderConflict && selectedFixtureForEditId) {
-        const currentFixture = allMatches.find(m => String(m.id) === String(selectedFixtureForEditId));
+      if (orderConflict) {
+        // Always open the swap/replace modal — works for both loaded fixtures and new ones
+        const currentFixture = selectedFixtureForEditId
+          ? allMatches.find(m => String(m.id) === String(selectedFixtureForEditId))
+          : null;
         const currentHome = allCaptains.find(c => c.id === homeId);
         const currentAway = allCaptains.find(c => c.id === awayId);
         const displacedHome = allCaptains.find(c => c.id === orderConflict.home_captain_id);
         const displacedAway = allCaptains.find(c => c.id === orderConflict.away_captain_id);
+        // Swap is only possible when the current fixture already has a Match # (so we have something to give back)
+        const canSwap = !!(currentFixture && currentFixture.display_order);
         openFixtureConflictModal({
           currentId: selectedFixtureForEditId,
-          currentOrder: Number(currentFixture?.display_order) || null,
+          currentOrder: canSwap ? Number(currentFixture.display_order) : null,
           requestedOrder: orderVal,
           displaced: orderConflict,
           currentHome: displayCaptainName(currentHome),
           currentAway: displayCaptainName(currentAway),
           displacedHome: displayCaptainName(displacedHome),
           displacedAway: displayCaptainName(displacedAway),
-          canSwap: !!(currentFixture && currentFixture.display_order),
-          replacementOptions: getAvailableReplacementOrders(matchType, orderVal, selectedFixtureForEditId, orderConflict.id, Number(currentFixture?.display_order) || null),
+          canSwap,
+          replacementOptions: getAvailableReplacementOrders(matchType, orderVal, selectedFixtureForEditId, orderConflict.id, canSwap ? Number(currentFixture.display_order) : null),
           form: { homeId, awayId, isKnockout, knockoutLabel }
         });
         msg.textContent = '';
-        return;
-      }
-
-      if (orderConflict) {
-        msg.textContent = `Another ${matchType === 'league' ? 'league' : matchType} fixture already uses Match #${orderVal}.`;
         return;
       }
 
