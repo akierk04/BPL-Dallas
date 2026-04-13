@@ -92,6 +92,19 @@
     @media(max-width:900px){.auction-grid{grid-template-columns:1fr;}}
     @media(max-width:480px){.board-grid{grid-template-columns:1fr;}.pool-grid{grid-template-columns:repeat(2,1fr);}.board-title{font-size:1.6rem;}.now-bidding-name,.sold-banner-main{font-size:2rem;}}
     @media(max-width:600px){#boardMatchDayBanner>div{grid-template-columns:1fr;}}
+    .bracket-wrap{display:flex;gap:0;align-items:stretch;overflow-x:auto;padding-bottom:8px;}
+    .bracket-round{display:flex;flex-direction:column;justify-content:space-around;min-width:160px;}
+    .bracket-round-title{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);text-align:center;margin-bottom:12px;font-weight:500;}
+    .bracket-match{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin:6px 0;}
+    .bracket-match.winner{border-color:rgba(62,207,142,0.4);background:rgba(62,207,142,0.05);}
+    .bracket-match.live{border-color:rgba(240,192,64,0.5);background:rgba(240,192,64,0.06);}
+    .bracket-team{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:3px 0;}
+    .bracket-team.won{font-weight:700;color:var(--text);}
+    .bracket-team.lost{color:var(--muted);}
+    .bracket-team.tbd{color:var(--muted);font-style:italic;}
+    .bracket-score{font-family:var(--font-display);font-size:1rem;color:var(--accent);min-width:18px;text-align:right;}
+    .bracket-connector{display:flex;align-items:center;padding:0 8px;}
+    .bracket-connector-line{width:24px;border-top:1px solid var(--border);}
   </style>
 </head>
 <body>
@@ -230,6 +243,12 @@
 
     <!-- Schedule tab -->
     <div id="btab-schedule" style="display:none;">
+      <div id="boardBracketCard" style="display:none;margin-bottom:20px;">
+        <div class="section-title">Knockout Bracket</div>
+        <div class="form-card">
+          <div id="boardBracket"></div>
+        </div>
+      </div>
       <div class="section-title">Match Schedule</div>
       <div class="form-card">
         <div id="boardSchedule"></div>
@@ -759,7 +778,98 @@ function renderRecentSales() {
 
     function renderBoardSchedule() {
       const rows = computeStandings(allCaptains, allMatches);
-      document.getElementById('boardSchedule').innerHTML=matchScheduleHtml(allMatches,allCaptains,allPlayers,rows);
+      document.getElementById('boardSchedule').innerHTML = matchScheduleHtml(allMatches, allCaptains, allPlayers, rows);
+      renderBoardBracket();
+    }
+
+    function renderBoardBracket() {
+      const container = document.getElementById('boardBracket');
+      const card = document.getElementById('boardBracketCard');
+      if (!container) return;
+
+      const ko = allMatches.filter(m => m.is_knockout);
+      if (!ko.length) { if (card) card.style.display = 'none'; return; }
+      if (card) card.style.display = 'block';
+
+      // Compute seeds from standings
+      const standingRows = computeStandings(allCaptains, allMatches);
+      const g1 = standingRows.filter(r => r.captain.tournament_group === '1');
+      const g2 = standingRows.filter(r => r.captain.tournament_group === '2');
+      const seeds = {
+        QF1: { home: g1[1]?.captain || null, away: g2[2]?.captain || null },
+        QF2: { home: g2[1]?.captain || null, away: g1[2]?.captain || null },
+        SF1: { home: g1[0]?.captain || null },
+        SF2: { home: g2[0]?.captain || null }
+      };
+
+      function getMatch(label) { return ko.find(m => m.knockout_label === label) || null; }
+      function getWinner(m) {
+        if (!m || !m.played) return null;
+        return m.home_score > m.away_score
+          ? allCaptains.find(c => c.id === m.home_captain_id)
+          : allCaptains.find(c => c.id === m.away_captain_id);
+      }
+
+      function bracketMatch(m, homeC, awayC, label) {
+        const played  = m && m.played;
+        const live    = m && !m.played && (homeC || m.home_captain_id) && (awayC || m.away_captain_id);
+        const homeN   = homeC ? displayCaptainName(homeC) : 'TBD';
+        const awayN   = awayC ? displayCaptainName(awayC) : 'TBD';
+        const homeWon = played && m.home_score > m.away_score;
+        const awayWon = played && m.away_score > m.home_score;
+        const cls     = played ? 'winner' : live ? 'live' : '';
+        return `
+          <div class="bracket-match ${cls}">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;">${label}</div>
+            <div class="bracket-team ${played ? (homeWon ? 'won' : 'lost') : (homeC ? '' : 'tbd')}">
+              <span>${homeN}</span>
+              ${played ? `<span class="bracket-score">${m.home_score}</span>` : ''}
+            </div>
+            <div class="bracket-team ${played ? (awayWon ? 'won' : 'lost') : (awayC ? '' : 'tbd')}">
+              <span>${awayN}</span>
+              ${played ? `<span class="bracket-score">${m.away_score}</span>` : ''}
+            </div>
+          </div>`;
+      }
+
+      const qf1 = getMatch('QF1'); const qf2 = getMatch('QF2');
+      const sf1 = getMatch('SF1'); const sf2 = getMatch('SF2');
+      const fin = getMatch('Final');
+
+      const sf1Away = getWinner(qf1);
+      const sf2Away = getWinner(qf2);
+      const finHome = getWinner(sf1);
+      const finAway = getWinner(sf2);
+
+      const hasQF = qf1 || qf2;
+      const hasSF = sf1 || sf2;
+
+      let html = '<div class="bracket-wrap">';
+
+      if (hasQF) {
+        html += `<div class="bracket-round">
+          <div class="bracket-round-title">Quarter-Finals</div>
+          ${bracketMatch(qf1, seeds.QF1.home, seeds.QF1.away, 'QF1')}
+          ${bracketMatch(qf2, seeds.QF2.home, seeds.QF2.away, 'QF2')}
+        </div>
+        <div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
+      }
+
+      if (hasSF) {
+        html += `<div class="bracket-round">
+          <div class="bracket-round-title">Semi-Finals</div>
+          ${bracketMatch(sf1, seeds.SF1.home, sf1Away, 'SF1')}
+          ${bracketMatch(sf2, seeds.SF2.home, sf2Away, 'SF2')}
+        </div>
+        <div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
+      }
+
+      html += `<div class="bracket-round">
+        <div class="bracket-round-title">🏆 Final</div>
+        ${bracketMatch(fin, finHome, finAway, 'Final')}
+      </div></div>`;
+
+      container.innerHTML = html;
     }
 
     function renderTeams() {
