@@ -97,7 +97,7 @@ function groupTableHtml(rows, groupNum) {
           ${rows.map((r, i) => `
             <tr style="border-bottom:0.5px solid var(--border);${i===0?'background:rgba(62,207,142,0.04);':i<3?'background:rgba(240,192,64,0.03);':''}">
               <td style="padding:10px 10px;color:var(--muted);">${i+1}</td>
-              <td style="padding:10px 10px;font-weight:500;color:var(--text);">${r.captain.name}${qualifier[i]||''}</td>
+              <td style="padding:10px 10px;font-weight:500;color:var(--text);">${r.captain.team_name || r.captain.name}${qualifier[i]||''}</td>
               <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.p}</td>
               <td style="padding:10px 6px;text-align:center;color:var(--green);">${r.w}</td>
               <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.d}</td>
@@ -191,7 +191,8 @@ function matchScheduleHtml(matches, captains, players, standings) {
   function teamLabel(captain, showRank) {
     if (!captain) return '?';
     const rank = rankMap[captain.id];
-    return showRank && rank ? `${captain.name} <span style="font-size:11px;color:var(--muted);">(${rank})</span>` : captain.name;
+    const dn = captain.team_name || captain.name;
+    return showRank && rank ? `${dn} <span style="font-size:11px;color:var(--muted);">(${rank})</span>` : dn;
   }
 
   function matchCard(m, label, isLeague) {
@@ -228,7 +229,7 @@ function matchScheduleHtml(matches, captains, players, standings) {
     return `<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin:16px 0 10px;font-weight:500;">${title}</div>`;
   }
 
-  function name(c) { return c ? c.name : '<span style="color:var(--muted)">TBD</span>'; }
+  function name(c) { return c ? (c.team_name || c.name) : '<span style="color:var(--muted)">TBD</span>'; }
 
   let html = '';
 
