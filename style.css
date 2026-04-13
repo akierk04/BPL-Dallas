@@ -463,3 +463,10 @@ select:focus { border-color: var(--accent); }
   .brand-title { font-size: 4rem; }
   .wallet-amount { font-size: 2.8rem; }
 }
+
+
+/* ── Schedule drag & drop helpers ── */
+.schedule-card {
+  user-select: none;
+  -webkit-user-drag: element;
+}
