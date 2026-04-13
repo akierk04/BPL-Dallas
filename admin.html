@@ -1193,6 +1193,7 @@
       populateFixtureEditorDropdowns();
       document.getElementById('fixtureEditHome').value = match.home_captain_id || '';
       document.getElementById('fixtureEditAway').value = match.away_captain_id || '';
+      document.getElementById('fixtureEditOrder').value = match.display_order ?? '';
       document.getElementById('fixtureEditorHint').textContent = 'Editing selected fixture. Save Fixture will update the schedule without needing scores.';
       document.getElementById('fixtureEditMsg').textContent = '';
       renderFixtureEditMeta();
@@ -1598,9 +1599,6 @@
       const sections = getAdminScheduleSections();
 
       wrap.innerHTML = `
-        <div class="schedule-admin-tip">
-          Drag league fixtures to change Match 1–12 order. Knockouts can also be reordered inside their own sections.
-        </div>
         ${sections.map(section => `
           <div class="schedule-admin-section">
             <div class="schedule-admin-title">${section.title}</div>
@@ -1609,25 +1607,20 @@
                 const h = allCaptains.find(c => c.id === m.home_captain_id);
                 const a = allCaptains.find(c => c.id === m.away_captain_id);
                 const label = adminScheduleCardLabel(m, section.key, index);
-                const orderText = section.key === 'league'
-                  ? (m.display_order || index + 1)
-                  : '↕';
+
+                let rightText = '';
+                if (section.key === 'league') {
+                  const groupNum = h?.tournament_group || a?.tournament_group || '?';
+                  rightText = `Group ${groupNum}`;
+                } else {
+                  rightText = m.knockout_label || '';
+                }
 
                 return `
-                  <div
-                    class="schedule-card"
-                    draggable="true"
-                    data-match-id="${m.id}"
-                    data-section-key="${section.key}"
-                    ondragstart="handleScheduleDragStart(event)"
-                    ondragend="handleScheduleDragEnd(event)"
-                    ondragover="handleScheduleDragOver(event)"
-                    ondragleave="handleScheduleDragLeave(event)"
-                    ondrop="handleScheduleDrop(event)"
-                  >
+                  <div class="schedule-card">
                     <div class="schedule-card-top">
                       <div class="schedule-card-label">${label}</div>
-                      <div class="schedule-card-order">${orderText}</div>
+                      <div class="schedule-card-order">${rightText}</div>
                     </div>
                     <div class="schedule-card-teams">${displayCaptainName(h)} vs ${displayCaptainName(a)}</div>
                     <div class="schedule-card-meta">
