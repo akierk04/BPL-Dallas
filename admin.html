@@ -481,6 +481,7 @@
             <option value="SF2">Semi-Final 2 (G2 1st vs QF2 Winner)</option>
             <option value="Final">🏆 Final</option>
           </select>
+          <input type="number" id="matchOrder" placeholder="Match #" min="1" style="width:120px;min-width:120px;" />
           <button class="btn-sm" onclick="resetMatchForm()" style="width:auto;">Clear Form</button>
         </div>
         <div class="form-row">
@@ -1184,9 +1185,10 @@
       populateMatchDropdowns();
       document.getElementById('matchHome').value = match.home_captain_id || '';
       document.getElementById('matchAway').value = match.away_captain_id || '';
-      document.getElementById('matchHomeScore').value = '';
-      document.getElementById('matchAwayScore').value = '';
-      document.getElementById('matchPrefillHint').textContent = 'Fixture loaded. Enter the score, then add scorers and MVP.';
+      document.getElementById('matchHomeScore').value = match.home_score ?? '';
+      document.getElementById('matchAwayScore').value = match.away_score ?? '';
+      document.getElementById('matchOrder').value = match.display_order ?? '';
+      document.getElementById('matchPrefillHint').textContent = 'Fixture loaded. You can edit teams, Match #, and score.';
       document.getElementById('fixtureEditType').value = match.is_knockout ? (match.knockout_label || 'league') : 'league';
       populateFixtureEditorDropdowns();
       document.getElementById('fixtureEditHome').value = match.home_captain_id || '';
@@ -1204,6 +1206,7 @@
       document.getElementById('matchAway').value = '';
       document.getElementById('matchHomeScore').value = '';
       document.getElementById('matchAwayScore').value = '';
+      document.getElementById('matchOrder').value = '';
       document.getElementById('matchPrefillHint').textContent = '';
       selectedFixtureId = null;
       document.getElementById('matchPrefillHint').textContent = '';
@@ -1378,24 +1381,40 @@
       const homeId = document.getElementById('matchHome').value, awayId = document.getElementById('matchAway').value;
       const hs = parseInt(document.getElementById('matchHomeScore').value), as_ = parseInt(document.getElementById('matchAwayScore').value);
       const matchType = document.getElementById('matchType').value;
+      const matchOrderRaw = document.getElementById('matchOrder').value;
+      const matchOrder = matchOrderRaw ? parseInt(matchOrderRaw, 10) : null;
       const msg = document.getElementById('matchMsg');
       if (!homeId || !awayId || isNaN(hs) || isNaN(as_)) { msg.textContent = 'Fill all fields.'; return; }
       if (homeId === awayId) { msg.textContent = 'Home and away must be different teams.'; return; }
+      if (matchOrder !== null && (isNaN(matchOrder) || matchOrder < 1)) { msg.textContent = 'Enter a valid Match #.'; return; }
 
       const isKnockout = matchType !== 'league';
       const knockoutLabel = isKnockout ? matchType : null;
+
+      if (matchOrder !== null) {
+        const duplicate = allMatches.find(m =>
+          m.id !== selectedFixtureId &&
+          Number(m.display_order ?? null) === matchOrder &&
+          (!!m.is_knockout === isKnockout) &&
+          ((m.knockout_label || null) === knockoutLabel)
+        );
+        if (duplicate) { msg.textContent = 'That Match # is already used in this round.'; return; }
+      }
 
       let data, error;
       if (selectedFixtureId) {
         ({ data, error } = await db.from('matches').update({
           home_captain_id: homeId, away_captain_id: awayId,
           home_score: hs, away_score: as_, played: false,
-          is_knockout: isKnockout, knockout_label: knockoutLabel
+          display_order: matchOrder,
+          is_knockout: isKnockout, knockout_label: knockoutLabel,
+          mvp_player_id: null
         }).eq('id', selectedFixtureId).select().single());
       } else {
         ({ data, error } = await db.from('matches').insert({
           home_captain_id: homeId, away_captain_id: awayId,
           home_score: hs, away_score: as_, played: false,
+          display_order: matchOrder,
           is_knockout: isKnockout, knockout_label: knockoutLabel
         }).select().single());
       }
@@ -1406,7 +1425,7 @@
 
       const totalGoals = hs + as_;
       const homeCap = allCaptains.find(c => c.id === homeId), awayCap = allCaptains.find(c => c.id === awayId);
-      msg.textContent = `${displayCaptainName(homeCap)} ${hs} – ${as_} ${displayCaptainName(awayCap)} · Now add ${totalGoals} goal scorer(s).`;
+      msg.textContent = `${displayCaptainName(homeCap)} ${hs} – ${as_} ${displayCaptainName(awayCap)} · Match saved${matchOrder ? ` as #${matchOrder}` : ''}. Now add ${totalGoals} goal scorer(s).`;
 
       const teamSel = document.getElementById('scorerTeam');
       teamSel.innerHTML = `<option value="${homeId}">${displayCaptainName(homeCap)}</option><option value="${awayId}">${displayCaptainName(awayCap)}</option>`;
