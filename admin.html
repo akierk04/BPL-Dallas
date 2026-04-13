@@ -457,7 +457,7 @@
             <option value="SF2">Semi-Final 2 (G2 1st vs QF2 Winner)</option>
             <option value="Final">🏆 Final</option>
           </select>
-          <input type="number" id="fixtureEditOrder" placeholder="Match #" min="1" oninput="renderFixtureEditMeta()" style="width:120px;min-width:120px;" />
+          <select id="fixtureEditOrder" onchange="renderFixtureEditMeta()" style="width:140px;min-width:140px;"><option value="">Match #...</option></select>
           <button class="btn-sm" onclick="resetFixtureEditor()" style="width:auto;">Clear Fixture</button>
         </div>
         <div class="form-row">
@@ -1127,14 +1127,48 @@
     function populateFixtureEditorDropdowns() {
       const home = document.getElementById('fixtureEditHome');
       const away = document.getElementById('fixtureEditAway');
+      const orderSel = document.getElementById('fixtureEditOrder');
       if (!home || !away) return;
-      const currentHome = home.value, currentAway = away.value;
+      const currentHome = home.value, currentAway = away.value, currentOrder = orderSel?.value;
+
       const opts = '<option value="">Select team...</option>' + allCaptains.map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
       home.innerHTML = opts;
       away.innerHTML = opts;
       if (currentHome) home.value = currentHome;
       if (currentAway) away.value = currentAway;
+
+      populateFixtureOrderDropdown(currentOrder);
       renderFixtureEditMeta();
+    }
+
+    function populateFixtureOrderDropdown(preserveValue) {
+      const orderSel = document.getElementById('fixtureEditOrder');
+      const typeSel  = document.getElementById('fixtureEditType');
+      if (!orderSel || !typeSel) return;
+
+      const matchType = typeSel.value || 'league';
+      const isLeague  = matchType === 'league';
+      const poolMax   = isLeague ? 12 : 6;
+
+      // Find all used Match #s in this round, excluding the currently-edited fixture
+      const used = new Set(
+        allMatches
+          .filter(m => {
+            if (selectedFixtureForEditId && String(m.id) === String(selectedFixtureForEditId)) return false;
+            return isLeague ? !m.is_knockout : (m.is_knockout && m.knockout_label === matchType);
+          })
+          .map(m => Number(m.display_order))
+          .filter(n => !Number.isNaN(n) && n > 0)
+      );
+
+      const options = [];
+      for (let i = 1; i <= poolMax; i++) {
+        if (!used.has(i)) options.push(i);
+      }
+      options.sort((a, b) => a - b);
+
+      orderSel.innerHTML = '<option value="">Match #...</option>' +
+        options.map(n => `<option value="${n}" ${String(n) === String(preserveValue) ? 'selected' : ''}>Match #${n}</option>`).join('');
     }
 
     function fixtureSortValue(m) {
@@ -1243,9 +1277,9 @@
       document.getElementById('fixtureEditType').value = 'league';
       document.getElementById('fixtureEditHome').value = '';
       document.getElementById('fixtureEditAway').value = '';
-      document.getElementById('fixtureEditOrder').value = '';
       document.getElementById('fixtureEditorHint').textContent = 'Select an upcoming fixture above to edit it, or leave blank below to create a new one manually.';
       document.getElementById('fixtureEditMsg').textContent = '';
+      populateFixtureOrderDropdown('');
       renderFixtureEditMeta();
     }
 
@@ -1270,6 +1304,8 @@
     function toggleFixtureEditType() {
       const matchType = document.getElementById('fixtureEditType').value;
       const hint = document.getElementById('fixtureEditorHint');
+      // Refresh Match # dropdown whenever type changes
+      populateFixtureOrderDropdown(document.getElementById('fixtureEditOrder')?.value);
       if (matchType === 'league') {
         hint.textContent = selectedFixtureForEditId
           ? 'Editing selected league fixture. Save Fixture updates the schedule only.'
@@ -1395,7 +1431,7 @@
           : '<option value="">No available match numbers</option>';
       }
       if (err) err.textContent = '';
-      if (swapBtn) swapBtn.disabled = !payload.canSwap;
+      if (swapBtn) { swapBtn.disabled = !payload.canSwap; swapBtn.style.display = payload.canSwap ? '' : 'none'; }
       setFixtureConflictMode(payload.canSwap ? 'swap' : 'replace');
       document.getElementById('fixtureConflictModal').style.display = 'flex';
     }
@@ -1423,8 +1459,8 @@
 
       let displacedNewOrder = null;
       if (state.mode === 'swap') {
-        if (!state.canSwap) {
-          if (err) err.textContent = 'Swap is only available when editing an existing fixture that already has a Match #.';
+        if (!state.canSwap || !state.currentOrder) {
+          if (err) err.textContent = 'Swap is only available when the current fixture already has a Match # assigned.';
           return;
         }
         displacedNewOrder = state.currentOrder;
@@ -1482,7 +1518,7 @@
       const msg = document.getElementById('fixtureEditMsg');
       if (!homeId || !awayId) { msg.textContent = 'Select both teams first.'; return; }
       if (homeId === awayId) { msg.textContent = 'Home and away must be different teams.'; return; }
-      if (!orderRaw || Number.isNaN(orderVal) || orderVal < 1) { msg.textContent = 'Enter a valid Match #.'; return; }
+      if (!orderRaw || Number.isNaN(orderVal) || orderVal < 1) { msg.textContent = 'Select a Match # from the dropdown.'; return; }
 
       const duplicate = findDuplicateFixture(homeId, awayId, matchType, selectedFixtureForEditId);
       if (duplicate) {
