@@ -465,6 +465,7 @@
           <div style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;padding:0 4px;">vs</div>
           <select id="fixtureEditAway" onchange="renderFixtureEditMeta()" style="flex:2;"><option value="">Away team...</option></select>
           <button class="btn-primary" onclick="saveFixtureEdit()" style="width:auto;">Save Fixture</button>
+          <button id="deleteFixtureBtn" class="btn-danger" onclick="deleteFixture()" style="width:auto;display:none;">Delete Fixture</button>
         </div>
         <div id="fixtureEditMeta" class="fixture-tip" style="margin-top:10px;"></div>
         <p id="fixtureEditMsg" class="text-muted mt-8"></p>
@@ -1175,6 +1176,22 @@
       }
     }
 
+    async function deleteFixture() {
+      if (!selectedFixtureForEditId) return;
+      const fixture = allMatches.find(m => String(m.id) === String(selectedFixtureForEditId));
+      if (!fixture) return;
+      const h = allCaptains.find(c => c.id === fixture.home_captain_id);
+      const a = allCaptains.find(c => c.id === fixture.away_captain_id);
+      const label = fixture.display_order ? `Match #${fixture.display_order} · ` : '';
+      if (!confirm(`Delete ${label}${displayCaptainName(h)} vs ${displayCaptainName(a)}?\n\nThis cannot be undone.`)) return;
+      const msg = document.getElementById('fixtureEditMsg');
+      await db.from('goals').delete().eq('match_id', selectedFixtureForEditId);
+      const { error } = await db.from('matches').delete().eq('id', selectedFixtureForEditId);
+      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+      resetFixtureEditor();
+      await loadData();
+    }
+
     function fixtureSortValue(m) {
       if (m.display_order !== null && m.display_order !== undefined && m.display_order !== '') {
         const parsed = Number(m.display_order);
@@ -1257,6 +1274,7 @@
       document.getElementById('fixtureEditAway').value = match.away_captain_id || '';
       document.getElementById('fixtureEditOrder').value = match.display_order ?? '';
       document.getElementById('fixtureEditorHint').textContent = 'Editing selected fixture. Save Fixture will update the schedule without needing scores.';
+      document.getElementById('deleteFixtureBtn').style.display = '';
       document.getElementById('fixtureEditMsg').textContent = '';
       renderFixtureEditMeta();
       toggleMatchType();
@@ -1283,6 +1301,7 @@
       document.getElementById('fixtureEditAway').value = '';
       document.getElementById('fixtureEditorHint').textContent = 'Select an upcoming fixture above to edit it, or leave blank below to create a new one manually.';
       document.getElementById('fixtureEditMsg').textContent = '';
+      document.getElementById('deleteFixtureBtn').style.display = 'none';
       populateFixtureOrderDropdown('');
       renderFixtureEditMeta();
     }
