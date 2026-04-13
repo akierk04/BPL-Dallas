@@ -354,8 +354,32 @@
     <div id="tab-matches" style="display:none;">
       <div class="section-title">Upcoming Fixtures</div>
       <div class="form-card">
-        <div class="fixture-tip">Click any upcoming fixture to prefill teams and start score entry faster.</div>
+        <div class="fixture-tip">Click any upcoming fixture to load it into the fixture editor and score entry form.</div>
         <div id="fixtureGrid" class="fixture-grid"></div>
+      </div>
+
+      <div class="section-title">Fixture Editor</div>
+      <div class="form-card">
+        <div id="fixtureEditorHint" class="fixture-tip">Select an upcoming fixture above to edit it, or leave blank below to create a new one manually.</div>
+        <div class="form-row" style="margin-bottom:10px;">
+          <select id="fixtureEditType" onchange="toggleFixtureEditType()" style="flex:1;">
+            <option value="league">League Match</option>
+            <option value="QF1">Quarter-Final 1 (G1 2nd vs G2 3rd)</option>
+            <option value="QF2">Quarter-Final 2 (G2 2nd vs G1 3rd)</option>
+            <option value="SF1">Semi-Final 1 (G1 1st vs QF1 Winner)</option>
+            <option value="SF2">Semi-Final 2 (G2 1st vs QF2 Winner)</option>
+            <option value="Final">🏆 Final</option>
+          </select>
+          <button class="btn-sm" onclick="resetFixtureEditor()" style="width:auto;">Clear Fixture</button>
+        </div>
+        <div class="form-row">
+          <select id="fixtureEditHome" onchange="renderFixtureEditMeta()" style="flex:2;"><option value="">Home team...</option></select>
+          <div style="display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;padding:0 4px;">vs</div>
+          <select id="fixtureEditAway" onchange="renderFixtureEditMeta()" style="flex:2;"><option value="">Away team...</option></select>
+          <button class="btn-primary" onclick="saveFixtureEdit()" style="width:auto;">Save Fixture</button>
+        </div>
+        <div id="fixtureEditMeta" class="fixture-tip" style="margin-top:10px;"></div>
+        <p id="fixtureEditMsg" class="text-muted mt-8"></p>
       </div>
 
       <div class="section-title">Enter Match Result</div>
@@ -469,6 +493,7 @@
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
     let pendingMatchId = null;
     let selectedFixtureId = null;
+    let selectedFixtureForEditId = null;
     let lastSale = null;
     let undoTimer = null;
     let pendingGoals = [], pendingHomeId = null, pendingAwayId = null, pendingHS = 0, pendingAS = 0;
@@ -511,6 +536,7 @@
       renderStandings();
       renderStats();
       renderSchedule();
+      populateFixtureEditorDropdowns();
     }
 
     function renderAuctionControl() {
@@ -983,6 +1009,49 @@
       if (currentAway) away.value = currentAway;
     }
 
+    function populateFixtureEditorDropdowns() {
+      const home = document.getElementById('fixtureEditHome');
+      const away = document.getElementById('fixtureEditAway');
+      if (!home || !away) return;
+      const currentHome = home.value, currentAway = away.value;
+      const opts = '<option value="">Select team...</option>' + allCaptains.map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
+      home.innerHTML = opts;
+      away.innerHTML = opts;
+      if (currentHome) home.value = currentHome;
+      if (currentAway) away.value = currentAway;
+      renderFixtureEditMeta();
+    }
+
+    function fixtureSortValue(m) {
+      if (m.display_order !== null && m.display_order !== undefined && m.display_order !== '') {
+        const parsed = Number(m.display_order);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+      return 9999;
+    }
+
+    function sortMatchesForDisplay(matches) {
+      return [...matches].sort((a, b) => {
+        const orderDiff = fixtureSortValue(a) - fixtureSortValue(b);
+        if (orderDiff !== 0) return orderDiff;
+        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      });
+    }
+
+    function computeNextFixtureOrder(type, ignoreMatchId) {
+      const relevant = allMatches.filter(m => {
+        if (ignoreMatchId && m.id === ignoreMatchId) return false;
+        return type === 'league'
+          ? !m.is_knockout
+          : (m.is_knockout && m.knockout_label === type);
+      });
+      if (!relevant.length) return 1;
+      return relevant.reduce((maxOrder, m) => {
+        const val = Number(m.display_order);
+        return Number.isNaN(val) ? maxOrder : Math.max(maxOrder, val);
+      }, 0) + 1;
+    }
+
     function computeFixtureSeeds() {
       const rows = computeStandings(allCaptains, allMatches);
       const groupOne = rows.filter(r => r.captain.tournament_group === '1');
@@ -998,7 +1067,7 @@
 
     function renderFixtures() {
       const grid = document.getElementById('fixtureGrid');
-      const upcoming = allMatches.filter(m => !m.played);
+      const upcoming = sortMatchesForDisplay(allMatches.filter(m => !m.played));
       if (!upcoming.length) {
         grid.innerHTML = '<div class="text-muted">No upcoming fixtures loaded yet.</div>';
         return;
@@ -1006,7 +1075,8 @@
       grid.innerHTML = upcoming.map(m => {
         const h = allCaptains.find(c => c.id === m.home_captain_id);
         const a = allCaptains.find(c => c.id === m.away_captain_id);
-        const label = m.is_knockout ? (m.knockout_label || 'Knockout') : ((h?.tournament_group || a?.tournament_group) ? `Group ${h?.tournament_group || a?.tournament_group}` : 'League');
+        const baseLabel = m.is_knockout ? (m.knockout_label || 'Knockout') : ((h?.tournament_group || a?.tournament_group) ? `Group ${h?.tournament_group || a?.tournament_group}` : 'League');
+        const label = m.display_order ? `${baseLabel} · Match ${m.display_order}` : baseLabel;
         return `<div class="fixture-card" onclick="loadFixture('${m.id}')">
           <div class="fixture-label">${label}</div>
           <div class="fixture-teamline">${h ? displayCaptainName(h) : 'TBD'} vs ${a ? displayCaptainName(a) : 'TBD'}</div>
@@ -1019,6 +1089,7 @@
       const match = allMatches.find(m => m.id === matchId);
       if (!match) return;
       selectedFixtureId = matchId;
+      selectedFixtureForEditId = matchId;
       document.getElementById('matchType').value = match.is_knockout ? (match.knockout_label || 'league') : 'league';
       populateMatchDropdowns();
       document.getElementById('matchHome').value = match.home_captain_id || '';
@@ -1026,6 +1097,13 @@
       document.getElementById('matchHomeScore').value = '';
       document.getElementById('matchAwayScore').value = '';
       document.getElementById('matchPrefillHint').textContent = 'Fixture loaded. Enter the score, then add scorers and MVP.';
+      document.getElementById('fixtureEditType').value = match.is_knockout ? (match.knockout_label || 'league') : 'league';
+      populateFixtureEditorDropdowns();
+      document.getElementById('fixtureEditHome').value = match.home_captain_id || '';
+      document.getElementById('fixtureEditAway').value = match.away_captain_id || '';
+      document.getElementById('fixtureEditorHint').textContent = 'Editing selected fixture. Save Fixture will update the schedule without needing scores.';
+      document.getElementById('fixtureEditMsg').textContent = '';
+      renderFixtureEditMeta();
       toggleMatchType();
     }
 
@@ -1040,6 +1118,17 @@
       selectedFixtureId = null;
       document.getElementById('matchPrefillHint').textContent = '';
       document.getElementById('matchMsg').textContent = '';
+    }
+
+    function resetFixtureEditor() {
+      selectedFixtureForEditId = null;
+      document.getElementById('fixtureEditType').value = 'league';
+      document.getElementById('fixtureEditHome').value = '';
+      document.getElementById('fixtureEditAway').value = '';
+      document.getElementById('fixtureEditOrder').value = '';
+      document.getElementById('fixtureEditorHint').textContent = 'Select an upcoming fixture above to edit it, or leave blank below to create a new one manually.';
+      document.getElementById('fixtureEditMsg').textContent = '';
+      renderFixtureEditMeta();
     }
 
     function toggleMatchType() {
@@ -1058,6 +1147,141 @@
           ? `${seeds.label} prefilled from current standings.`
           : `${seeds.label}. Teams will unlock as earlier rounds finish.`;
       }
+    }
+
+    function toggleFixtureEditType() {
+      const matchType = document.getElementById('fixtureEditType').value;
+      const hint = document.getElementById('fixtureEditorHint');
+      if (matchType === 'league') {
+        hint.textContent = selectedFixtureForEditId
+          ? 'Editing selected league fixture. Save Fixture updates the schedule only.'
+          : 'Create or edit a league fixture here. This does not record a result.';
+        renderFixtureEditMeta();
+        return;
+      }
+
+      const seeds = computeFixtureSeeds()[matchType];
+      if (!selectedFixtureForEditId && seeds) {
+        if (seeds.home) document.getElementById('fixtureEditHome').value = seeds.home.id;
+        if (seeds.away) document.getElementById('fixtureEditAway').value = seeds.away.id;
+      }
+      hint.textContent = seeds
+        ? (seeds.home && seeds.away
+            ? `${seeds.label} prefilled from current standings. Save Fixture to lock in this pairing.`
+            : `${seeds.label}. Teams will unlock as earlier rounds finish.`)
+        : 'Update the teams and save the fixture.';
+      renderFixtureEditMeta();
+    }
+
+    function renderFixtureEditMeta() {
+      const meta = document.getElementById('fixtureEditMeta');
+      if (!meta) return;
+      const homeId = document.getElementById('fixtureEditHome')?.value;
+      const awayId = document.getElementById('fixtureEditAway')?.value;
+      const type = document.getElementById('fixtureEditType')?.value || 'league';
+      const orderRaw = document.getElementById('fixtureEditOrder')?.value;
+      const orderVal = Number(orderRaw);
+      const home = allCaptains.find(c => c.id === homeId);
+      const away = allCaptains.find(c => c.id === awayId);
+      const typeLabel = type === 'league' ? 'League' : type;
+      const orderLabel = orderRaw ? `Match ${orderVal}` : 'No match # set';
+      if (!homeId && !awayId) {
+        meta.textContent = selectedFixtureForEditId ? `Selected fixture is ready to edit. ${orderLabel}.` : 'No fixture selected yet.';
+        return;
+      }
+      if (!homeId || !awayId) {
+        meta.textContent = `Choose both teams before saving the fixture. ${orderLabel}.`;
+        return;
+      }
+      const existing = selectedFixtureForEditId ? allMatches.find(m => m.id === selectedFixtureForEditId) : null;
+      const statusLabel = existing ? (existing.played ? 'Played fixture' : 'Upcoming fixture') : 'New fixture';
+      meta.textContent = `${statusLabel} · ${typeLabel} · ${orderLabel} · ${displayCaptainName(home)} vs ${displayCaptainName(away)}`;
+    }
+
+    function findDuplicateFixture(homeId, awayId, type, ignoreMatchId) {
+      return allMatches.find(m => {
+        if (ignoreMatchId && m.id === ignoreMatchId) return false;
+        const sameType = type === 'league'
+          ? !m.is_knockout
+          : (m.is_knockout && m.knockout_label === type);
+        if (!sameType) return false;
+        const sameDirection = m.home_captain_id === homeId && m.away_captain_id === awayId;
+        const reverseDirection = m.home_captain_id === awayId && m.away_captain_id === homeId;
+        return sameDirection || reverseDirection;
+      });
+    }
+
+    async function saveFixtureEdit() {
+      const homeId = document.getElementById('fixtureEditHome').value;
+      const awayId = document.getElementById('fixtureEditAway').value;
+      const matchType = document.getElementById('fixtureEditType').value;
+      const orderRaw = document.getElementById('fixtureEditOrder').value;
+      const orderVal = Number(orderRaw);
+      const msg = document.getElementById('fixtureEditMsg');
+      if (!homeId || !awayId) { msg.textContent = 'Select both teams first.'; return; }
+      if (homeId === awayId) { msg.textContent = 'Home and away must be different teams.'; return; }
+      if (!orderRaw || Number.isNaN(orderVal) || orderVal < 1) { msg.textContent = 'Enter a valid Match #.'; return; }
+
+      const duplicate = findDuplicateFixture(homeId, awayId, matchType, selectedFixtureForEditId);
+      if (duplicate) {
+        msg.textContent = 'A fixture with these teams already exists for this round.';
+        return;
+      }
+
+      const orderConflict = allMatches.find(m => {
+        if (selectedFixtureForEditId && m.id === selectedFixtureForEditId) return false;
+        const sameType = matchType === 'league'
+          ? !m.is_knockout
+          : (m.is_knockout && m.knockout_label === matchType);
+        return sameType && Number(m.display_order) === orderVal;
+      });
+      if (orderConflict) {
+        msg.textContent = `Another ${matchType === 'league' ? 'league' : matchType} fixture already uses Match #${orderVal}.`;
+        return;
+      }
+
+      const isKnockout = matchType !== 'league';
+      const knockoutLabel = isKnockout ? matchType : null;
+      let error;
+
+      if (selectedFixtureForEditId) {
+        if (!confirm('Update this fixture? This will reset any saved score, goals, and MVP for that match.')) return;
+        await db.from('goals').delete().eq('match_id', selectedFixtureForEditId);
+        ({ error } = await db.from('matches').update({
+          home_captain_id: homeId,
+          away_captain_id: awayId,
+          home_score: 0,
+          away_score: 0,
+          played: false,
+          is_knockout: isKnockout,
+          knockout_label: knockoutLabel,
+          display_order: orderVal,
+          mvp_player_id: null
+        }).eq('id', selectedFixtureForEditId));
+      } else {
+        ({ error } = await db.from('matches').insert({
+          home_captain_id: homeId,
+          away_captain_id: awayId,
+          home_score: 0,
+          away_score: 0,
+          played: false,
+          is_knockout: isKnockout,
+          knockout_label: knockoutLabel,
+          display_order: orderVal
+        }));
+      }
+
+      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+
+      const homeCap = allCaptains.find(c => c.id === homeId);
+      const awayCap = allCaptains.find(c => c.id === awayId);
+      msg.textContent = selectedFixtureForEditId
+        ? `Fixture updated: Match ${orderVal} · ${displayCaptainName(homeCap)} vs ${displayCaptainName(awayCap)}`
+        : `Fixture created: Match ${orderVal} · ${displayCaptainName(homeCap)} vs ${displayCaptainName(awayCap)}`;
+      resetMatchForm();
+      resetFixtureEditor();
+      loadData();
+      setTimeout(() => { document.getElementById('fixtureEditMsg').textContent = ''; }, 3000);
     }
 
     async function saveMatch() {
@@ -1162,6 +1386,10 @@
       selectedFixtureId = null;
       document.getElementById('matchPrefillHint').textContent = '';
       document.getElementById('matchMsg').textContent = '';
+      document.getElementById('matchHome').value = '';
+      document.getElementById('matchAway').value = '';
+      document.getElementById('matchHomeScore').value = '';
+      document.getElementById('matchAwayScore').value = '';
     }
 
     function renderMatchesList() {
