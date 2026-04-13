@@ -91,6 +91,7 @@
     .tournament-mode-sub{font-size:13px;color:var(--muted);margin-top:6px;}
     @media(max-width:900px){.auction-grid{grid-template-columns:1fr;}}
     @media(max-width:480px){.board-grid{grid-template-columns:1fr;}.pool-grid{grid-template-columns:repeat(2,1fr);}.board-title{font-size:1.6rem;}.now-bidding-name,.sold-banner-main{font-size:2rem;}}
+    @media(max-width:600px){#boardMatchDayBanner>div{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
@@ -195,6 +196,20 @@
 
     <!-- Standings tab -->
     <div id="btab-standings" style="display:none;">
+      <div id="boardMatchDayBanner" style="display:none;margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.5);border-radius:var(--radius-lg);padding:16px 20px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">⚡ Now Playing</div>
+            <div id="boardNowPlayingTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+            <div id="boardNowPlayingMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;">Up Next</div>
+            <div id="boardUpNextTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+            <div id="boardUpNextMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+          </div>
+        </div>
+      </div>
       <div class="section-title">Team Standings</div>
       <div class="form-card" style="padding:0 0.5rem;">
         <div id="boardStandings"></div>
@@ -698,7 +713,41 @@ function renderRecentSales() {
     }
 
     function renderBoardStandings() {
+      renderBoardMatchDayBanner();
       document.getElementById('boardStandings').innerHTML=standingsTableHtml(allCaptains,allMatches);
+    }
+
+    function renderBoardMatchDayBanner() {
+      const banner = document.getElementById('boardMatchDayBanner');
+      const upcoming = [...allMatches]
+        .filter(m => !m.played)
+        .sort((a, b) => {
+          const av = Number(a.display_order); const bv = Number(b.display_order);
+          const an = Number.isNaN(av) ? 9999 : av; const bn = Number.isNaN(bv) ? 9999 : bv;
+          if (an !== bn) return an - bn;
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        });
+
+      if (!upcoming.length) { banner.style.display = 'none'; return; }
+      banner.style.display = 'block';
+
+      const now  = upcoming[0];
+      const next = upcoming[1] || null;
+
+      function teamLine(m) {
+        const h = allCaptains.find(c => c.id === m.home_captain_id);
+        const a = allCaptains.find(c => c.id === m.away_captain_id);
+        return `${displayCaptainName(h)} vs ${displayCaptainName(a)}`;
+      }
+      function metaLine(m) {
+        const base = m.is_knockout ? (m.knockout_label || 'Knockout') : 'League';
+        return m.display_order ? `${base} · Match #${m.display_order}` : base;
+      }
+
+      document.getElementById('boardNowPlayingTeams').textContent = teamLine(now);
+      document.getElementById('boardNowPlayingMeta').textContent  = metaLine(now);
+      document.getElementById('boardUpNextTeams').textContent     = next ? teamLine(next) : '—';
+      document.getElementById('boardUpNextMeta').textContent      = next ? metaLine(next) : 'No more fixtures';
     }
 
     function renderBoardStats() {
