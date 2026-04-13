@@ -307,6 +307,24 @@
     }
 
 
+    /* ── Knockout Bracket ── */
+    .bracket-wrap { display:flex; gap:0; align-items:stretch; overflow-x:auto; padding-bottom:8px; }
+    .bracket-round { display:flex; flex-direction:column; justify-content:space-around; min-width:160px; }
+    .bracket-round-title { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); text-align:center; margin-bottom:12px; font-weight:500; }
+    .bracket-match {
+      background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+      padding:10px 12px; margin:6px 0; position:relative;
+    }
+    .bracket-match.winner { border-color:rgba(62,207,142,0.4); background:rgba(62,207,142,0.05); }
+    .bracket-match.live   { border-color:rgba(240,192,64,0.5); background:rgba(240,192,64,0.06); }
+    .bracket-team { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:3px 0; }
+    .bracket-team.won { font-weight:700; color:var(--text); }
+    .bracket-team.lost { color:var(--muted); }
+    .bracket-team.tbd  { color:var(--muted); font-style:italic; }
+    .bracket-score { font-family:var(--font-display); font-size:1rem; color:var(--accent); min-width:18px; text-align:right; }
+    .bracket-connector { display:flex; align-items:center; padding:0 8px; }
+    .bracket-connector-line { width:24px; border-top:1px solid var(--border); }
+
     /* tiebreaker tooltip */
     .tb-tooltip-wrap { position: relative; display: inline-block; }
     .tb-tooltip {
@@ -551,6 +569,7 @@
           </div>
           <p id="scorerMsg" class="text-muted mt-8"></p>
           <div id="goalsList" style="margin-top:12px;"></div>
+          <div id="goalCountWarning" style="display:none;margin-top:8px;padding:7px 12px;border-radius:8px;background:rgba(240,192,64,0.1);border:1px solid rgba(240,192,64,0.35);font-size:13px;color:var(--accent);"></div>
           <div style="margin-top:16px;border-top:0.5px solid var(--border);padding-top:14px;">
             <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px;">⭐ Match MVP</div>
             <select id="mvpPlayer" style="width:100%;">
@@ -590,7 +609,11 @@
 
     <!-- Schedule -->
     <div id="tab-schedule" style="display:none;">
-      <div class="section-title">Match Schedule</div>
+      <div class="section-title">Knockout Bracket</div>
+      <div class="form-card" id="bracketCard" style="display:none;">
+        <div id="adminBracket"></div>
+      </div>
+      <div class="section-title" style="margin-top:8px;">Full Schedule</div>
       <div class="form-card">
         <div id="adminSchedule"></div>
       </div>
@@ -1804,28 +1827,72 @@
             </div>`;
           }).join('')
         : '<div class="text-muted" style="padding:8px 0;">No goals added yet.</div>';
+      updateGoalCountWarning();
     }
 
     function removeGoal(i) { pendingGoals.splice(i, 1); renderPendingGoals(); }
 
-    async function finalizeMatch() {
+    function updateGoalCountWarning() {
+      const warn = document.getElementById('goalCountWarning');
+      if (!warn) return;
+      const totalGoals = pendingHS + pendingAS;
+      const entered = pendingGoals.length;
+      if (entered === totalGoals) {
+        warn.style.display = 'none';
+        return;
+      }
+      warn.style.display = 'block';
+      if (entered < totalGoals) {
+        warn.textContent = `⚠️ Score is ${pendingHS}–${pendingAS} (${totalGoals} goals) but only ${entered} entered.`;
+      } else {
+        warn.textContent = `⚠️ ${entered} goals entered but score is ${pendingHS}–${pendingAS} (${totalGoals} goals).`;
+      }
+    }
+
+    async function finalizeMatch(forceConfirm) {
       if (!pendingMatchId) return;
+      // Soft goal count check — warn but allow override
+      const totalGoals = pendingHS + pendingAS;
+      if (!forceConfirm && pendingGoals.length !== totalGoals) {
+        const diff = totalGoals - pendingGoals.length;
+        const msg = diff > 0
+          ? `Score is ${pendingHS}–${pendingAS} but only ${pendingGoals.length} goal(s) entered (missing ${diff}). Save anyway?`
+          : `${pendingGoals.length} goal(s) entered but score is ${pendingHS}–${pendingAS} (${totalGoals} expected). Save anyway?`;
+        if (!confirm(msg)) return;
+      }
       if (pendingGoals.length) {
         const { error } = await db.from('goals').insert(pendingGoals);
         if (error) { alert('Error saving goals: ' + error.message); return; }
       }
       const mvpId = document.getElementById('mvpPlayer').value || null;
       await db.from('matches').update({ played: true, mvp_player_id: mvpId }).eq('id', pendingMatchId);
+
+      // Remember next fixture before clearing state
+      const justFinishedId = pendingMatchId;
       pendingMatchId = null; pendingGoals = [];
       selectedFixtureId = null;
       document.getElementById('goalScorerSection').style.display = 'none';
+      document.getElementById('goalCountWarning').style.display = 'none';
       document.getElementById('matchHome').value = '';
       document.getElementById('matchAway').value = '';
       document.getElementById('matchHomeScore').value = '';
       document.getElementById('matchAwayScore').value = '';
-      document.getElementById('matchMsg').textContent = 'Match saved!';
-      setTimeout(() => document.getElementById('matchMsg').textContent = '', 3000);
-      loadData();
+
+      await loadData();
+
+      // ── FEATURE 2: Load Next Match after confirming ──
+      const upcoming = sortMatchesForDisplay(allMatches.filter(m => !m.played));
+      const next = upcoming[0] || null;
+      const matchMsg = document.getElementById('matchMsg');
+      if (next) {
+        const h = allCaptains.find(c => c.id === next.home_captain_id);
+        const a = allCaptains.find(c => c.id === next.away_captain_id);
+        const label = next.display_order ? `Match #${next.display_order} · ` : '';
+        matchMsg.innerHTML = `✓ Match saved! &nbsp;<button class="btn-sm" onclick="loadFixtureForResult('${next.id}')" style="width:auto;">Load Next: ${label}${displayCaptainName(h)} vs ${displayCaptainName(a)} →</button>`;
+      } else {
+        matchMsg.textContent = '✓ All matches complete!';
+      }
+      setTimeout(() => { const el = document.getElementById('matchMsg'); if (el) el.innerHTML = ''; }, 8000);
     }
 
     async function cancelMatch() {
@@ -2258,6 +2325,89 @@
           </div>
         `).join('')}
       `;
+      renderKnockoutBracket('adminBracket', 'bracketCard');
+    }
+
+    function renderKnockoutBracket(containerId, cardId) {
+      const container = document.getElementById(containerId);
+      const card = cardId ? document.getElementById(cardId) : null;
+      if (!container) return;
+
+      const ko = allMatches.filter(m => m.is_knockout);
+      if (!ko.length) { if (card) card.style.display = 'none'; return; }
+      if (card) card.style.display = 'block';
+
+      const seeds = computeFixtureSeeds();
+
+      function getMatch(label) { return ko.find(m => m.knockout_label === label) || null; }
+      function getWinner(m) {
+        if (!m || !m.played) return null;
+        return m.home_score > m.away_score
+          ? allCaptains.find(c => c.id === m.home_captain_id)
+          : allCaptains.find(c => c.id === m.away_captain_id);
+      }
+
+      function bracketMatch(m, homeC, awayC, label) {
+        const played  = m && m.played;
+        const live    = m && !m.played && (m.home_captain_id || homeC) && (m.away_captain_id || awayC);
+        const homeN   = homeC ? displayCaptainName(homeC) : 'TBD';
+        const awayN   = awayC ? displayCaptainName(awayC) : 'TBD';
+        const homeWon = played && m.home_score > m.away_score;
+        const awayWon = played && m.away_score > m.home_score;
+        const cls     = played ? 'winner' : live ? 'live' : '';
+        return `
+          <div class="bracket-match ${cls}">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;">${label}</div>
+            <div class="bracket-team ${played ? (homeWon ? 'won' : 'lost') : (homeC ? '' : 'tbd')}">
+              <span>${homeN}</span>
+              ${played ? `<span class="bracket-score">${m.home_score}</span>` : ''}
+            </div>
+            <div class="bracket-team ${played ? (awayWon ? 'won' : 'lost') : (awayC ? '' : 'tbd')}">
+              <span>${awayN}</span>
+              ${played ? `<span class="bracket-score">${m.away_score}</span>` : ''}
+            </div>
+          </div>`;
+      }
+
+      const qf1 = getMatch('QF1'); const qf2 = getMatch('QF2');
+      const sf1 = getMatch('SF1'); const sf2 = getMatch('SF2');
+      const fin = getMatch('Final');
+
+      const qf1Home = seeds.QF1?.home; const qf1Away = seeds.QF1?.away;
+      const qf2Home = seeds.QF2?.home; const qf2Away = seeds.QF2?.away;
+      const sf1Home = seeds.SF1?.home; const sf1Away = getWinner(qf1);
+      const sf2Home = seeds.SF2?.home; const sf2Away = getWinner(qf2);
+      const finHome = getWinner(sf1);  const finAway  = getWinner(sf2);
+
+      const hasQF = qf1 || qf2;
+      const hasSF = sf1 || sf2;
+
+      let html = '<div class="bracket-wrap">';
+
+      if (hasQF) {
+        html += `<div class="bracket-round">
+          <div class="bracket-round-title">Quarter-Finals</div>
+          ${bracketMatch(qf1, qf1Home, qf1Away, 'QF1')}
+          ${bracketMatch(qf2, qf2Home, qf2Away, 'QF2')}
+        </div>
+        <div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
+      }
+
+      if (hasSF) {
+        html += `<div class="bracket-round">
+          <div class="bracket-round-title">Semi-Finals</div>
+          ${bracketMatch(sf1, sf1Home, sf1Away, 'SF1')}
+          ${bracketMatch(sf2, sf2Home, sf2Away, 'SF2')}
+        </div>
+        <div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
+      }
+
+      html += `<div class="bracket-round">
+        <div class="bracket-round-title">🏆 Final</div>
+        ${bracketMatch(fin, finHome, finAway, 'Final')}
+      </div></div>`;
+
+      container.innerHTML = html;
     }
 
     function handleScheduleDragStart(event) {
