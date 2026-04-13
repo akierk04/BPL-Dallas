@@ -613,8 +613,8 @@
         <button class="btn-sm" style="width:auto;" onclick="setFixtureConflictMode('replacement')">Enter Replacement Match #</button>
       </div>
       <div id="fixtureConflictReplacementWrap" style="display:none;">
-        <div class="conflict-note" style="margin-bottom:8px;">Enter the new Match # for the displaced fixture.</div>
-        <input type="number" id="fixtureConflictReplacementOrder" placeholder="Replacement Match #" min="1" />
+        <div class="conflict-note" style="margin-bottom:8px;">Choose the new Match # for the displaced fixture.</div>
+        <select id="fixtureConflictReplacementOrder"></select>
       </div>
       <div id="fixtureConflictHint" class="conflict-note">Choose how you want to resolve the conflict.</div>
       <div class="modal-actions">
@@ -1389,16 +1389,56 @@
       document.getElementById('fixtureConflictHint').textContent = 'Choose how you want to resolve the conflict.';
     }
 
+    function getReplacementOrderOptions(conflict) {
+      const requested = Number(conflict.orderVal) || null;
+      const current = Number(conflict.currentOrder) || null;
+      const maxLeague = 12;
+      const pool = conflict.matchType === 'league'
+        ? Array.from({ length: maxLeague }, (_, i) => i + 1)
+        : Array.from(new Set(
+            allMatches
+              .filter(m => fixtureTypeMatches(m, conflict.matchType))
+              .map(m => Number(m.display_order))
+              .filter(n => !Number.isNaN(n) && n > 0)
+              .concat([current || 0, requested || 0])
+          )).filter(n => n > 0).sort((a, b) => a - b);
+
+      const used = new Set(
+        allMatches
+          .filter(m =>
+            String(m.id) !== String(conflict.currentMatchId) &&
+            String(m.id) !== String(conflict.conflictMatch.id) &&
+            fixtureTypeMatches(m, conflict.matchType)
+          )
+          .map(m => Number(m.display_order))
+          .filter(n => !Number.isNaN(n) && n > 0)
+      );
+
+      return pool.filter(n => n !== requested && (!used.has(n) || n === current));
+    }
+
+    function populateReplacementOrderDropdown(conflict) {
+      const select = document.getElementById('fixtureConflictReplacementOrder');
+      const options = getReplacementOrderOptions(conflict);
+      const preferred = Number(conflict.currentOrder) || options[0] || '';
+      select.innerHTML = options.length
+        ? options.map(n => `<option value="${n}" ${Number(preferred) === n ? 'selected' : ''}>Match #${n}</option>`).join('')
+        : '<option value="">No available match numbers</option>';
+    }
+
     function setFixtureConflictMode(mode) {
       if (!pendingFixtureConflict) return;
       pendingFixtureConflict.mode = mode;
       const wrap = document.getElementById('fixtureConflictReplacementWrap');
       const hint = document.getElementById('fixtureConflictHint');
+      const input = document.getElementById('fixtureConflictReplacementOrder');
       if (mode === 'replacement') {
         wrap.style.display = 'block';
-        hint.textContent = 'The displaced fixture will be moved to the replacement Match # you enter below.';
+        populateReplacementOrderDropdown(pendingFixtureConflict);
+        hint.textContent = 'Choose the new Match # for the displaced fixture.';
       } else {
         wrap.style.display = 'none';
+        input.value = '';
         hint.textContent = 'The current fixture and displaced fixture will swap Match # values.';
       }
     }
@@ -1410,7 +1450,6 @@
       const displacedHome = allCaptains.find(c => c.id === conflict.conflictMatch.home_captain_id);
       const displacedAway = allCaptains.find(c => c.id === conflict.conflictMatch.away_captain_id);
       document.getElementById('fixtureConflictText').innerHTML = `Match #<strong>${conflict.orderVal}</strong> is already used by <strong>${displayCaptainName(displacedHome)} vs ${displayCaptainName(displacedAway)}</strong>.<br><br>You are trying to move <strong>${displayCaptainName(currentHome)} vs ${displayCaptainName(currentAway)}</strong> to Match #${conflict.orderVal}.`;
-      document.getElementById('fixtureConflictReplacementOrder').value = conflict.currentOrder || '';
       document.getElementById('fixtureConflictModal').style.display = 'flex';
       setFixtureConflictMode('swap');
     }
@@ -1459,7 +1498,6 @@
       );
 
       if (conflict.currentMatchId) {
-        if (!confirm('Update both fixtures? This will reset any saved score, goals, and MVP for the affected matches.')) return;
         const res1 = await applyFixtureUpdate(conflict.currentMatchId, currentPayload);
         if (res1.error) { msg.textContent = 'Error: ' + res1.error.message; return; }
       } else {
@@ -1526,7 +1564,6 @@
       let error;
 
       if (selectedFixtureForEditId) {
-        if (!confirm('Update this fixture? This will reset any saved score, goals, and MVP for that match.')) return;
         ({ error } = await applyFixtureUpdate(selectedFixtureForEditId, payload));
       } else {
         ({ error } = await db.from('matches').insert(payload));
