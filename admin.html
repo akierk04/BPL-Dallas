@@ -219,6 +219,91 @@
       font-size: 11px;
       color: var(--muted);
     }
+
+    .schedule-admin-section {
+      margin-bottom: 18px;
+    }
+
+    .schedule-admin-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .schedule-dropzone {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .schedule-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      cursor: grab;
+      transition: border-color 0.15s, transform 0.1s, opacity 0.15s;
+    }
+
+    .schedule-card:hover {
+      border-color: var(--accent);
+    }
+
+    .schedule-card.dragging {
+      opacity: 0.45;
+      transform: scale(0.99);
+    }
+
+    .schedule-card.drop-target {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(240,192,64,0.15) inset;
+    }
+
+    .schedule-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .schedule-card-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .schedule-card-order {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--accent);
+      line-height: 1;
+      min-width: 34px;
+      text-align: right;
+    }
+
+    .schedule-card-teams {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .schedule-card-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .schedule-admin-tip {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
   </style>
 </head>
 <body>
@@ -370,6 +455,7 @@
             <option value="SF2">Semi-Final 2 (G2 1st vs QF2 Winner)</option>
             <option value="Final">🏆 Final</option>
           </select>
+          <input type="number" id="fixtureEditOrder" placeholder="Match #" min="1" oninput="renderFixtureEditMeta()" style="width:120px;min-width:120px;" />
           <button class="btn-sm" onclick="resetFixtureEditor()" style="width:auto;">Clear Fixture</button>
         </div>
         <div class="form-row">
@@ -494,6 +580,8 @@
     let pendingMatchId = null;
     let selectedFixtureId = null;
     let selectedFixtureForEditId = null;
+    let draggedScheduleMatchId = null;
+    let draggedScheduleSection = null;
     let lastSale = null;
     let undoTimer = null;
     let pendingGoals = [], pendingHomeId = null, pendingAwayId = null, pendingHS = 0, pendingAS = 0;
@@ -1435,9 +1523,190 @@
       document.getElementById('mvpLeaderboard').innerHTML = mvpLeaderboardHtml(mvps, allMatches, allPlayers, allCaptains);
     }
 
+
+    function displayOrderValue(m) {
+      const val = Number(m.display_order);
+      return Number.isNaN(val) ? 9999 : val;
+    }
+
+    function sortByScheduleOrder(rows) {
+      return [...rows].sort((a, b) => {
+        const diff = displayOrderValue(a) - displayOrderValue(b);
+        if (diff !== 0) return diff;
+        return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      });
+    }
+
+    function scheduleSectionBaseOrder(sectionKey) {
+      if (sectionKey === 'league') return 1;
+      if (sectionKey === 'qf') return 101;
+      if (sectionKey === 'sf') return 201;
+      if (sectionKey === 'final') return 301;
+      return 1000;
+    }
+
+    function getAdminScheduleSections() {
+      const league = sortByScheduleOrder(allMatches.filter(m => !m.is_knockout));
+      const qf = sortByScheduleOrder(allMatches.filter(m => m.is_knockout && ['QF1', 'QF2'].includes(m.knockout_label)));
+      const sf = sortByScheduleOrder(allMatches.filter(m => m.is_knockout && ['SF1', 'SF2'].includes(m.knockout_label)));
+      const finals = sortByScheduleOrder(allMatches.filter(m => m.is_knockout && m.knockout_label === 'Final'));
+
+      return [
+        { key: 'league', title: 'League Matches', matches: league },
+        { key: 'qf', title: 'Quarter-Finals', matches: qf },
+        { key: 'sf', title: 'Semi-Finals', matches: sf },
+        { key: 'final', title: 'Final', matches: finals }
+      ];
+    }
+
+    function adminScheduleCardLabel(match, sectionKey, index) {
+      if (sectionKey === 'league') {
+        const order = match.display_order || (index + 1);
+        return `Match ${order}`;
+      }
+      if (match.knockout_label === 'QF1') return 'QF1';
+      if (match.knockout_label === 'QF2') return 'QF2';
+      if (match.knockout_label === 'SF1') return 'SF1';
+      if (match.knockout_label === 'SF2') return 'SF2';
+      if (match.knockout_label === 'Final') return 'Final';
+      return 'Fixture';
+    }
+
     function renderSchedule() {
-      const rows = computeStandings(allCaptains, allMatches);
-      document.getElementById('adminSchedule').innerHTML = matchScheduleHtml(allMatches, allCaptains, allPlayers, rows);
+      const wrap = document.getElementById('adminSchedule');
+      const sections = getAdminScheduleSections();
+
+      wrap.innerHTML = `
+        <div class="schedule-admin-tip">
+          Drag league fixtures to change Match 1–12 order. Knockouts can also be reordered inside their own sections.
+        </div>
+        ${sections.map(section => `
+          <div class="schedule-admin-section">
+            <div class="schedule-admin-title">${section.title}</div>
+            <div class="schedule-dropzone" id="schedule-dropzone-${section.key}">
+              ${section.matches.length ? section.matches.map((m, index) => {
+                const h = allCaptains.find(c => c.id === m.home_captain_id);
+                const a = allCaptains.find(c => c.id === m.away_captain_id);
+                const label = adminScheduleCardLabel(m, section.key, index);
+                const orderText = section.key === 'league'
+                  ? (m.display_order || index + 1)
+                  : '↕';
+
+                return `
+                  <div
+                    class="schedule-card"
+                    draggable="true"
+                    data-match-id="${m.id}"
+                    data-section-key="${section.key}"
+                    ondragstart="handleScheduleDragStart(event)"
+                    ondragend="handleScheduleDragEnd(event)"
+                    ondragover="handleScheduleDragOver(event)"
+                    ondragleave="handleScheduleDragLeave(event)"
+                    ondrop="handleScheduleDrop(event)"
+                  >
+                    <div class="schedule-card-top">
+                      <div class="schedule-card-label">${label}</div>
+                      <div class="schedule-card-order">${orderText}</div>
+                    </div>
+                    <div class="schedule-card-teams">${displayCaptainName(h)} vs ${displayCaptainName(a)}</div>
+                    <div class="schedule-card-meta">
+                      ${m.played ? `${m.home_score} - ${m.away_score} · Played` : 'Upcoming'}
+                    </div>
+                  </div>
+                `;
+              }).join('') : `<div class="text-muted">No fixtures in this section yet.</div>`}
+            </div>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function handleScheduleDragStart(event) {
+      const card = event.currentTarget;
+      draggedScheduleMatchId = card.dataset.matchId;
+      draggedScheduleSection = card.dataset.sectionKey;
+      card.classList.add('dragging');
+      event.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleScheduleDragEnd(event) {
+      event.currentTarget.classList.remove('dragging');
+      document.querySelectorAll('.schedule-card').forEach(card => {
+        card.classList.remove('drop-target');
+      });
+    }
+
+    function handleScheduleDragOver(event) {
+      event.preventDefault();
+      const card = event.currentTarget;
+      if (card.dataset.sectionKey !== draggedScheduleSection) return;
+      card.classList.add('drop-target');
+    }
+
+    function handleScheduleDragLeave(event) {
+      event.currentTarget.classList.remove('drop-target');
+    }
+
+    async function handleScheduleDrop(event) {
+      event.preventDefault();
+      const targetCard = event.currentTarget;
+      targetCard.classList.remove('drop-target');
+
+      const targetMatchId = targetCard.dataset.matchId;
+      const targetSection = targetCard.dataset.sectionKey;
+
+      if (!draggedScheduleMatchId || !targetMatchId) return;
+      if (draggedScheduleMatchId === targetMatchId) return;
+      if (draggedScheduleSection !== targetSection) return;
+
+      await reorderScheduleSection(targetSection, draggedScheduleMatchId, targetMatchId);
+
+      draggedScheduleMatchId = null;
+      draggedScheduleSection = null;
+    }
+
+    async function reorderScheduleSection(sectionKey, draggedId, targetId) {
+      const sections = getAdminScheduleSections();
+      const section = sections.find(s => s.key === sectionKey);
+      if (!section) return;
+
+      const ordered = [...section.matches];
+      const fromIndex = ordered.findIndex(m => m.id === draggedId);
+      const toIndex = ordered.findIndex(m => m.id === targetId);
+
+      if (fromIndex === -1 || toIndex === -1) return;
+
+      const [moved] = ordered.splice(fromIndex, 1);
+      ordered.splice(toIndex, 0, moved);
+
+      const base = scheduleSectionBaseOrder(sectionKey);
+      const msg = document.getElementById('matchMsg');
+
+      for (let i = 0; i < ordered.length; i++) {
+        const match = ordered[i];
+        const newOrder = base + i;
+
+        const { error } = await db
+          .from('matches')
+          .update({ display_order: newOrder })
+          .eq('id', match.id);
+
+        if (error) {
+          if (msg) msg.textContent = 'Error updating schedule order: ' + error.message;
+          return;
+        }
+      }
+
+      if (msg) {
+        msg.textContent = 'Schedule order updated.';
+        setTimeout(() => {
+          const el = document.getElementById('matchMsg');
+          if (el) el.textContent = '';
+        }, 2000);
+      }
+
+      await loadData();
+      switchTab('schedule');
     }
 
     function populateMvpDropdown() {
