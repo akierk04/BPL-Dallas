@@ -1481,35 +1481,49 @@
         }
       }
 
-      const displacedPayload = {
-        home_captain_id: state.displaced.home_captain_id,
-        away_captain_id: state.displaced.away_captain_id,
-        is_knockout: state.displaced.is_knockout,
-        knockout_label: state.displaced.knockout_label,
-        display_order: displacedNewOrder
-      };
+      const currentMsg = document.getElementById('fixtureEditMsg');
 
-      const currentPayload = {
+      // The DB has a unique constraint on display_order, so we cannot write both rows
+      // simultaneously — doing so causes a constraint violation. Instead we use a
+      // 3-step sequential write:
+      //   1. Park the displaced fixture at NULL (releases the slot)
+      //   2. Write the current fixture to the requested slot
+      //   3. Write the displaced fixture to its new slot
+      const step1 = await db.from('matches')
+        .update({ display_order: null })
+        .eq('id', state.displaced.id);
+      if (step1.error) {
+        if (err) err.textContent = 'Error clearing slot: ' + step1.error.message;
+        return;
+      }
+
+      const step2 = await commitFixtureUpdate(state.currentId, {
         home_captain_id: state.form.homeId,
         away_captain_id: state.form.awayId,
         is_knockout: state.form.isKnockout,
         knockout_label: state.form.knockoutLabel,
         display_order: state.requestedOrder
-      };
+      });
+      if (step2.error) {
+        if (err) err.textContent = 'Error assigning slot: ' + step2.error.message;
+        return;
+      }
 
-      const currentMsg = document.getElementById('fixtureEditMsg');
-      const [displacedRes, currentRes] = await Promise.all([
-        commitFixtureUpdate(state.displaced.id, displacedPayload),
-        commitFixtureUpdate(state.currentId, currentPayload)
-      ]);
-
-      if (displacedRes.error || currentRes.error) {
-        if (err) err.textContent = displacedRes.error?.message || currentRes.error?.message || 'Unable to update fixtures.';
+      const step3 = await commitFixtureUpdate(state.displaced.id, {
+        home_captain_id: state.displaced.home_captain_id,
+        away_captain_id: state.displaced.away_captain_id,
+        is_knockout: state.displaced.is_knockout,
+        knockout_label: state.displaced.knockout_label,
+        display_order: displacedNewOrder
+      });
+      if (step3.error) {
+        if (err) err.textContent = 'Error updating displaced fixture: ' + step3.error.message;
         return;
       }
 
       closeFixtureConflictModal();
-      if (currentMsg) currentMsg.textContent = `Fixture updated. Match #${state.requestedOrder} assigned successfully.`;
+      if (currentMsg) currentMsg.textContent = `Match #${state.requestedOrder} swapped successfully.`;
+      setTimeout(() => { const el = document.getElementById('fixtureEditMsg'); if (el) el.textContent = ''; }, 3000);
       await loadData();
     }
 
