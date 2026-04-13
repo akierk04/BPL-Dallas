@@ -168,25 +168,44 @@ function mvpLeaderboardHtml(leaders, matches, players, captains) {
 }
 
 function matchScheduleHtml(matches, captains, players, standings) {
-  const leagueMatches  = matches.filter(m => !m.is_knockout);
+  function displayOrderValue(m) {
+    const val = Number(m.display_order);
+    return Number.isNaN(val) ? 9999 : val;
+  }
+
+  function sortByDisplayOrder(rows) {
+    return [...rows].sort((a, b) => {
+      const diff = displayOrderValue(a) - displayOrderValue(b);
+      if (diff !== 0) return diff;
+      return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+    });
+  }
+
+  function leagueLabel(m, fallbackNum) {
+    const val = Number(m.display_order);
+    return !Number.isNaN(val) && val > 0 ? `Match ${val}` : `Match ${fallbackNum}`;
+  }
+
+  const leagueMatches = matches.filter(m => !m.is_knockout);
   const knockoutMatches = matches.filter(m => m.is_knockout);
 
   // Group standings from standings array (already computed)
   const s1 = captains.filter(c => c.tournament_group === '1').map(c => {
-    return (standings||[]).find(r => r.captain.id === c.id) || { captain: c, pts:0, gd:0, gf:0 };
-  }).sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
-  const s2 = captains.filter(c => c.tournament_group === '2').map(c => {
-    return (standings||[]).find(r => r.captain.id === c.id) || { captain: c, pts:0, gd:0, gf:0 };
+    return (standings || []).find(r => r.captain.id === c.id) || { captain: c, pts:0, gd:0, gf:0 };
   }).sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
 
-  const g1w=s1[0]?.captain, g1r2=s1[1]?.captain, g1r3=s1[2]?.captain;
-  const g2w=s2[0]?.captain, g2r2=s2[1]?.captain, g2r3=s2[2]?.captain;
+  const s2 = captains.filter(c => c.tournament_group === '2').map(c => {
+    return (standings || []).find(r => r.captain.id === c.id) || { captain: c, pts:0, gd:0, gf:0 };
+  }).sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
+
+  const g1w = s1[0]?.captain, g1r2 = s1[1]?.captain, g1r3 = s1[2]?.captain;
+  const g2w = s2[0]?.captain, g2r2 = s2[1]?.captain, g2r3 = s2[2]?.captain;
 
   const rankMap = {};
-  s1.forEach((r,i) => { rankMap[r.captain.id] = `G1 ${ordinal(i+1)}`; });
-  s2.forEach((r,i) => { rankMap[r.captain.id] = `G2 ${ordinal(i+1)}`; });
+  s1.forEach((r, i) => { rankMap[r.captain.id] = `G1 ${ordinal(i+1)}`; });
+  s2.forEach((r, i) => { rankMap[r.captain.id] = `G2 ${ordinal(i+1)}`; });
 
-  function ordinal(n) { return ['','1st','2nd','3rd','4th'][n]||n+'th'; }
+  function ordinal(n) { return ['', '1st', '2nd', '3rd', '4th'][n] || n + 'th'; }
 
   function teamLabel(captain, showRank) {
     if (!captain) return '?';
@@ -203,20 +222,20 @@ function matchScheduleHtml(matches, captains, players, standings) {
     const showRank = isLeague && standings?.length > 0;
     return `
       <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
-        ${label?`<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>`:''}
+        ${label ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>` : ''}
         <div style="display:flex;align-items:center;gap:8px;">
-          <span style="flex:1;text-align:right;font-weight:${winner==='home'?'600':'400'};color:${winner==='home'?'var(--text)':'var(--muted)'};">${teamLabel(h,showRank)}</span>
+          <span style="flex:1;text-align:right;font-weight:${winner==='home'?'600':'400'};color:${winner==='home'?'var(--text)':'var(--muted)'};">${teamLabel(h, showRank)}</span>
           <span style="font-family:var(--font-display);font-size:1.4rem;color:var(--accent);min-width:52px;text-align:center;">${m.home_score} – ${m.away_score}</span>
-          <span style="flex:1;font-weight:${winner==='away'?'600':'400'};color:${winner==='away'?'var(--text)':'var(--muted)'};">${teamLabel(a,showRank)}</span>
+          <span style="flex:1;font-weight:${winner==='away'?'600':'400'};color:${winner==='away'?'var(--text)':'var(--muted)'};">${teamLabel(a, showRank)}</span>
         </div>
-        ${mvp?`<div style="text-align:center;font-size:11px;color:var(--accent);margin-top:6px;">⭐ MVP: ${mvp.name}</div>`:''}
+        ${mvp ? `<div style="text-align:center;font-size:11px;color:var(--accent);margin-top:6px;">⭐ MVP: ${mvp.name}</div>` : ''}
       </div>`;
   }
 
   function upcomingCard(homeLabel, awayLabel, label) {
     return `
       <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
-        ${label?`<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>`:''}
+        ${label ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>` : ''}
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="flex:1;text-align:right;color:var(--text);font-weight:500;">${homeLabel}</span>
           <span style="font-size:12px;color:var(--muted);min-width:52px;text-align:center;">vs</span>
@@ -229,91 +248,149 @@ function matchScheduleHtml(matches, captains, players, standings) {
     return `<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin:16px 0 10px;font-weight:500;">${title}</div>`;
   }
 
-  function name(c) { return c ? (c.team_name || c.name) : '<span style="color:var(--muted)">TBD</span>'; }
+  function name(c) {
+    return c ? (c.team_name || c.name) : '<span style="color:var(--muted)">TBD</span>';
+  }
 
   let html = '';
 
   // ── Group 1 matches ──
-  const g1Matches = leagueMatches.filter(m =>
-    captains.find(c=>c.id===m.home_captain_id)?.tournament_group === '1'
+  const g1Matches = sortByDisplayOrder(
+    leagueMatches.filter(m =>
+      captains.find(c => c.id === m.home_captain_id)?.tournament_group === '1'
+    )
   );
-  const g1Played   = g1Matches.filter(m=>m.played);
-  const g1Upcoming = g1Matches.filter(m=>!m.played);
+  const g1Played = g1Matches.filter(m => m.played);
+  const g1Upcoming = g1Matches.filter(m => !m.played);
 
   html += sectionHeader('Group 1');
-  if (g1Played.length)   html += g1Played.map((m,i)   => matchCard(m, `Match ${i+1}`, true)).join('');
-  if (g1Upcoming.length) html += g1Upcoming.map((m,i) => {
-    const h=captains.find(c=>c.id===m.home_captain_id), a=captains.find(c=>c.id===m.away_captain_id);
-    return upcomingCard(teamLabel(h,standings?.length>0), teamLabel(a,standings?.length>0), `Match ${g1Played.length+i+1}`);
-  }).join('');
+  if (g1Played.length) {
+    html += g1Played.map((m, i) => matchCard(m, leagueLabel(m, i + 1), true)).join('');
+  }
+  if (g1Upcoming.length) {
+    html += g1Upcoming.map((m, i) => {
+      const h = captains.find(c => c.id === m.home_captain_id);
+      const a = captains.find(c => c.id === m.away_captain_id);
+      return upcomingCard(
+        teamLabel(h, standings?.length > 0),
+        teamLabel(a, standings?.length > 0),
+        leagueLabel(m, g1Played.length + i + 1)
+      );
+    }).join('');
+  }
 
   // ── Group 2 matches ──
-  const g2Matches  = leagueMatches.filter(m =>
-    captains.find(c=>c.id===m.home_captain_id)?.tournament_group === '2'
+  const g2Matches = sortByDisplayOrder(
+    leagueMatches.filter(m =>
+      captains.find(c => c.id === m.home_captain_id)?.tournament_group === '2'
+    )
   );
-  const g2Played   = g2Matches.filter(m=>m.played);
-  const g2Upcoming = g2Matches.filter(m=>!m.played);
+  const g2Played = g2Matches.filter(m => m.played);
+  const g2Upcoming = g2Matches.filter(m => !m.played);
 
   html += sectionHeader('Group 2');
-  if (g2Played.length)   html += g2Played.map((m,i)   => matchCard(m, `Match ${i+1}`, true)).join('');
-  if (g2Upcoming.length) html += g2Upcoming.map((m,i) => {
-    const h=captains.find(c=>c.id===m.home_captain_id), a=captains.find(c=>c.id===m.away_captain_id);
-    return upcomingCard(teamLabel(h,standings?.length>0), teamLabel(a,standings?.length>0), `Match ${g2Played.length+i+1}`);
-  }).join('');
+  if (g2Played.length) {
+    html += g2Played.map((m, i) => matchCard(m, leagueLabel(m, i + 1), true)).join('');
+  }
+  if (g2Upcoming.length) {
+    html += g2Upcoming.map((m, i) => {
+      const h = captains.find(c => c.id === m.home_captain_id);
+      const a = captains.find(c => c.id === m.away_captain_id);
+      return upcomingCard(
+        teamLabel(h, standings?.length > 0),
+        teamLabel(a, standings?.length > 0),
+        leagueLabel(m, g2Played.length + i + 1)
+      );
+    }).join('');
+  }
 
   // ── Quarter-Finals ──
   html += sectionHeader('Quarter-Finals');
-  const qf1played = knockoutMatches.find(m=>m.knockout_label==='QF1'&&m.played);
-  const qf2played = knockoutMatches.find(m=>m.knockout_label==='QF2'&&m.played);
+  const qf1played = knockoutMatches.find(m => m.knockout_label === 'QF1' && m.played);
+  const qf2played = knockoutMatches.find(m => m.knockout_label === 'QF2' && m.played);
 
-  if (qf1played) html += matchCard(qf1played, 'QF1 · G1 2nd vs G2 3rd', false);
-  else html += upcomingCard(
-    g1r2 ? `${name(g1r2)} <span style="font-size:11px;color:var(--muted);">(G1 2nd)</span>` : '<span style="color:var(--muted)">G1 2nd Place</span>',
-    g2r3 ? `${name(g2r3)} <span style="font-size:11px;color:var(--muted);">(G2 3rd)</span>` : '<span style="color:var(--muted)">G2 3rd Place</span>',
-    'QF1 · G1 2nd vs G2 3rd'
-  );
+  if (qf1played) {
+    html += matchCard(qf1played, 'QF1 · G1 2nd vs G2 3rd', false);
+  } else {
+    html += upcomingCard(
+      g1r2 ? `${name(g1r2)} <span style="font-size:11px;color:var(--muted);">(G1 2nd)</span>` : '<span style="color:var(--muted)">G1 2nd Place</span>',
+      g2r3 ? `${name(g2r3)} <span style="font-size:11px;color:var(--muted);">(G2 3rd)</span>` : '<span style="color:var(--muted)">G2 3rd Place</span>',
+      'QF1 · G1 2nd vs G2 3rd'
+    );
+  }
 
-  if (qf2played) html += matchCard(qf2played, 'QF2 · G2 2nd vs G1 3rd', false);
-  else html += upcomingCard(
-    g2r2 ? `${name(g2r2)} <span style="font-size:11px;color:var(--muted);">(G2 2nd)</span>` : '<span style="color:var(--muted)">G2 2nd Place</span>',
-    g1r3 ? `${name(g1r3)} <span style="font-size:11px;color:var(--muted);">(G1 3rd)</span>` : '<span style="color:var(--muted)">G1 3rd Place</span>',
-    'QF2 · G2 2nd vs G1 3rd'
-  );
+  if (qf2played) {
+    html += matchCard(qf2played, 'QF2 · G2 2nd vs G1 3rd', false);
+  } else {
+    html += upcomingCard(
+      g2r2 ? `${name(g2r2)} <span style="font-size:11px;color:var(--muted);">(G2 2nd)</span>` : '<span style="color:var(--muted)">G2 2nd Place</span>',
+      g1r3 ? `${name(g1r3)} <span style="font-size:11px;color:var(--muted);">(G1 3rd)</span>` : '<span style="color:var(--muted)">G1 3rd Place</span>',
+      'QF2 · G2 2nd vs G1 3rd'
+    );
+  }
 
   // ── Semi-Finals ──
   html += sectionHeader('Semi-Finals');
-  const sf1played = knockoutMatches.find(m=>m.knockout_label==='SF1'&&m.played);
-  const sf2played = knockoutMatches.find(m=>m.knockout_label==='SF2'&&m.played);
+  const sf1played = knockoutMatches.find(m => m.knockout_label === 'SF1' && m.played);
+  const sf2played = knockoutMatches.find(m => m.knockout_label === 'SF2' && m.played);
 
-  const qf1Winner = qf1played ? (qf1played.home_score>qf1played.away_score ? captains.find(c=>c.id===qf1played.home_captain_id) : captains.find(c=>c.id===qf1played.away_captain_id)) : null;
-  const qf2Winner = qf2played ? (qf2played.home_score>qf2played.away_score ? captains.find(c=>c.id===qf2played.home_captain_id) : captains.find(c=>c.id===qf2played.away_captain_id)) : null;
+  const qf1Winner = qf1played
+    ? (qf1played.home_score > qf1played.away_score
+        ? captains.find(c => c.id === qf1played.home_captain_id)
+        : captains.find(c => c.id === qf1played.away_captain_id))
+    : null;
 
-  if (sf1played) html += matchCard(sf1played, 'SF1 · G1 1st vs QF1 Winner', false);
-  else html += upcomingCard(
-    g1w ? `${name(g1w)} <span style="font-size:11px;color:var(--muted);">(G1 1st)</span>` : '<span style="color:var(--muted)">G1 Winner</span>',
-    qf1Winner ? `${name(qf1Winner)} <span style="font-size:11px;color:var(--muted);">(W QF1)</span>` : '<span style="color:var(--muted)">Winner QF1</span>',
-    'SF1 · G1 1st vs QF1 Winner'
-  );
+  const qf2Winner = qf2played
+    ? (qf2played.home_score > qf2played.away_score
+        ? captains.find(c => c.id === qf2played.home_captain_id)
+        : captains.find(c => c.id === qf2played.away_captain_id))
+    : null;
 
-  if (sf2played) html += matchCard(sf2played, 'SF2 · G2 1st vs QF2 Winner', false);
-  else html += upcomingCard(
-    g2w ? `${name(g2w)} <span style="font-size:11px;color:var(--muted);">(G2 1st)</span>` : '<span style="color:var(--muted)">G2 Winner</span>',
-    qf2Winner ? `${name(qf2Winner)} <span style="font-size:11px;color:var(--muted);">(W QF2)</span>` : '<span style="color:var(--muted)">Winner QF2</span>',
-    'SF2 · G2 1st vs QF2 Winner'
-  );
+  if (sf1played) {
+    html += matchCard(sf1played, 'SF1 · G1 1st vs QF1 Winner', false);
+  } else {
+    html += upcomingCard(
+      g1w ? `${name(g1w)} <span style="font-size:11px;color:var(--muted);">(G1 1st)</span>` : '<span style="color:var(--muted)">G1 Winner</span>',
+      qf1Winner ? `${name(qf1Winner)} <span style="font-size:11px;color:var(--muted);">(W QF1)</span>` : '<span style="color:var(--muted)">Winner QF1</span>',
+      'SF1 · G1 1st vs QF1 Winner'
+    );
+  }
+
+  if (sf2played) {
+    html += matchCard(sf2played, 'SF2 · G2 1st vs QF2 Winner', false);
+  } else {
+    html += upcomingCard(
+      g2w ? `${name(g2w)} <span style="font-size:11px;color:var(--muted);">(G2 1st)</span>` : '<span style="color:var(--muted)">G2 Winner</span>',
+      qf2Winner ? `${name(qf2Winner)} <span style="font-size:11px;color:var(--muted);">(W QF2)</span>` : '<span style="color:var(--muted)">Winner QF2</span>',
+      'SF2 · G2 1st vs QF2 Winner'
+    );
+  }
 
   // ── Final ──
   html += sectionHeader('Final');
-  const finalPlayed = knockoutMatches.find(m=>m.knockout_label==='Final'&&m.played);
-  const sf1Winner = sf1played ? (sf1played.home_score>sf1played.away_score ? captains.find(c=>c.id===sf1played.home_captain_id) : captains.find(c=>c.id===sf1played.away_captain_id)) : null;
-  const sf2Winner = sf2played ? (sf2played.home_score>sf2played.away_score ? captains.find(c=>c.id===sf2played.home_captain_id) : captains.find(c=>c.id===sf2played.away_captain_id)) : null;
+  const finalPlayed = knockoutMatches.find(m => m.knockout_label === 'Final' && m.played);
 
-  if (finalPlayed) html += matchCard(finalPlayed, '🏆 Final', false);
-  else html += upcomingCard(
-    sf1Winner ? `${name(sf1Winner)} <span style="font-size:11px;color:var(--muted);">(W SF1)</span>` : '<span style="color:var(--muted)">Winner SF1</span>',
-    sf2Winner ? `${name(sf2Winner)} <span style="font-size:11px;color:var(--muted);">(W SF2)</span>` : '<span style="color:var(--muted)">Winner SF2</span>',
-    '🏆 Final'
-  );
+  const sf1Winner = sf1played
+    ? (sf1played.home_score > sf1played.away_score
+        ? captains.find(c => c.id === sf1played.home_captain_id)
+        : captains.find(c => c.id === sf1played.away_captain_id))
+    : null;
+
+  const sf2Winner = sf2played
+    ? (sf2played.home_score > sf2played.away_score
+        ? captains.find(c => c.id === sf2played.home_captain_id)
+        : captains.find(c => c.id === sf2played.away_captain_id))
+    : null;
+
+  if (finalPlayed) {
+    html += matchCard(finalPlayed, '🏆 Final', false);
+  } else {
+    html += upcomingCard(
+      sf1Winner ? `${name(sf1Winner)} <span style="font-size:11px;color:var(--muted);">(W SF1)</span>` : '<span style="color:var(--muted)">Winner SF1</span>',
+      sf2Winner ? `${name(sf2Winner)} <span style="font-size:11px;color:var(--muted);">(W SF2)</span>` : '<span style="color:var(--muted)">Winner SF2</span>',
+      '🏆 Final'
+    );
+  }
 
   return html || '<div class="text-muted">No fixtures loaded yet.</div>';
 }
