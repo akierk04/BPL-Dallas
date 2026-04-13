@@ -44,7 +44,6 @@ function computeGroupStandings(captains, matches, groupNum) {
   });
 }
 
-// Keep backward compat for places that call computeStandings
 function computeStandings(captains, matches) {
   const g1 = computeGroupStandings(captains, matches, 1);
   const g2 = computeGroupStandings(captains, matches, 2);
@@ -256,7 +255,6 @@ function matchScheduleHtml(matches, captains, players, standings) {
 
   let html = '';
 
-  // League Matches: one flat list
   html += sectionHeader('League Matches');
   if (leagueMatches.length) {
     const playedLeague = leagueMatches.filter(m => m.played);
@@ -280,7 +278,6 @@ function matchScheduleHtml(matches, captains, players, standings) {
     html += '<div class="text-muted">No league fixtures loaded yet.</div>';
   }
 
-  // Quarter-Finals
   html += sectionHeader('Quarter-Finals');
   const qf1played = knockoutMatches.find(m => m.knockout_label === 'QF1' && m.played);
   const qf2played = knockoutMatches.find(m => m.knockout_label === 'QF2' && m.played);
@@ -305,7 +302,6 @@ function matchScheduleHtml(matches, captains, players, standings) {
     );
   }
 
-  // Semi-Finals
   html += sectionHeader('Semi-Finals');
   const sf1played = knockoutMatches.find(m => m.knockout_label === 'SF1' && m.played);
   const sf2played = knockoutMatches.find(m => m.knockout_label === 'SF2' && m.played);
@@ -342,7 +338,6 @@ function matchScheduleHtml(matches, captains, players, standings) {
     );
   }
 
-  // Final
   html += sectionHeader('Final');
   const finalPlayed = knockoutMatches.find(m => m.knockout_label === 'Final' && m.played);
 
