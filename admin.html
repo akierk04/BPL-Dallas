@@ -306,6 +306,30 @@
       margin-bottom: 12px;
     }
 
+
+    /* tiebreaker tooltip */
+    .tb-tooltip-wrap { position: relative; display: inline-block; }
+    .tb-tooltip {
+      display: none;
+      position: absolute;
+      left: 0; top: 100%;
+      z-index: 50;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text);
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      margin-top: 4px;
+    }
+    .tb-tooltip-wrap:hover .tb-tooltip { display: block; }
+    .tb-row { color: var(--accent); font-size: 11px; }
+
+    @media (max-width: 600px) {
+      #matchDayBanner > div { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -439,13 +463,31 @@
 
     <!-- Matches -->
     <div id="tab-matches" style="display:none;">
+      <div id="matchDayBanner" style="display:none;margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div id="nowPlayingCard" style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.5);border-radius:var(--radius-lg);padding:16px 20px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">⚡ Now Playing</div>
+            <div id="nowPlayingTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+            <div id="nowPlayingMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+          </div>
+          <div id="upNextCard" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;">Up Next</div>
+            <div id="upNextTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+            <div id="upNextMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="section-title">Upcoming Fixtures</div>
       <div class="form-card">
         <div class="fixture-tip">Click any upcoming fixture to load it into the fixture editor and score entry form.</div>
         <div id="fixtureGrid" class="fixture-grid"></div>
       </div>
 
-      <div class="section-title">Fixture Editor</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="margin-bottom:0;">Fixture Editor</div>
+        <button class="btn-sm" onclick="generateKnockouts()" style="width:auto;">⚡ Generate Knockouts from Standings</button>
+      </div>
       <div class="form-card">
         <div id="fixtureEditorHint" class="fixture-tip">Select an upcoming fixture above to edit it, or leave blank below to create a new one manually.</div>
         <div class="form-row" style="margin-bottom:10px;">
@@ -557,6 +599,46 @@
 
 
 
+  <!-- Edit Match Result Modal -->
+  <div id="editMatchModal" class="modal-overlay" style="display:none;">
+    <div class="modal" style="max-width:520px;max-height:90dvh;overflow-y:auto;">
+      <div class="modal-title">Edit Match Result</div>
+      <div class="modal-sub" id="editMatchLabel" style="margin-bottom:12px;">—</div>
+
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+        <select id="editMatchHome" style="flex:2;"></select>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="editMatchHomeScore" min="0" style="width:56px;min-width:56px;text-align:center;" />
+          <span style="color:var(--muted);">–</span>
+          <input type="number" id="editMatchAwayScore" min="0" style="width:56px;min-width:56px;text-align:center;" />
+        </div>
+        <select id="editMatchAway" style="flex:2;"></select>
+      </div>
+
+      <div style="border-top:0.5px solid var(--border);padding-top:12px;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;">⚽ Goal Scorers</div>
+        <div id="editGoalsList" style="margin-bottom:10px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select id="editScorerTeam" onchange="updateEditScorerPlayers()" style="flex:1;min-width:120px;"></select>
+          <select id="editScorerPlayer" style="flex:2;min-width:140px;"></select>
+          <button class="btn-sm" onclick="addEditGoal()" style="width:auto;">+ Add Goal</button>
+        </div>
+        <p id="editScorerMsg" class="text-muted mt-8"></p>
+      </div>
+
+      <div style="border-top:0.5px solid var(--border);padding-top:12px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;">⭐ Match MVP</div>
+        <select id="editMvpPlayer" style="width:100%;"></select>
+      </div>
+
+      <p id="editMatchError" class="text-muted" style="color:var(--red);margin-bottom:8px;"></p>
+      <div class="modal-actions">
+        <button class="btn-cancel" style="width:auto;" onclick="closeEditMatchModal()">Cancel</button>
+        <button class="btn-primary" style="width:auto;" onclick="saveEditMatch()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
   <div id="fixtureConflictModal" class="modal-overlay" style="display:none;">
     <div class="modal" style="max-width:560px;">
       <div class="modal-title">Match # Conflict</div>
@@ -647,6 +729,7 @@
       populateConsoleDropdowns();
       populateBiddingDropdown();
       populateMatchDropdowns();
+      renderMatchDayBanner();
       renderFixtures();
       renderMatchesList();
       renderStandings();
@@ -1250,7 +1333,9 @@
         return `<div class="fixture-card" onclick="loadFixture('${m.id}')">
           <div class="fixture-label">${label}</div>
           <div class="fixture-teamline">${h ? displayCaptainName(h) : 'TBD'} vs ${a ? displayCaptainName(a) : 'TBD'}</div>
-          <div class="fixture-meta">Click to load into score entry</div>
+          <div style="margin-top:8px;">
+            <button class="btn-primary" onclick="event.stopPropagation();loadFixtureForResult('${m.id}')" style="width:100%;padding:7px;font-size:0.85rem;">Enter Result</button>
+          </div>
         </div>`;
       }).join('');
     }
@@ -1776,6 +1861,7 @@
             <span style="font-weight:500;"><span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.away_score}</span> ${a ? displayCaptainName(a) : '?'}</span>
             ${scorers ? `<span class="player-row-meta" style="width:100%;margin-top:2px;">⚽ ${scorers}</span>` : ''}
             <div class="player-row-actions">
+              <button class="btn-sm" onclick="editMatch('${m.id}')">Edit</button>
               <button class="btn-danger" onclick="deleteMatch('${m.id}')">Delete</button>
             </div>
           </div>`;
@@ -1790,7 +1876,291 @@
     }
 
     function renderStandings() {
-      document.getElementById('standingsTable').innerHTML = standingsTableHtml(allCaptains, allMatches);
+      document.getElementById('standingsTable').innerHTML = standingsTableWithTiebreakerHtml(allCaptains, allMatches);
+    }
+
+    // ── Standings with tiebreaker tooltips ──
+    function standingsTableWithTiebreakerHtml(captains, matches) {
+      const g1 = computeGroupStandings(captains, matches, 1);
+      const g2 = computeGroupStandings(captains, matches, 2);
+      if (!g1.length && !g2.length) return '<div class="text-muted">No matches played yet.</div>';
+      return groupTableWithTiebreakerHtml(g1, 1) + groupTableWithTiebreakerHtml(g2, 2);
+    }
+
+    function groupTableWithTiebreakerHtml(rows, groupNum) {
+      const qualifier = [
+        `<span style="font-size:10px;background:rgba(62,207,142,0.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:6px;">Qualifies</span>`,
+        `<span style="font-size:10px;background:rgba(240,192,64,0.15);color:var(--accent);padding:2px 6px;border-radius:4px;margin-left:6px;">QF</span>`,
+        `<span style="font-size:10px;background:rgba(240,192,64,0.15);color:var(--accent);padding:2px 6px;border-radius:4px;margin-left:6px;">QF</span>`,
+        ''
+      ];
+
+      // Detect ties: group rows that share the same pts
+      function tiebreakUsed(r, i, rows) {
+        const tied = rows.filter(x => x.pts === r.pts);
+        if (tied.length < 2) return null;
+        // Find which tiebreaker separated this team from the one immediately above/below
+        const prev = rows[i - 1];
+        if (!prev || prev.pts !== r.pts) return null;
+        if (prev.gd !== r.gd) return 'GD';
+        if (prev.gf !== r.gf) return 'GF';
+        if (prev.ga !== r.ga) return 'GA';
+        const h2h = r.results[prev.captain.id];
+        const ph2h = prev.results[r.captain.id];
+        if (h2h && ph2h && h2h.pts !== ph2h.pts) return 'H2H';
+        return null;
+      }
+
+      const rowsHtml = rows.map((r, i) => {
+        const tb = tiebreakUsed(r, i, rows);
+        const tbHtml = tb ? `<span class="tb-row" title="Separated by ${tb}"> ↑${tb}</span>` : '';
+        const h2hPrev = i > 0 && rows[i-1].pts === r.pts ? r.results[rows[i-1].captain.id] : null;
+        const tooltip = tb ? `<div class="tb-tooltip">Tiebreaker vs ${rows[i-1].captain.name}: ${tb}${h2hPrev ? ` (H2H: ${h2hPrev.gf}-${h2hPrev.ga})` : ''}</div>` : '';
+
+        return `
+          <tr style="border-bottom:0.5px solid var(--border);${i===0?'background:rgba(62,207,142,0.04);':i<3?'background:rgba(240,192,64,0.03);':''}">
+            <td style="padding:10px 10px;color:var(--muted);">${i+1}</td>
+            <td style="padding:10px 10px;font-weight:500;color:var(--text);">
+              <div class="tb-tooltip-wrap">
+                ${r.captain.name}${qualifier[i]||''}${tbHtml}
+                ${tooltip}
+              </div>
+            </td>
+            <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.p}</td>
+            <td style="padding:10px 6px;text-align:center;color:var(--green);">${r.w}</td>
+            <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.d}</td>
+            <td style="padding:10px 6px;text-align:center;color:var(--red);">${r.l}</td>
+            <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.gf}</td>
+            <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.ga}</td>
+            <td style="padding:10px 6px;text-align:center;color:${r.gd>0?'var(--green)':r.gd<0?'var(--red)':'var(--muted)'};">${r.gd>0?'+':''}${r.gd}</td>
+            <td style="padding:10px 8px;text-align:center;font-family:var(--font-display);font-size:1.1rem;color:var(--accent);">${r.pts}</td>
+          </tr>`;
+      }).join('');
+
+      return `
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:10px;font-weight:500;">Group ${groupNum}</div>
+        <div style="overflow-x:auto;margin-bottom:24px;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:500;">#</th>
+                <th style="text-align:left;padding:8px 10px;color:var(--muted);font-weight:500;">Team</th>
+                <th style="padding:8px 6px;color:var(--muted);font-weight:500;">P</th>
+                <th style="padding:8px 6px;color:var(--muted);font-weight:500;">W</th>
+                <th style="padding:8px 6px;color:var(--muted);font-weight:500;">D</th>
+                <th style="padding:8px 6px;color:var(--muted);font-weight:500;">L</th>
+                <th style="padding:8px 6px;color:var(--muted);font-weight:500;">GF</th>
+                <th style="padding:8px 6px;color:var(--muted);font-weight:500;">GA</th>
+                <th style="padding:8px 6px;color:var(--muted);font-weight:500;">GD</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;">Pts</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>`;
+    }
+
+    // ── Now Playing / Up Next banner ──
+    function renderMatchDayBanner() {
+      const banner = document.getElementById('matchDayBanner');
+      const upcoming = sortMatchesForDisplay(allMatches.filter(m => !m.played));
+      if (!upcoming.length) { banner.style.display = 'none'; return; }
+      banner.style.display = 'block';
+
+      const now = upcoming[0];
+      const next = upcoming[1] || null;
+
+      function teamLine(m) {
+        const h = allCaptains.find(c => c.id === m.home_captain_id);
+        const a = allCaptains.find(c => c.id === m.away_captain_id);
+        return `${displayCaptainName(h)} vs ${displayCaptainName(a)}`;
+      }
+      function metaLine(m) {
+        const base = m.is_knockout ? (m.knockout_label || 'Knockout') : 'League';
+        return m.display_order ? `${base} · Match #${m.display_order}` : base;
+      }
+
+      document.getElementById('nowPlayingTeams').textContent = teamLine(now);
+      document.getElementById('nowPlayingMeta').textContent  = metaLine(now);
+      document.getElementById('upNextTeams').textContent     = next ? teamLine(next) : '—';
+      document.getElementById('upNextMeta').textContent      = next ? metaLine(next) : 'No more fixtures';
+    }
+
+    // ── Generate Knockouts ──
+    async function generateKnockouts() {
+      const seeds = computeFixtureSeeds();
+      const existing = allMatches.filter(m => m.is_knockout);
+      const existingLabels = new Set(existing.map(m => m.knockout_label));
+      const rounds = ['QF1','QF2','SF1','SF2','Final'];
+      const toCreate = rounds.filter(r => !existingLabels.has(r));
+
+      if (!toCreate.length) {
+        alert('All knockout fixtures already exist.');
+        return;
+      }
+
+      const missing = toCreate.filter(r => {
+        const s = seeds[r];
+        return r !== 'SF1' && r !== 'SF2' && r !== 'Final' && (!s?.home || !s?.away);
+      });
+
+      const confirmed = confirm(
+        `Will create: ${toCreate.join(', ')}.
+
+` +
+        (missing.length ? `Note: ${missing.join(', ')} teams not yet decided — will be set to TBD.
+
+` : '') +
+        'Proceed?'
+      );
+      if (!confirmed) return;
+
+      let nextOrder = 101;
+      for (const r of toCreate) {
+        const s = seeds[r];
+        await db.from('matches').insert({
+          home_captain_id: s?.home?.id || null,
+          away_captain_id: s?.away?.id || null,
+          home_score: 0,
+          away_score: 0,
+          played: false,
+          is_knockout: true,
+          knockout_label: r,
+          display_order: nextOrder++
+        });
+      }
+      await loadData();
+    }
+
+    // ── loadFixtureForResult — Enter Result shortcut from fixture card ──
+    function loadFixtureForResult(matchId) {
+      loadFixture(matchId);
+      // Scroll to result form
+      setTimeout(() => {
+        const el = document.getElementById('matchHome');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+
+    // ── Edit Match Result ──
+    let editMatchState = null;
+
+    function editMatch(matchId) {
+      const m = allMatches.find(x => x.id === matchId);
+      if (!m) return;
+      editMatchState = {
+        matchId,
+        goals: allGoals.filter(g => g.match_id === matchId).map(g => ({ ...g }))
+      };
+
+      const h = allCaptains.find(c => c.id === m.home_captain_id);
+      const a = allCaptains.find(c => c.id === m.away_captain_id);
+      document.getElementById('editMatchLabel').textContent =
+        `${displayCaptainName(h)} vs ${displayCaptainName(a)}` +
+        (m.display_order ? ` · Match #${m.display_order}` : '');
+
+      // Populate team dropdowns (read-only display — teams don't change)
+      const teamOpts = allCaptains.map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
+      document.getElementById('editMatchHome').innerHTML = teamOpts;
+      document.getElementById('editMatchAway').innerHTML = teamOpts;
+      document.getElementById('editMatchHome').value = m.home_captain_id;
+      document.getElementById('editMatchAway').value = m.away_captain_id;
+      document.getElementById('editMatchHomeScore').value = m.home_score;
+      document.getElementById('editMatchAwayScore').value = m.away_score;
+
+      // Scorer team dropdown
+      const scorerTeamOpts = [h, a].filter(Boolean).map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
+      document.getElementById('editScorerTeam').innerHTML = scorerTeamOpts;
+      updateEditScorerPlayers();
+
+      // MVP dropdown
+      const teamPlayers = allPlayers.filter(p => p.captain_id === m.home_captain_id || p.captain_id === m.away_captain_id);
+      document.getElementById('editMvpPlayer').innerHTML =
+        '<option value="">No MVP</option>' +
+        teamPlayers.map(p => `<option value="${p.id}" ${p.id === m.mvp_player_id ? 'selected' : ''}>${p.name} (${displayCaptainName(allCaptains.find(c=>c.id===p.captain_id))})</option>`).join('');
+
+      document.getElementById('editMatchError').textContent = '';
+      renderEditGoalsList();
+      document.getElementById('editMatchModal').style.display = 'flex';
+    }
+
+    function updateEditScorerPlayers() {
+      const teamId = document.getElementById('editScorerTeam').value;
+      const players = allPlayers.filter(p => p.captain_id === teamId);
+      document.getElementById('editScorerPlayer').innerHTML =
+        '<option value="">Select player...</option>' +
+        players.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    }
+
+    function addEditGoal() {
+      const pid = document.getElementById('editScorerPlayer').value;
+      const tid = document.getElementById('editScorerTeam').value;
+      const msg = document.getElementById('editScorerMsg');
+      if (!pid) { msg.textContent = 'Select a player.'; return; }
+      editMatchState.goals.push({ player_id: pid, captain_id: tid, match_id: editMatchState.matchId });
+      document.getElementById('editScorerPlayer').value = '';
+      msg.textContent = '';
+      renderEditGoalsList();
+    }
+
+    function removeEditGoal(i) {
+      editMatchState.goals.splice(i, 1);
+      renderEditGoalsList();
+    }
+
+    function renderEditGoalsList() {
+      const el = document.getElementById('editGoalsList');
+      if (!editMatchState?.goals.length) {
+        el.innerHTML = '<div class="text-muted" style="padding:4px 0 8px;">No goals.</div>';
+        return;
+      }
+      el.innerHTML = editMatchState.goals.map((g, i) => {
+        const p = allPlayers.find(x => x.id === g.player_id);
+        const c = allCaptains.find(x => x.id === g.captain_id);
+        return `<div class="player-row" style="padding:6px 10px;margin-bottom:4px;">
+          <span>⚽ ${p ? p.name : '?'}</span>
+          <span class="player-row-meta">${c ? displayCaptainName(c) : '?'}</span>
+          <button class="btn-danger" onclick="removeEditGoal(${i})">✕</button>
+        </div>`;
+      }).join('');
+    }
+
+    async function saveEditMatch() {
+      if (!editMatchState) return;
+      const { matchId } = editMatchState;
+      const hs = parseInt(document.getElementById('editMatchHomeScore').value);
+      const as_ = parseInt(document.getElementById('editMatchAwayScore').value);
+      const mvpId = document.getElementById('editMvpPlayer').value || null;
+      const err = document.getElementById('editMatchError');
+
+      if (isNaN(hs) || isNaN(as_) || hs < 0 || as_ < 0) {
+        err.textContent = 'Enter valid scores.'; return;
+      }
+
+      // Delete existing goals and rewrite
+      await db.from('goals').delete().eq('match_id', matchId);
+      if (editMatchState.goals.length) {
+        const { error } = await db.from('goals').insert(
+          editMatchState.goals.map(g => ({ player_id: g.player_id, captain_id: g.captain_id, match_id: matchId }))
+        );
+        if (error) { err.textContent = 'Error saving goals: ' + error.message; return; }
+      }
+
+      const { error } = await db.from('matches').update({
+        home_score: hs,
+        away_score: as_,
+        mvp_player_id: mvpId
+      }).eq('id', matchId);
+
+      if (error) { err.textContent = 'Error saving match: ' + error.message; return; }
+
+      closeEditMatchModal();
+      await loadData();
+    }
+
+    function closeEditMatchModal() {
+      editMatchState = null;
+      document.getElementById('editMatchModal').style.display = 'none';
     }
 
     function renderStats() {
