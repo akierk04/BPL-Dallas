@@ -306,6 +306,39 @@
       margin-bottom: 12px;
     }
 
+
+    .conflict-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 400;
+      padding: 1rem;
+    }
+    .conflict-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .conflict-choice-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .conflict-note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -570,6 +603,27 @@
     <button class="btn-sm" onclick="undoLastSale()">Undo Sale</button>
   </div>
 
+
+  <div id="fixtureConflictModal" class="conflict-modal-overlay" style="display:none;">
+    <div class="conflict-modal">
+      <div class="modal-title">Match # Conflict</div>
+      <div id="fixtureConflictText" class="modal-sub">—</div>
+      <div class="conflict-choice-row">
+        <button class="btn-sm" style="width:auto;" onclick="setFixtureConflictMode('swap')">Swap Numbers</button>
+        <button class="btn-sm" style="width:auto;" onclick="setFixtureConflictMode('replacement')">Enter Replacement Match #</button>
+      </div>
+      <div id="fixtureConflictReplacementWrap" style="display:none;">
+        <div class="conflict-note" style="margin-bottom:8px;">Enter the new Match # for the displaced fixture.</div>
+        <input type="number" id="fixtureConflictReplacementOrder" placeholder="Replacement Match #" min="1" />
+      </div>
+      <div id="fixtureConflictHint" class="conflict-note">Choose how you want to resolve the conflict.</div>
+      <div class="modal-actions">
+        <button class="btn-cancel" style="width:auto;" onclick="hideFixtureConflictModal()">Cancel</button>
+        <button class="btn-primary" style="width:auto;" onclick="confirmFixtureConflictResolution()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="budget-warning.js"></script>
@@ -583,6 +637,7 @@
     let pendingMatchId = null;
     let selectedFixtureId = null;
     let selectedFixtureForEditId = null;
+    let pendingFixtureConflict = null;
     let draggedScheduleMatchId = null;
     let draggedScheduleSection = null;
     let lastSale = null;
@@ -1305,6 +1360,130 @@
       });
     }
 
+    function fixtureTypeMatches(match, matchType) {
+      return matchType === 'league'
+        ? !match.is_knockout
+        : (match.is_knockout && match.knockout_label === matchType);
+    }
+
+    function buildFixturePayload(homeId, awayId, matchType, orderVal) {
+      const isKnockout = matchType !== 'league';
+      return {
+        home_captain_id: homeId,
+        away_captain_id: awayId,
+        home_score: 0,
+        away_score: 0,
+        played: false,
+        is_knockout: isKnockout,
+        knockout_label: isKnockout ? matchType : null,
+        display_order: orderVal,
+        mvp_player_id: null
+      };
+    }
+
+    function hideFixtureConflictModal() {
+      pendingFixtureConflict = null;
+      document.getElementById('fixtureConflictModal').style.display = 'none';
+      document.getElementById('fixtureConflictReplacementWrap').style.display = 'none';
+      document.getElementById('fixtureConflictReplacementOrder').value = '';
+      document.getElementById('fixtureConflictHint').textContent = 'Choose how you want to resolve the conflict.';
+    }
+
+    function setFixtureConflictMode(mode) {
+      if (!pendingFixtureConflict) return;
+      pendingFixtureConflict.mode = mode;
+      const wrap = document.getElementById('fixtureConflictReplacementWrap');
+      const hint = document.getElementById('fixtureConflictHint');
+      if (mode === 'replacement') {
+        wrap.style.display = 'block';
+        hint.textContent = 'The displaced fixture will be moved to the replacement Match # you enter below.';
+      } else {
+        wrap.style.display = 'none';
+        hint.textContent = 'The current fixture and displaced fixture will swap Match # values.';
+      }
+    }
+
+    function showFixtureConflictModal(conflict) {
+      pendingFixtureConflict = conflict;
+      const currentHome = allCaptains.find(c => c.id === conflict.homeId);
+      const currentAway = allCaptains.find(c => c.id === conflict.awayId);
+      const displacedHome = allCaptains.find(c => c.id === conflict.conflictMatch.home_captain_id);
+      const displacedAway = allCaptains.find(c => c.id === conflict.conflictMatch.away_captain_id);
+      document.getElementById('fixtureConflictText').innerHTML = `Match #<strong>${conflict.orderVal}</strong> is already used by <strong>${displayCaptainName(displacedHome)} vs ${displayCaptainName(displacedAway)}</strong>.<br><br>You are trying to move <strong>${displayCaptainName(currentHome)} vs ${displayCaptainName(currentAway)}</strong> to Match #${conflict.orderVal}.`;
+      document.getElementById('fixtureConflictReplacementOrder').value = conflict.currentOrder || '';
+      document.getElementById('fixtureConflictModal').style.display = 'flex';
+      setFixtureConflictMode('swap');
+    }
+
+    async function applyFixtureUpdate(matchId, payload) {
+      await db.from('goals').delete().eq('match_id', matchId);
+      return await db.from('matches').update(payload).eq('id', matchId);
+    }
+
+    async function completeFixtureSaveWithResolution(conflict) {
+      const msg = document.getElementById('fixtureEditMsg');
+      const currentPayload = buildFixturePayload(conflict.homeId, conflict.awayId, conflict.matchType, conflict.orderVal);
+      const conflictCurrentOrder = Number(conflict.conflictMatch.display_order) || null;
+      let displacedNewOrder = null;
+
+      if (conflict.mode === 'swap') {
+        displacedNewOrder = conflict.currentOrder || null;
+      } else {
+        const replacementRaw = document.getElementById('fixtureConflictReplacementOrder').value;
+        displacedNewOrder = replacementRaw ? parseInt(replacementRaw, 10) : null;
+        if (!displacedNewOrder || Number.isNaN(displacedNewOrder) || displacedNewOrder < 1) {
+          document.getElementById('fixtureConflictHint').textContent = 'Enter a valid replacement Match #.';
+          return;
+        }
+        if (displacedNewOrder === conflict.orderVal) {
+          document.getElementById('fixtureConflictHint').textContent = 'Replacement Match # must be different from the requested Match #.';
+          return;
+        }
+        const taken = allMatches.find(m =>
+          String(m.id) !== String(conflict.currentMatchId) &&
+          String(m.id) !== String(conflict.conflictMatch.id) &&
+          fixtureTypeMatches(m, conflict.matchType) &&
+          Number(m.display_order) === Number(displacedNewOrder)
+        );
+        if (taken) {
+          document.getElementById('fixtureConflictHint').textContent = `Match #${displacedNewOrder} is already used by another fixture in this round.`;
+          return;
+        }
+      }
+
+      const displacedPayload = buildFixturePayload(
+        conflict.conflictMatch.home_captain_id,
+        conflict.conflictMatch.away_captain_id,
+        conflict.matchType,
+        displacedNewOrder
+      );
+
+      if (conflict.currentMatchId) {
+        if (!confirm('Update both fixtures? This will reset any saved score, goals, and MVP for the affected matches.')) return;
+        const res1 = await applyFixtureUpdate(conflict.currentMatchId, currentPayload);
+        if (res1.error) { msg.textContent = 'Error: ' + res1.error.message; return; }
+      } else {
+        const inserted = await db.from('matches').insert(currentPayload).select().single();
+        if (inserted.error) { msg.textContent = 'Error: ' + inserted.error.message; return; }
+      }
+
+      const res2 = await applyFixtureUpdate(conflict.conflictMatch.id, displacedPayload);
+      if (res2.error) { msg.textContent = 'Error: ' + res2.error.message; return; }
+
+      hideFixtureConflictModal();
+      msg.textContent = conflict.mode === 'swap'
+        ? `Match numbers swapped: Match ${conflict.orderVal} updated successfully.`
+        : `Fixture saved. Displaced fixture moved to Match ${displacedNewOrder}.`;
+      resetFixtureEditor();
+      resetMatchForm();
+      await loadData();
+    }
+
+    async function confirmFixtureConflictResolution() {
+      if (!pendingFixtureConflict) return;
+      await completeFixtureSaveWithResolution(pendingFixtureConflict);
+    }
+
     async function saveFixtureEdit() {
       const homeId = document.getElementById('fixtureEditHome').value;
       const awayId = document.getElementById('fixtureEditAway').value;
@@ -1323,46 +1502,34 @@
       }
 
       const orderConflict = allMatches.find(m => {
-        if (selectedFixtureForEditId && m.id === selectedFixtureForEditId) return false;
-        const sameType = matchType === 'league'
-          ? !m.is_knockout
-          : (m.is_knockout && m.knockout_label === matchType);
-        return sameType && Number(m.display_order) === orderVal;
+        if (selectedFixtureForEditId && String(m.id) === String(selectedFixtureForEditId)) return false;
+        return fixtureTypeMatches(m, matchType) && Number(m.display_order) === orderVal;
       });
+
       if (orderConflict) {
-        msg.textContent = `Another ${matchType === 'league' ? 'league' : matchType} fixture already uses Match #${orderVal}.`;
+        showFixtureConflictModal({
+          currentMatchId: selectedFixtureForEditId || null,
+          conflictMatch: orderConflict,
+          matchType,
+          homeId,
+          awayId,
+          orderVal,
+          currentOrder: selectedFixtureForEditId
+            ? Number((allMatches.find(m => String(m.id) === String(selectedFixtureForEditId)) || {}).display_order) || null
+            : null,
+          mode: 'swap'
+        });
         return;
       }
 
-      const isKnockout = matchType !== 'league';
-      const knockoutLabel = isKnockout ? matchType : null;
+      const payload = buildFixturePayload(homeId, awayId, matchType, orderVal);
       let error;
 
       if (selectedFixtureForEditId) {
         if (!confirm('Update this fixture? This will reset any saved score, goals, and MVP for that match.')) return;
-        await db.from('goals').delete().eq('match_id', selectedFixtureForEditId);
-        ({ error } = await db.from('matches').update({
-          home_captain_id: homeId,
-          away_captain_id: awayId,
-          home_score: 0,
-          away_score: 0,
-          played: false,
-          is_knockout: isKnockout,
-          knockout_label: knockoutLabel,
-          display_order: orderVal,
-          mvp_player_id: null
-        }).eq('id', selectedFixtureForEditId));
+        ({ error } = await applyFixtureUpdate(selectedFixtureForEditId, payload));
       } else {
-        ({ error } = await db.from('matches').insert({
-          home_captain_id: homeId,
-          away_captain_id: awayId,
-          home_score: 0,
-          away_score: 0,
-          played: false,
-          is_knockout: isKnockout,
-          knockout_label: knockoutLabel,
-          display_order: orderVal
-        }));
+        ({ error } = await db.from('matches').insert(payload));
       }
 
       if (error) { msg.textContent = 'Error: ' + error.message; return; }
@@ -1374,177 +1541,8 @@
         : `Fixture created: Match ${orderVal} · ${displayCaptainName(homeCap)} vs ${displayCaptainName(awayCap)}`;
       resetMatchForm();
       resetFixtureEditor();
-      loadData();
-      setTimeout(() => { document.getElementById('fixtureEditMsg').textContent = ''; }, 3000);
+      await loadData();
     }
-
-    async function saveMatch() {
-      const homeId = document.getElementById('matchHome').value, awayId = document.getElementById('matchAway').value;
-      const hs = parseInt(document.getElementById('matchHomeScore').value), as_ = parseInt(document.getElementById('matchAwayScore').value);
-      const matchType = document.getElementById('matchType').value;
-      const matchOrderRaw = document.getElementById('matchOrder').value;
-      const matchOrder = matchOrderRaw ? parseInt(matchOrderRaw, 10) : null;
-      const msg = document.getElementById('matchMsg');
-      if (!homeId || !awayId || isNaN(hs) || isNaN(as_)) { msg.textContent = 'Fill all fields.'; return; }
-      if (homeId === awayId) { msg.textContent = 'Home and away must be different teams.'; return; }
-      if (matchOrder !== null && (isNaN(matchOrder) || matchOrder < 1)) { msg.textContent = 'Enter a valid Match #.'; return; }
-
-      const isKnockout = matchType !== 'league';
-      const knockoutLabel = isKnockout ? matchType : null;
-
-      if (matchOrder !== null) {
-        const duplicate = allMatches.find(m =>
-          m.id !== selectedFixtureId &&
-          Number(m.display_order ?? null) === matchOrder &&
-          (!!m.is_knockout === isKnockout) &&
-          ((m.knockout_label || null) === knockoutLabel)
-        );
-        if (duplicate) { msg.textContent = 'That Match # is already used in this round.'; return; }
-      }
-
-      let data, error;
-      if (selectedFixtureId) {
-        ({ data, error } = await db.from('matches').update({
-          home_captain_id: homeId, away_captain_id: awayId,
-          home_score: hs, away_score: as_, played: false,
-          display_order: matchOrder,
-          is_knockout: isKnockout, knockout_label: knockoutLabel,
-          mvp_player_id: null
-        }).eq('id', selectedFixtureId).select().single());
-      } else {
-        ({ data, error } = await db.from('matches').insert({
-          home_captain_id: homeId, away_captain_id: awayId,
-          home_score: hs, away_score: as_, played: false,
-          display_order: matchOrder,
-          is_knockout: isKnockout, knockout_label: knockoutLabel
-        }).select().single());
-      }
-      if (error) { msg.textContent = 'Error: ' + error.message; return; }
-
-      pendingMatchId = data.id; pendingHomeId = homeId; pendingAwayId = awayId; pendingHS = hs; pendingAS = as_;
-      pendingGoals = [];
-
-      const totalGoals = hs + as_;
-      const homeCap = allCaptains.find(c => c.id === homeId), awayCap = allCaptains.find(c => c.id === awayId);
-      msg.textContent = `${displayCaptainName(homeCap)} ${hs} – ${as_} ${displayCaptainName(awayCap)} · Match saved${matchOrder ? ` as #${matchOrder}` : ''}. Now add ${totalGoals} goal scorer(s).`;
-
-      const teamSel = document.getElementById('scorerTeam');
-      teamSel.innerHTML = `<option value="${homeId}">${displayCaptainName(homeCap)}</option><option value="${awayId}">${displayCaptainName(awayCap)}</option>`;
-      updateScorerPlayers();
-      populateMvpDropdown();
-      document.getElementById('goalScorerSection').style.display = 'block';
-      document.getElementById('goalsList').innerHTML = '';
-    }
-
-    function updateScorerPlayers() {
-      const teamId = document.getElementById('scorerTeam').value;
-      const pSel = document.getElementById('scorerPlayer');
-      const teamPlayers = allPlayers.filter(p => p.captain_id === teamId);
-      pSel.innerHTML = '<option value="">Select player...</option>' + teamPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    }
-
-    function addGoal() {
-      const pid = document.getElementById('scorerPlayer').value, tid = document.getElementById('scorerTeam').value;
-      const msg = document.getElementById('scorerMsg');
-      if (!pid) { msg.textContent = 'Select a player.'; return; }
-      pendingGoals.push({ player_id: pid, captain_id: tid, match_id: pendingMatchId });
-      renderPendingGoals();
-      msg.textContent = '';
-      document.getElementById('scorerPlayer').value = '';
-    }
-
-    function renderPendingGoals() {
-      document.getElementById('goalsList').innerHTML = pendingGoals.length
-        ? pendingGoals.map((g, i) => {
-            const p = allPlayers.find(x => x.id === g.player_id), c = allCaptains.find(x => x.id === g.captain_id);
-            return `<div class="player-row" style="padding:8px 12px;">
-              <span>⚽ ${p ? p.name : '?'}</span>
-              <span class="player-row-meta">${c ? displayCaptainName(c) : '?'}</span>
-              <button class="btn-danger" onclick="removeGoal(${i})">✕</button>
-            </div>`;
-          }).join('')
-        : '<div class="text-muted" style="padding:8px 0;">No goals added yet.</div>';
-    }
-
-    function removeGoal(i) { pendingGoals.splice(i, 1); renderPendingGoals(); }
-
-    async function finalizeMatch() {
-      if (!pendingMatchId) return;
-      if (pendingGoals.length) {
-        const { error } = await db.from('goals').insert(pendingGoals);
-        if (error) { alert('Error saving goals: ' + error.message); return; }
-      }
-      const mvpId = document.getElementById('mvpPlayer').value || null;
-      await db.from('matches').update({ played: true, mvp_player_id: mvpId }).eq('id', pendingMatchId);
-      pendingMatchId = null; pendingGoals = [];
-      selectedFixtureId = null;
-      document.getElementById('goalScorerSection').style.display = 'none';
-      document.getElementById('matchHome').value = '';
-      document.getElementById('matchAway').value = '';
-      document.getElementById('matchHomeScore').value = '';
-      document.getElementById('matchAwayScore').value = '';
-      document.getElementById('matchMsg').textContent = 'Match saved!';
-      setTimeout(() => document.getElementById('matchMsg').textContent = '', 3000);
-      loadData();
-    }
-
-    async function cancelMatch() {
-      if (pendingMatchId) await db.from('matches').delete().eq('id', pendingMatchId);
-      pendingMatchId = null; pendingGoals = [];
-      selectedFixtureId = null;
-      document.getElementById('goalScorerSection').style.display = 'none';
-      selectedFixtureId = null;
-      document.getElementById('matchPrefillHint').textContent = '';
-      document.getElementById('matchMsg').textContent = '';
-      document.getElementById('matchHome').value = '';
-      document.getElementById('matchAway').value = '';
-      document.getElementById('matchHomeScore').value = '';
-      document.getElementById('matchAwayScore').value = '';
-    }
-
-    function renderMatchesList() {
-      const list = document.getElementById('matchesList');
-      const played = allMatches.filter(m => m.played);
-      if (!played.length) { list.innerHTML = '<div class="text-muted">No matches played yet.</div>'; return; }
-      list.innerHTML = [...played].reverse().map(m => {
-        const h = allCaptains.find(c => c.id === m.home_captain_id), a = allCaptains.find(c => c.id === m.away_captain_id);
-        const mGoals = allGoals.filter(g => g.match_id === m.id);
-        const scorers = mGoals.map(g => {
-          const p = allPlayers.find(x => x.id === g.player_id); return p ? p.name : '?';
-        }).join(', ');
-        const label = m.is_knockout ? (m.knockout_label || 'Knockout') : `Group ${h?.tournament_group || a?.tournament_group || '—'}`;
-        return `
-          <div class="player-row" style="flex-wrap:wrap;gap:8px;">
-            <span class="unsold-badge">${label}</span>
-            <span style="font-weight:500;">${h ? displayCaptainName(h) : '?'} <span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.home_score}</span></span>
-            <span style="color:var(--muted);">–</span>
-            <span style="font-weight:500;"><span style="color:var(--accent);font-family:var(--font-display);font-size:1.1rem;">${m.away_score}</span> ${a ? displayCaptainName(a) : '?'}</span>
-            ${scorers ? `<span class="player-row-meta" style="width:100%;margin-top:2px;">⚽ ${scorers}</span>` : ''}
-            <div class="player-row-actions">
-              <button class="btn-danger" onclick="deleteMatch('${m.id}')">Delete</button>
-            </div>
-          </div>`;
-      }).join('');
-    }
-
-    async function deleteMatch(id) {
-      if (!confirm('Delete this match result?')) return;
-      await db.from('goals').delete().eq('match_id', id);
-      await db.from('matches').delete().eq('id', id);
-      loadData();
-    }
-
-    function renderStandings() {
-      document.getElementById('standingsTable').innerHTML = standingsTableHtml(allCaptains, allMatches);
-    }
-
-    function renderStats() {
-      const scorers = computeTopScorers(allPlayers, allGoals, allCaptains);
-      document.getElementById('topScorers').innerHTML = topScorersHtml(scorers);
-      const mvps = computeMvpLeaderboard(allPlayers, allMatches);
-      document.getElementById('mvpLeaderboard').innerHTML = mvpLeaderboardHtml(mvps, allMatches, allPlayers, allCaptains);
-    }
-
 
     function displayOrderValue(m) {
       const val = Number(m.display_order);
