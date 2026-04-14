@@ -1739,6 +1739,13 @@
       document.getElementById('standingsTable').innerHTML = standingsTableHtml(allCaptains, allMatches);
     }
 
+    function renderStats() {
+      const scorers = computeTopScorers(allPlayers, allGoals, allCaptains);
+      document.getElementById('topScorers').innerHTML = topScorersHtml(scorers);
+      const mvps = computeMvpLeaderboard(allPlayers, allMatches);
+      document.getElementById('mvpLeaderboard').innerHTML = mvpLeaderboardHtml(mvps, allMatches, allPlayers, allCaptains);
+    }
+
     function renderSchedule() {
       const rows = computeStandings(allCaptains, allMatches);
       document.getElementById('adminSchedule').innerHTML = matchScheduleHtml(allMatches, allCaptains, allPlayers, rows);
