@@ -901,7 +901,7 @@ function renderRecentSales() {
             <div style="font-weight:600;color:var(--text);font-size:14px;">${row.player_name}</div>
             <div style="font-size:12px;color:var(--muted);">${row.games_paid} game${row.games_paid !== 1 ? 's' : ''} paid</div>
           </div>
-          <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--accent);">$${Number(row.total_paid || 0)}</div>
+          <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--accent);">$${Number(row.total_paid || 0).toLocaleString()}</div>
         </div>`).join('');
     }
 
