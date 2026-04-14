@@ -619,6 +619,12 @@
           <input type="text" id="paymentPlayer" list="paymentPlayerSuggestions" placeholder="Player name" style="flex:2;" />
           <datalist id="paymentPlayerSuggestions"></datalist>
           <input type="date" id="paymentDate" style="flex:1;cursor:pointer;" onclick="this.showPicker && this.showPicker()" onfocus="this.showPicker && this.showPicker()" />
+          <select id="paymentAmount" style="flex:0 0 90px;">
+            <option value="3">$3</option>
+            <option value="6">$6</option>
+            <option value="9">$9</option>
+            <option value="12">$12</option>
+          </select>
           <select id="paymentStatus" style="flex:1;">
             <option value="received">Received</option>
             <option value="pending">Pending</option>
@@ -1928,7 +1934,7 @@
               </span>
             </div>
             <div style="font-size:12px;color:var(--muted);margin-top:2px;">
-              $3 · ${row.game_date || '—'}${row.notes ? ' · ' + row.notes : ''}
+              $${row.amount || 3} · ${row.game_date || '—'}${row.notes ? ' · ' + row.notes : ''}
             </div>
           </div>
           <button class="btn-danger" style="width:auto;padding:6px 10px;flex-shrink:0;" onclick="deletePaymentEntry(${row.id})">✕</button>
@@ -1949,6 +1955,7 @@
     async function addPaymentEntry() {
       const player_name    = document.getElementById('paymentPlayer').value.trim();
       const game_date      = document.getElementById('paymentDate').value || null;
+      const amount         = parseInt(document.getElementById('paymentAmount').value) || 3;
       const payment_status = document.getElementById('paymentStatus').value;
       const notes          = document.getElementById('paymentNotes').value.trim() || null;
       const msg            = document.getElementById('paymentMsg');
@@ -1961,16 +1968,18 @@
       const { error } = await db.from('payments').insert({
         player_name,
         game_date,
+        amount,
         payment_status,
         notes
       });
 
       if (error) { msg.textContent = 'Error: ' + error.message; return; }
 
-      document.getElementById('paymentPlayer').value = '';
-      document.getElementById('paymentDate').value   = '';
-      document.getElementById('paymentNotes').value  = '';
-      document.getElementById('paymentStatus').value = 'received';
+      document.getElementById('paymentPlayer').value  = '';
+      document.getElementById('paymentDate').value    = '';
+      document.getElementById('paymentNotes').value   = '';
+      document.getElementById('paymentAmount').value  = '3';
+      document.getElementById('paymentStatus').value  = 'received';
 
       msg.textContent = 'Entry saved!';
       setTimeout(() => msg.textContent = '', 2000);
