@@ -733,7 +733,7 @@ function renderRecentSales() {
 
     function renderBoardStandings() {
       renderBoardMatchDayBanner();
-      document.getElementById('boardStandings').innerHTML=standingsTableHtml(allCaptains,allMatches);
+      document.getElementById('boardStandings').innerHTML = standingsTableHtml(allCaptains, allMatches);
     }
 
     function renderBoardMatchDayBanner() {
@@ -741,28 +741,24 @@ function renderRecentSales() {
       const upcoming = [...allMatches]
         .filter(m => !m.played)
         .sort((a, b) => {
-          const av = Number(a.display_order); const bv = Number(b.display_order);
-          const an = Number.isNaN(av) ? 9999 : av; const bn = Number.isNaN(bv) ? 9999 : bv;
+          const av = Number(a.display_order), bv = Number(b.display_order);
+          const an = Number.isNaN(av) ? 9999 : av, bn = Number.isNaN(bv) ? 9999 : bv;
           if (an !== bn) return an - bn;
-          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+          return new Date(a.created_at||0) - new Date(b.created_at||0);
         });
-
       if (!upcoming.length) { banner.style.display = 'none'; return; }
       banner.style.display = 'block';
-
-      const now  = upcoming[0];
-      const next = upcoming[1] || null;
-
+      const now = upcoming[0], next = upcoming[1] || null;
       function teamLine(m) {
         const h = allCaptains.find(c => c.id === m.home_captain_id);
         const a = allCaptains.find(c => c.id === m.away_captain_id);
         return `${displayCaptainName(h)} vs ${displayCaptainName(a)}`;
       }
       function metaLine(m) {
-        const base = m.is_knockout ? (m.knockout_label || 'Knockout') : 'League';
-        return m.display_order ? `${base} · Match #${m.display_order}` : base;
+        const isLeague = ['1','2','3'].includes(String(m.round));
+        const base = isLeague ? `Round ${m.round}` : (m.round || 'Fixture');
+        return m.display_order ? `${base} · Match ${m.display_order}` : base;
       }
-
       document.getElementById('boardNowPlayingTeams').textContent = teamLine(now);
       document.getElementById('boardNowPlayingMeta').textContent  = metaLine(now);
       document.getElementById('boardUpNextTeams').textContent     = next ? teamLine(next) : '—';
@@ -787,32 +783,21 @@ function renderRecentSales() {
       const card = document.getElementById('boardBracketCard');
       if (!container) return;
 
-      const ko = allMatches.filter(m => m.is_knockout);
+      const ko = allMatches.filter(m => ['QF1','QF2','SF1','SF2','Final'].includes(m.round));
       if (!ko.length) { if (card) card.style.display = 'none'; return; }
       if (card) card.style.display = 'block';
 
-      // Compute seeds from standings
-      const standingRows = computeStandings(allCaptains, allMatches);
-      const g1 = standingRows.filter(r => r.captain.tournament_group === '1');
-      const g2 = standingRows.filter(r => r.captain.tournament_group === '2');
-      const seeds = {
-        QF1: { home: g1[1]?.captain || null, away: g2[2]?.captain || null },
-        QF2: { home: g2[1]?.captain || null, away: g1[2]?.captain || null },
-        SF1: { home: g1[0]?.captain || null },
-        SF2: { home: g2[0]?.captain || null }
-      };
-
-      function getMatch(label) { return ko.find(m => m.knockout_label === label) || null; }
+      const standings = computeStandings(allCaptains, allMatches);
+      function seed(i) { return standings[i]?.captain || null; }
+      function getMatch(r) { return ko.find(m => m.round === r) || null; }
       function getWinner(m) {
         if (!m || !m.played) return null;
-        return m.home_score > m.away_score
-          ? allCaptains.find(c => c.id === m.home_captain_id)
-          : allCaptains.find(c => c.id === m.away_captain_id);
+        return allCaptains.find(c => c.id === (m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id));
       }
 
       function bracketMatch(m, homeC, awayC, label) {
         const played  = m && m.played;
-        const live    = m && !m.played && (homeC || m.home_captain_id) && (awayC || m.away_captain_id);
+        const live    = m && !m.played && (homeC || m?.home_captain_id) && (awayC || m?.away_captain_id);
         const homeN   = homeC ? displayCaptainName(homeC) : 'TBD';
         const awayN   = awayC ? displayCaptainName(awayC) : 'TBD';
         const homeWon = played && m.home_score > m.away_score;
@@ -821,69 +806,42 @@ function renderRecentSales() {
         return `
           <div class="bracket-match ${cls}">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;">${label}</div>
-            <div class="bracket-team ${played ? (homeWon ? 'won' : 'lost') : (homeC ? '' : 'tbd')}">
-              <span>${homeN}</span>
-              ${played ? `<span class="bracket-score">${m.home_score}</span>` : ''}
+            <div class="bracket-team ${played?(homeWon?'won':'lost'):(homeC?'':'tbd')}">
+              <span>${homeN}</span>${played?`<span class="bracket-score">${m.home_score}</span>`:''}
             </div>
-            <div class="bracket-team ${played ? (awayWon ? 'won' : 'lost') : (awayC ? '' : 'tbd')}">
-              <span>${awayN}</span>
-              ${played ? `<span class="bracket-score">${m.away_score}</span>` : ''}
+            <div class="bracket-team ${played?(awayWon?'won':'lost'):(awayC?'':'tbd')}">
+              <span>${awayN}</span>${played?`<span class="bracket-score">${m.away_score}</span>`:''}
             </div>
           </div>`;
       }
 
-      const qf1 = getMatch('QF1'); const qf2 = getMatch('QF2');
-      const sf1 = getMatch('SF1'); const sf2 = getMatch('SF2');
-      const fin = getMatch('Final');
-
-      const sf1Away = getWinner(qf1);
-      const sf2Away = getWinner(qf2);
-      const finHome = getWinner(sf1);
-      const finAway = getWinner(sf2);
-
-      const hasQF = qf1 || qf2;
-      const hasSF = sf1 || sf2;
-
+      const qf1=getMatch('QF1'), qf2=getMatch('QF2'), sf1=getMatch('SF1'), sf2=getMatch('SF2'), fin=getMatch('Final');
       let html = '<div class="bracket-wrap">';
-
-      if (hasQF) {
-        html += `<div class="bracket-round">
-          <div class="bracket-round-title">Quarter-Finals</div>
-          ${bracketMatch(qf1, seeds.QF1.home, seeds.QF1.away, 'QF1')}
-          ${bracketMatch(qf2, seeds.QF2.home, seeds.QF2.away, 'QF2')}
-        </div>
-        <div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
+      if (qf1||qf2) {
+        html += `<div class="bracket-round"><div class="bracket-round-title">Quarter-Finals</div>
+          ${bracketMatch(qf1, seed(2), seed(5), 'QF1 · 3rd vs 6th')}
+          ${bracketMatch(qf2, seed(3), seed(4), 'QF2 · 4th vs 5th')}
+        </div><div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
       }
-
-      if (hasSF) {
-        html += `<div class="bracket-round">
-          <div class="bracket-round-title">Semi-Finals</div>
-          ${bracketMatch(sf1, seeds.SF1.home, sf1Away, 'SF1')}
-          ${bracketMatch(sf2, seeds.SF2.home, sf2Away, 'SF2')}
-        </div>
-        <div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
+      if (sf1||sf2) {
+        html += `<div class="bracket-round"><div class="bracket-round-title">Semi-Finals</div>
+          ${bracketMatch(sf1, seed(0), getWinner(qf2), 'SF1 · 1st vs W(QF2)')}
+          ${bracketMatch(sf2, seed(1), getWinner(qf1), 'SF2 · 2nd vs W(QF1)')}
+        </div><div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
       }
-
-      html += `<div class="bracket-round">
-        <div class="bracket-round-title">🏆 Final</div>
-        ${bracketMatch(fin, finHome, finAway, 'Final')}
+      html += `<div class="bracket-round"><div class="bracket-round-title">🏆 Final</div>
+        ${bracketMatch(fin, getWinner(sf1), getWinner(sf2), 'Final')}
       </div></div>`;
-
       container.innerHTML = html;
     }
 
     function renderTeams() {
       const grid = document.getElementById('boardTeamsGrid');
       if (!allCaptains.length) { grid.innerHTML = '<div class="text-muted">Loading...</div>'; return; }
-      const sorted = [...allCaptains].sort((a,b) =>
-        (a.tournament_group||'').localeCompare(b.tournament_group||'') || a.name.localeCompare(b.name)
-      );
-      // Group 1 = blue, Group 2 = purple — distinct from auction group colors
-      const tGroupColor = { '1': '#5b9cf6', '2': '#c084fc' };
+      const sorted = [...allCaptains].sort((a, b) => a.name.localeCompare(b.name));
       grid.innerHTML = sorted.map(c => {
         const roster = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
         const teamName = c.team_name || c.name;
-        const gc = tGroupColor[c.tournament_group] || 'var(--muted)';
         const playersHtml = roster.length
           ? roster.map(p =>
               '<div class="board-player-row" style="border-bottom:0.5px solid var(--border);padding:7px 0;">' +
@@ -896,7 +854,6 @@ function renderRecentSales() {
           '<div style="flex:1;min-width:0;">' +
           '<div style="font-family:var(--font-display);font-size:1.5rem;letter-spacing:0.06em;color:var(--text);line-height:1;">' + teamName + '</div>' +
           '<div style="font-size:13px;color:var(--muted);margin-top:4px;">' + c.name + ' <span style="color:var(--accent);font-weight:600;">(C)</span></div>' +
-          '<span style="display:inline-block;margin-top:6px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:' + gc + '18;border:1px solid ' + gc + '55;color:' + gc + ';">Group ' + (c.tournament_group||'?') + '</span>' +
           '</div></div>' +
           '<div class="board-roster" style="padding-top:4px;">' + playersHtml + '</div>' +
           '</div>';
