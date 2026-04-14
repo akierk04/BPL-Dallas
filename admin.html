@@ -367,6 +367,7 @@
       <button class="tab" onclick="switchTab('standings')">Standings</button>
       <button class="tab" onclick="switchTab('stats')">Stats</button>
       <button class="tab" onclick="switchTab('schedule')">Schedule</button>
+      <button class="tab" onclick="switchTab('payments')">Payments</button>
     </div>
 
     <!-- Auction Control -->
@@ -609,6 +610,52 @@
         <div id="adminSchedule"></div>
       </div>
     </div>
+
+    <!-- Payments -->
+    <div id="tab-payments" style="display:none;">
+      <div class="section-title">Add Payment Entry</div>
+      <div class="form-card">
+        <div class="form-row">
+          <select id="paymentPlayer" style="flex:2;">
+            <option value="">Select player...</option>
+          </select>
+
+          <select id="paymentEntryType" style="flex:1;">
+            <option value="due">Due</option>
+            <option value="payment">Payment</option>
+          </select>
+
+          <input type="number" id="paymentAmount" placeholder="Amount" min="0" step="0.01" style="flex:1;" />
+          <input type="date" id="paymentDate" style="flex:1;" />
+
+          <select id="paymentStatus" style="flex:1;">
+            <option value="received">Received</option>
+            <option value="pending">Pending</option>
+          </select>
+
+          <button class="btn-primary" onclick="addPaymentEntry()">Save</button>
+        </div>
+        <div class="form-row" style="margin-top:10px;">
+          <input type="text" id="paymentNotes" placeholder="Notes (optional)" />
+        </div>
+        <p id="paymentMsg" class="text-muted mt-8"></p>
+      </div>
+
+      <div class="section-title">Top Payer</div>
+      <div class="form-card">
+        <div id="adminTopPayer"></div>
+      </div>
+
+      <div class="section-title" style="margin-top:16px;">Payment Summary</div>
+      <div class="form-card">
+        <div id="adminPaymentSummary"></div>
+      </div>
+
+      <div class="section-title" style="margin-top:16px;">Recent Payment Entries</div>
+      <div class="form-card">
+        <div id="adminPaymentsList"></div>
+      </div>
+    </div>
   </div>
 
 
@@ -677,7 +724,7 @@
     if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
 
-    let allCaptains = [], allPlayers = [], allMatches = [], allGoals = [], currentPlayerId = null, bidState = null;
+    let allCaptains = [], allPlayers = [], allMatches = [], allGoals = [], allPayments = [], paymentSummary = [], topPayers = [], currentPlayerId = null, bidState = null;
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
     let pendingMatchId = null;
     let selectedFixtureId = null;
@@ -688,7 +735,7 @@
     let lastSale = null;
     let undoTimer = null;
     let pendingGoals = [], pendingHomeId = null, pendingAwayId = null, pendingHS = 0, pendingAS = 0;
-    const TABS = ['auction-control','overview','players','matches','standings','stats','schedule'];
+    const TABS = ['auction-control','overview','players','matches','standings','stats','schedule','payments'];
 
     function switchTab(tab) {
       TABS.forEach(t => document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none');
@@ -696,12 +743,15 @@
     }
 
     async function loadData() {
-      const [capRes, playRes, bidRes, matchRes, goalRes] = await Promise.all([
+      const [capRes, playRes, bidRes, matchRes, goalRes, paymentsRes, summaryRes, topPayersRes] = await Promise.all([
         db.from('captains').select('*').order('name'),
         db.from('players').select('*').order('group_name').order('name'),
         db.from('bidding_state').select('*').eq('id', 1).single(),
         db.from('matches').select('*').order('created_at'),
-        db.from('goals').select('*')
+        db.from('goals').select('*'),
+        db.from('payments').select('*').order('created_at', { ascending: false }),
+        db.from('payment_summary').select('*'),
+        db.from('top_payers').select('*').order('total_paid', { ascending: false })
       ]);
 
       if (capRes.error) {
@@ -713,6 +763,9 @@
       allPlayers = playRes.data || [];
       allMatches = matchRes.data || [];
       allGoals = goalRes.data || [];
+      allPayments = paymentsRes.data || [];
+      paymentSummary = summaryRes.data || [];
+      topPayers = topPayersRes.data || [];
       currentPlayerId = bidRes.data?.player_id || null;
       bidState = bidRes.data || null;
 
@@ -728,6 +781,7 @@
       renderStandings();
       renderStats();
       renderSchedule();
+      renderPaymentsTab();
     }
 
     function renderAuctionControl() {
@@ -1781,6 +1835,127 @@
         }).join('');
     }
 
+
+    function populatePaymentPlayers() {
+      const sel = document.getElementById('paymentPlayer');
+      if (!sel) return;
+      const names = [...new Set(allPlayers.map(p => p.name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      sel.innerHTML = '<option value="">Select player...</option>' + names.map(name => `<option value="${name}">${name}</option>`).join('');
+    }
+
+    function renderPaymentsTab() {
+      populatePaymentPlayers();
+      renderAdminTopPayer();
+      renderAdminPaymentSummary();
+      renderAdminPaymentsList();
+    }
+
+    function renderAdminTopPayer() {
+      const wrap = document.getElementById('adminTopPayer');
+      if (!wrap) return;
+      const top = topPayers[0];
+      if (!top) {
+        wrap.innerHTML = '<div class="text-muted">No payment data yet.</div>';
+        return;
+      }
+      wrap.innerHTML = `
+        <div style="font-family:var(--font-display);font-size:2rem;color:var(--accent);line-height:1;">${top.player_name}</div>
+        <div style="margin-top:8px;font-size:14px;color:var(--muted);">Highest payer · ${Number(top.total_paid || 0).toLocaleString()} paid</div>
+      `;
+    }
+
+    function renderAdminPaymentSummary() {
+      const wrap = document.getElementById('adminPaymentSummary');
+      if (!wrap) return;
+      if (!paymentSummary.length) {
+        wrap.innerHTML = '<div class="text-muted">No payment summary available yet.</div>';
+        return;
+      }
+      wrap.innerHTML = `
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);text-align:left;">
+                <th style="padding:10px 8px;">Player</th>
+                <th style="padding:10px 8px;">Due</th>
+                <th style="padding:10px 8px;">Paid</th>
+                <th style="padding:10px 8px;">Outstanding</th>
+                <th style="padding:10px 8px;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${paymentSummary.map(row => `
+                <tr style="border-bottom:0.5px solid var(--border);">
+                  <td style="padding:10px 8px;color:var(--text);font-weight:600;">${row.player_name}</td>
+                  <td style="padding:10px 8px;">${Number(row.total_due || 0).toLocaleString()}</td>
+                  <td style="padding:10px 8px;">${Number(row.total_paid || 0).toLocaleString()}</td>
+                  <td style="padding:10px 8px;color:${Number(row.outstanding || 0) > 0 ? 'var(--red)' : 'var(--green)'};">${Number(row.outstanding || 0).toLocaleString()}</td>
+                  <td style="padding:10px 8px;">
+                    <span style="font-size:11px;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid ${row.status === 'Paid' ? 'rgba(62,207,142,0.35)' : 'rgba(224,90,43,0.35)'};background:${row.status === 'Paid' ? 'rgba(62,207,142,0.08)' : 'rgba(224,90,43,0.08)'};color:${row.status === 'Paid' ? 'var(--green)' : 'var(--red)'};">${row.status}</span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderAdminPaymentsList() {
+      const wrap = document.getElementById('adminPaymentsList');
+      if (!wrap) return;
+      if (!allPayments.length) {
+        wrap.innerHTML = '<div class="text-muted">No payment entries yet.</div>';
+        return;
+      }
+      wrap.innerHTML = allPayments.slice(0, 20).map(row => `
+        <div class="recent-sale-row">
+          <div style="font-weight:600;color:var(--text);">${row.player_name}</div>
+          <div class="captain-status-meta">${row.entry_type === 'due' ? 'Due' : 'Payment'} · ${Number(row.amount || 0).toLocaleString()} · ${row.payment_status}${row.game_date ? ' · ' + row.game_date : ''}</div>
+          ${row.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">${row.notes}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    async function addPaymentEntry() {
+      const player_name = document.getElementById('paymentPlayer').value;
+      const entry_type = document.getElementById('paymentEntryType').value;
+      const amount = parseFloat(document.getElementById('paymentAmount').value);
+      const game_date = document.getElementById('paymentDate').value || null;
+      const payment_status = document.getElementById('paymentStatus').value;
+      const notes = document.getElementById('paymentNotes').value.trim();
+      const msg = document.getElementById('paymentMsg');
+
+      if (!player_name || isNaN(amount) || amount < 0) {
+        msg.textContent = 'Select player and enter a valid amount.';
+        return;
+      }
+
+      const { error } = await db.from('payments').insert({
+        player_name,
+        entry_type,
+        amount,
+        game_date,
+        payment_status,
+        notes
+      });
+
+      if (error) {
+        msg.textContent = 'Error: ' + error.message;
+        return;
+      }
+
+      document.getElementById('paymentAmount').value = '';
+      document.getElementById('paymentDate').value = '';
+      document.getElementById('paymentNotes').value = '';
+      document.getElementById('paymentStatus').value = 'received';
+      document.getElementById('paymentEntryType').value = 'due';
+
+      msg.textContent = 'Payment entry saved.';
+      setTimeout(() => msg.textContent = '', 2500);
+      await loadData();
+    }
+
     const _cid = Math.random().toString(36).slice(2);
     db.channel('bpl-admin-' + _cid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' }, loadData)
@@ -1788,6 +1963,7 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bidding_state' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, loadData)
       .subscribe();
 
     loadData();
