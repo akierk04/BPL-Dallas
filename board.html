@@ -356,7 +356,7 @@
         db.from('goals').select('*'),
         db.from('payments').select('*').order('created_at', { ascending: false }),
         db.from('payment_summary').select('*'),
-        db.from('top_payers').select('*').order('total_paid', { ascending: false })
+        db.from('top_payers').select('*')
       ]);
 
       allCaptains=capRes.data||[];
@@ -937,7 +937,7 @@ function renderRecentSales() {
             </thead>
             <tbody>
               ${paymentSummary.map(row => `
-                <tr style="border-bottom:0.5px solid var(--border);${row.status === 'Owing' ? 'background:rgba(224,90,43,0.03);' : ''}">
+                <tr style="border-bottom:0.5px solid var(--border);${row.status === 'Pending' ? 'background:rgba(224,90,43,0.03);' : ''}">
                   <td style="padding:10px 10px;color:var(--text);font-weight:600;">${row.player_name}</td>
                   <td style="padding:10px 8px;text-align:center;color:var(--muted);">${row.games_played}</td>
                   <td style="padding:10px 8px;text-align:center;color:var(--muted);">$${Number(row.total_due || 0)}</td>
