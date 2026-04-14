@@ -894,17 +894,15 @@ function renderRecentSales() {
         wrap.innerHTML = '<div class="text-muted">No payment data yet.</div>';
         return;
       }
-      wrap.innerHTML = topPayers.slice(0, 5).map((row, idx) => `
-        <div class="recent-sale-row">
-          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
-            <div>
-              <div style="font-weight:700;color:var(--text);">${idx + 1}. ${row.player_name}</div>
-              <div class="recent-sale-meta">Total paid</div>
-            </div>
-            <div style="font-family:var(--font-display);font-size:1.4rem;color:var(--accent);">${Number(row.total_paid || 0).toLocaleString()}</div>
+      wrap.innerHTML = topPayers.slice(0, 5).map((row, i) => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border);">
+          <div style="font-family:var(--font-display);font-size:1.4rem;color:var(--muted);min-width:28px;">${i + 1}</div>
+          <div style="flex:1;">
+            <div style="font-weight:600;color:var(--text);font-size:14px;">${row.player_name}</div>
+            <div style="font-size:12px;color:var(--muted);">${row.games_paid} game${row.games_paid !== 1 ? 's' : ''} paid</div>
           </div>
-        </div>
-      `).join('');
+          <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--accent);">$${Number(row.total_paid || 0)}</div>
+        </div>`).join('');
     }
 
     function renderBoardDuesTable() {
@@ -914,34 +912,51 @@ function renderRecentSales() {
         wrap.innerHTML = '<div class="text-muted">No dues data yet.</div>';
         return;
       }
+
+      const totalCollected   = paymentSummary.reduce((s, r) => s + Number(r.total_paid || 0), 0);
+      const totalOutstanding = paymentSummary.reduce((s, r) => s + Number(r.outstanding || 0), 0);
+
       wrap.innerHTML = `
+        <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--border);">
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Collected</div>
+            <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--green);">$${totalCollected}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Outstanding</div>
+            <div style="font-family:var(--font-display);font-size:1.6rem;color:${totalOutstanding > 0 ? 'var(--red)' : 'var(--green)'};">$${totalOutstanding}</div></div>
+        </div>
         <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
               <tr style="border-bottom:1px solid var(--border);text-align:left;">
-                <th style="padding:10px 8px;">Player</th>
-                <th style="padding:10px 8px;">Due</th>
-                <th style="padding:10px 8px;">Paid</th>
-                <th style="padding:10px 8px;">Outstanding</th>
-                <th style="padding:10px 8px;">Status</th>
+                <th style="padding:8px 10px;color:var(--muted);font-weight:500;">Player</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Games</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Due</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Paid</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Owes</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;"></th>
               </tr>
             </thead>
             <tbody>
               ${paymentSummary.map(row => `
-                <tr style="border-bottom:0.5px solid var(--border);">
-                  <td style="padding:10px 8px;font-weight:600;color:var(--text);">${row.player_name}</td>
-                  <td style="padding:10px 8px;">${Number(row.total_due || 0).toLocaleString()}</td>
-                  <td style="padding:10px 8px;">${Number(row.total_paid || 0).toLocaleString()}</td>
-                  <td style="padding:10px 8px;color:${Number(row.outstanding || 0) > 0 ? 'var(--red)' : 'var(--green)'};">${Number(row.outstanding || 0).toLocaleString()}</td>
-                  <td style="padding:10px 8px;">
-                    <span style="font-size:11px;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid ${row.status === 'Paid' ? 'rgba(62,207,142,0.35)' : 'rgba(224,90,43,0.35)'};background:${row.status === 'Paid' ? 'rgba(62,207,142,0.08)' : 'rgba(224,90,43,0.08)'};color:${row.status === 'Paid' ? 'var(--green)' : 'var(--red)'};">${row.status}</span>
+                <tr style="border-bottom:0.5px solid var(--border);${row.status === 'Owing' ? 'background:rgba(224,90,43,0.03);' : ''}">
+                  <td style="padding:10px 10px;color:var(--text);font-weight:600;">${row.player_name}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--muted);">${row.games_played}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--muted);">$${Number(row.total_due || 0)}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--green);">$${Number(row.total_paid || 0)}</td>
+                  <td style="padding:10px 8px;text-align:center;color:${Number(row.outstanding || 0) > 0 ? 'var(--red)' : 'var(--green)'};">
+                    ${Number(row.outstanding || 0) > 0 ? `$${Number(row.outstanding)}` : '✓'}
                   </td>
-                </tr>
-              `).join('')}
+                  <td style="padding:10px 8px;">
+                    <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;
+                      border:1px solid ${row.status === 'Paid' ? 'rgba(62,207,142,0.35)' : 'rgba(224,90,43,0.35)'};
+                      background:${row.status === 'Paid' ? 'rgba(62,207,142,0.08)' : 'rgba(224,90,43,0.08)'};
+                      color:${row.status === 'Paid' ? 'var(--green)' : 'var(--red)'};">
+                      ${row.status}
+                    </span>
+                  </td>
+                </tr>`).join('')}
             </tbody>
           </table>
-        </div>
-      `;
+        </div>`;
     }
 
     const _cid = Math.random().toString(36).slice(2);
