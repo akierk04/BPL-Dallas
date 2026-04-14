@@ -724,6 +724,7 @@
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
 
     let allCaptains = [], allPlayers = [], allMatches = [], allGoals = [], allPayments = [], paymentSummary = [], topPayers = [], currentPlayerId = null, bidState = null;
+    let paymentLoadError = '';
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
     let pendingMatchId = null;
     let selectedFixtureId = null;
@@ -757,6 +758,12 @@
         document.getElementById('overviewMsg').textContent = 'DB error: ' + capRes.error.message;
         return;
       }
+
+      paymentLoadError = [
+        paymentsRes.error?.message,
+        summaryRes.error?.message,
+        topPayersRes.error?.message
+      ].filter(Boolean).join(' | ');
 
       allCaptains = capRes.data || [];
       allPlayers = playRes.data || [];
@@ -1836,10 +1843,12 @@
 
 
     function populatePaymentPlayers() {
-      const sel = document.getElementById('paymentPlayer');
-      if (!sel) return;
+      const input = document.getElementById('paymentPlayer');
+      const datalist = document.getElementById('paymentPlayerSuggestions');
+      if (!input || !datalist) return;
+
       const names = [...new Set(allPlayers.map(p => p.name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-      sel.innerHTML = '<option value="">Select player...</option>' + names.map(name => `<option value="${name}">${name}</option>`).join('');
+      datalist.innerHTML = names.map(name => `<option value="${name}"></option>`).join('');
     }
 
     function renderPaymentsTab() {
@@ -1852,9 +1861,13 @@
     function renderAdminTopPayer() {
       const wrap = document.getElementById('adminTopPayer');
       if (!wrap) return;
+      if (paymentLoadError) {
+        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Payments load error: ${paymentLoadError}</div>`;
+        return;
+      }
       const top = topPayers[0];
       if (!top) {
-        wrap.innerHTML = '<div class="text-muted">No payment data yet.</div>';
+        wrap.innerHTML = '<div class="text-muted">No payment data yet. Save an entry and it will show here.</div>';
         return;
       }
       wrap.innerHTML = `
@@ -1866,8 +1879,12 @@
     function renderAdminPaymentSummary() {
       const wrap = document.getElementById('adminPaymentSummary');
       if (!wrap) return;
+      if (paymentLoadError) {
+        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Payments load error: ${paymentLoadError}</div>`;
+        return;
+      }
       if (!paymentSummary.length) {
-        wrap.innerHTML = '<div class="text-muted">No payment summary available yet.</div>';
+        wrap.innerHTML = '<div class="text-muted">No payment summary available yet. Save an entry and the table will populate.</div>';
         return;
       }
       wrap.innerHTML = `
@@ -1903,17 +1920,42 @@
     function renderAdminPaymentsList() {
       const wrap = document.getElementById('adminPaymentsList');
       if (!wrap) return;
+      if (paymentLoadError) {
+        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Payments load error: ${paymentLoadError}</div>`;
+        return;
+      }
       if (!allPayments.length) {
-        wrap.innerHTML = '<div class="text-muted">No payment entries yet.</div>';
+        wrap.innerHTML = '<div class="text-muted">No payment entries yet. Save an entry and it will appear here.</div>';
         return;
       }
       wrap.innerHTML = allPayments.slice(0, 20).map(row => `
-        <div class="recent-sale-row">
-          <div style="font-weight:600;color:var(--text);">${row.player_name}</div>
-          <div class="captain-status-meta">${row.entry_type === 'due' ? 'Due' : 'Payment'} · ${Number(row.amount || 0).toLocaleString()} · ${row.payment_status}${row.game_date ? ' · ' + row.game_date : ''}</div>
-          ${row.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">${row.notes}</div>` : ''}
+        <div class="recent-sale-row" style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="font-weight:600;color:var(--text);">${row.player_name}</div>
+            <div class="captain-status-meta">${row.entry_type === 'due' ? 'Due' : 'Payment'} · ${Number(row.amount || 0).toLocaleString()} · ${row.payment_status}${row.game_date ? ' · ' + row.game_date : ''}</div>
+            ${row.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">${row.notes}</div>` : ''}
+          </div>
+          <button class="btn-danger" style="width:auto;padding:8px 12px;" onclick="deletePaymentEntry(${row.id})">Delete</button>
         </div>
       `).join('');
+    }
+
+    async function deletePaymentEntry(id) {
+      if (!id) return;
+      const ok = window.confirm('Delete this payment entry?');
+      if (!ok) return;
+
+      const msg = document.getElementById('paymentMsg');
+      const { error } = await db.from('payments').delete().eq('id', id);
+
+      if (error) {
+        msg.textContent = 'Delete error: ' + error.message;
+        return;
+      }
+
+      msg.textContent = 'Payment entry deleted.';
+      setTimeout(() => msg.textContent = '', 2500);
+      await loadData();
     }
 
     async function addPaymentEntry() {
