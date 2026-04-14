@@ -613,25 +613,16 @@
 
     <!-- Payments -->
     <div id="tab-payments" style="display:none;">
-      <div class="section-title">Add Payment Entry</div>
+      <div class="section-title">Add Game Entry</div>
       <div class="form-card">
         <div class="form-row">
-          <input type="text" id="paymentPlayer" list="paymentPlayerSuggestions" placeholder="Enter player name" style="flex:2;" />
+          <input type="text" id="paymentPlayer" list="paymentPlayerSuggestions" placeholder="Player name" style="flex:2;" />
           <datalist id="paymentPlayerSuggestions"></datalist>
-
-          <select id="paymentEntryType" style="flex:1;">
-            <option value="due">Due</option>
-            <option value="payment">Payment</option>
-          </select>
-
-          <input type="number" id="paymentAmount" placeholder="Amount" min="0" step="0.01" style="flex:1;" />
           <input type="date" id="paymentDate" style="flex:1;cursor:pointer;" onclick="this.showPicker && this.showPicker()" onfocus="this.showPicker && this.showPicker()" />
-
           <select id="paymentStatus" style="flex:1;">
             <option value="received">Received</option>
             <option value="pending">Pending</option>
           </select>
-
           <button class="btn-primary" onclick="addPaymentEntry()">Save</button>
         </div>
         <div class="form-row" style="margin-top:10px;">
@@ -640,17 +631,12 @@
         <p id="paymentMsg" class="text-muted mt-8"></p>
       </div>
 
-      <div class="section-title">Top Payer</div>
-      <div class="form-card">
-        <div id="adminTopPayer"></div>
-      </div>
-
-      <div class="section-title" style="margin-top:16px;">Payment Summary</div>
+      <div class="section-title">Payment Summary</div>
       <div class="form-card">
         <div id="adminPaymentSummary"></div>
       </div>
 
-      <div class="section-title" style="margin-top:16px;">Recent Payment Entries</div>
+      <div class="section-title" style="margin-top:16px;">All Entries</div>
       <div class="form-card">
         <div id="adminPaymentsList"></div>
       </div>
@@ -1843,158 +1829,151 @@
 
 
     function populatePaymentPlayers() {
-      const input = document.getElementById('paymentPlayer');
       const datalist = document.getElementById('paymentPlayerSuggestions');
-      if (!input || !datalist) return;
-
-      const names = [...new Set(allPlayers.map(p => p.name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-      datalist.innerHTML = names.map(name => `<option value="${name}"></option>`).join('');
+      if (!datalist) return;
+      // Build suggestions from existing payment entries + player pool
+      const fromPayments = allPayments.map(p => p.player_name).filter(Boolean);
+      const fromPlayers  = allPlayers.map(p => p.name).filter(Boolean);
+      const names = [...new Set([...fromPayments, ...fromPlayers])].sort((a, b) => a.localeCompare(b));
+      datalist.innerHTML = names.map(n => `<option value="${n}"></option>`).join('');
     }
 
     function renderPaymentsTab() {
       populatePaymentPlayers();
-      renderAdminTopPayer();
       renderAdminPaymentSummary();
       renderAdminPaymentsList();
-    }
-
-    function renderAdminTopPayer() {
-      const wrap = document.getElementById('adminTopPayer');
-      if (!wrap) return;
-      if (paymentLoadError) {
-        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Payments load error: ${paymentLoadError}</div>`;
-        return;
-      }
-      const top = topPayers[0];
-      if (!top) {
-        wrap.innerHTML = '<div class="text-muted">No payment data yet. Save an entry and it will show here.</div>';
-        return;
-      }
-      wrap.innerHTML = `
-        <div style="font-family:var(--font-display);font-size:2rem;color:var(--accent);line-height:1;">${top.player_name}</div>
-        <div style="margin-top:8px;font-size:14px;color:var(--muted);">Highest payer · ${Number(top.total_paid || 0).toLocaleString()} paid</div>
-      `;
     }
 
     function renderAdminPaymentSummary() {
       const wrap = document.getElementById('adminPaymentSummary');
       if (!wrap) return;
       if (paymentLoadError) {
-        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Payments load error: ${paymentLoadError}</div>`;
+        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Error loading payments: ${paymentLoadError}</div>`;
         return;
       }
       if (!paymentSummary.length) {
-        wrap.innerHTML = '<div class="text-muted">No payment summary available yet. Save an entry and the table will populate.</div>';
+        wrap.innerHTML = '<div class="text-muted">No entries yet.</div>';
         return;
       }
+
+      const totalOwing   = paymentSummary.filter(r => r.status === 'Owing').length;
+      const totalCollected = paymentSummary.reduce((s, r) => s + Number(r.total_paid || 0), 0);
+      const totalOutstanding = paymentSummary.reduce((s, r) => s + Number(r.outstanding || 0), 0);
+
       wrap.innerHTML = `
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--border);">
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Collected</div>
+            <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--green);">$${totalCollected}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Outstanding</div>
+            <div style="font-family:var(--font-display);font-size:1.6rem;color:${totalOutstanding > 0 ? 'var(--red)' : 'var(--green)'};">$${totalOutstanding}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Still Owing</div>
+            <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--muted);">${totalOwing} player${totalOwing !== 1 ? 's' : ''}</div></div>
+        </div>
         <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
             <thead>
               <tr style="border-bottom:1px solid var(--border);text-align:left;">
-                <th style="padding:10px 8px;">Player</th>
-                <th style="padding:10px 8px;">Due</th>
-                <th style="padding:10px 8px;">Paid</th>
-                <th style="padding:10px 8px;">Outstanding</th>
-                <th style="padding:10px 8px;">Status</th>
+                <th style="padding:8px 10px;color:var(--muted);font-weight:500;">Player</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Games</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Due</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Paid</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Owes</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;"></th>
               </tr>
             </thead>
             <tbody>
               ${paymentSummary.map(row => `
                 <tr style="border-bottom:0.5px solid var(--border);">
-                  <td style="padding:10px 8px;color:var(--text);font-weight:600;">${row.player_name}</td>
-                  <td style="padding:10px 8px;">${Number(row.total_due || 0).toLocaleString()}</td>
-                  <td style="padding:10px 8px;">${Number(row.total_paid || 0).toLocaleString()}</td>
-                  <td style="padding:10px 8px;color:${Number(row.outstanding || 0) > 0 ? 'var(--red)' : 'var(--green)'};">${Number(row.outstanding || 0).toLocaleString()}</td>
-                  <td style="padding:10px 8px;">
-                    <span style="font-size:11px;font-weight:600;padding:4px 8px;border-radius:999px;border:1px solid ${row.status === 'Paid' ? 'rgba(62,207,142,0.35)' : 'rgba(224,90,43,0.35)'};background:${row.status === 'Paid' ? 'rgba(62,207,142,0.08)' : 'rgba(224,90,43,0.08)'};color:${row.status === 'Paid' ? 'var(--green)' : 'var(--red)'};">${row.status}</span>
+                  <td style="padding:10px 10px;color:var(--text);font-weight:600;">${row.player_name}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--muted);">${row.games_played}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--muted);">$${Number(row.total_due || 0)}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--green);">$${Number(row.total_paid || 0)}</td>
+                  <td style="padding:10px 8px;text-align:center;color:${Number(row.outstanding || 0) > 0 ? 'var(--red)' : 'var(--green)'};">
+                    ${Number(row.outstanding || 0) > 0 ? `$${Number(row.outstanding)}` : '✓'}
                   </td>
-                </tr>
-              `).join('')}
+                  <td style="padding:10px 8px;">
+                    <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;
+                      border:1px solid ${row.status === 'Paid' ? 'rgba(62,207,142,0.35)' : 'rgba(224,90,43,0.35)'};
+                      background:${row.status === 'Paid' ? 'rgba(62,207,142,0.08)' : 'rgba(224,90,43,0.08)'};
+                      color:${row.status === 'Paid' ? 'var(--green)' : 'var(--red)'};">
+                      ${row.status}
+                    </span>
+                  </td>
+                </tr>`).join('')}
             </tbody>
           </table>
-        </div>
-      `;
+        </div>`;
     }
 
     function renderAdminPaymentsList() {
       const wrap = document.getElementById('adminPaymentsList');
       if (!wrap) return;
       if (paymentLoadError) {
-        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Payments load error: ${paymentLoadError}</div>`;
+        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Error loading payments: ${paymentLoadError}</div>`;
         return;
       }
       if (!allPayments.length) {
-        wrap.innerHTML = '<div class="text-muted">No payment entries yet. Save an entry and it will appear here.</div>';
+        wrap.innerHTML = '<div class="text-muted">No entries yet.</div>';
         return;
       }
-      wrap.innerHTML = allPayments.slice(0, 20).map(row => `
-        <div class="recent-sale-row" style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+      wrap.innerHTML = allPayments.map(row => `
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--border);">
           <div style="flex:1;">
-            <div style="font-weight:600;color:var(--text);">${row.player_name}</div>
-            <div class="captain-status-meta">${row.entry_type === 'due' ? 'Due' : 'Payment'} · ${Number(row.amount || 0).toLocaleString()} · ${row.payment_status}${row.game_date ? ' · ' + row.game_date : ''}</div>
-            ${row.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:4px;">${row.notes}</div>` : ''}
+            <div style="font-weight:600;color:var(--text);font-size:14px;">${row.player_name}
+              <span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;margin-left:6px;
+                border:1px solid ${row.payment_status === 'received' ? 'rgba(62,207,142,0.35)' : 'rgba(224,90,43,0.35)'};
+                background:${row.payment_status === 'received' ? 'rgba(62,207,142,0.08)' : 'rgba(224,90,43,0.08)'};
+                color:${row.payment_status === 'received' ? 'var(--green)' : 'var(--red)'};">
+                ${row.payment_status === 'received' ? 'Received' : 'Pending'}
+              </span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+              $3 · ${row.game_date || '—'}${row.notes ? ' · ' + row.notes : ''}
+            </div>
           </div>
-          <button class="btn-danger" style="width:auto;padding:8px 12px;" onclick="deletePaymentEntry(${row.id})">Delete</button>
-        </div>
-      `).join('');
+          <button class="btn-danger" style="width:auto;padding:6px 10px;flex-shrink:0;" onclick="deletePaymentEntry(${row.id})">✕</button>
+        </div>`).join('');
     }
 
     async function deletePaymentEntry(id) {
       if (!id) return;
-      const ok = window.confirm('Delete this payment entry?');
-      if (!ok) return;
-
+      if (!confirm('Delete this entry?')) return;
       const msg = document.getElementById('paymentMsg');
       const { error } = await db.from('payments').delete().eq('id', id);
-
-      if (error) {
-        msg.textContent = 'Delete error: ' + error.message;
-        return;
-      }
-
-      msg.textContent = 'Payment entry deleted.';
-      setTimeout(() => msg.textContent = '', 2500);
+      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+      msg.textContent = 'Entry deleted.';
+      setTimeout(() => msg.textContent = '', 2000);
       await loadData();
     }
 
     async function addPaymentEntry() {
-      const player_name = document.getElementById('paymentPlayer').value.trim();
-      const entry_type = document.getElementById('paymentEntryType').value;
-      const amount = parseFloat(document.getElementById('paymentAmount').value);
-      const game_date = document.getElementById('paymentDate').value || null;
+      const player_name    = document.getElementById('paymentPlayer').value.trim();
+      const game_date      = document.getElementById('paymentDate').value || null;
       const payment_status = document.getElementById('paymentStatus').value;
-      const notes = document.getElementById('paymentNotes').value.trim();
-      const msg = document.getElementById('paymentMsg');
+      const notes          = document.getElementById('paymentNotes').value.trim() || null;
+      const msg            = document.getElementById('paymentMsg');
 
-      if (!player_name || isNaN(amount) || amount < 0) {
-        msg.textContent = 'Select player and enter a valid amount.';
+      if (!player_name || !game_date) {
+        msg.textContent = 'Enter player name and game date.';
         return;
       }
 
       const { error } = await db.from('payments').insert({
         player_name,
-        entry_type,
-        amount,
         game_date,
         payment_status,
         notes
       });
 
-      if (error) {
-        msg.textContent = 'Error: ' + error.message;
-        return;
-      }
+      if (error) { msg.textContent = 'Error: ' + error.message; return; }
 
       document.getElementById('paymentPlayer').value = '';
-      document.getElementById('paymentAmount').value = '';
-      document.getElementById('paymentDate').value = '';
-      document.getElementById('paymentNotes').value = '';
+      document.getElementById('paymentDate').value   = '';
+      document.getElementById('paymentNotes').value  = '';
       document.getElementById('paymentStatus').value = 'received';
-      document.getElementById('paymentEntryType').value = 'due';
 
-      msg.textContent = 'Payment entry saved.';
-      setTimeout(() => msg.textContent = '', 2500);
+      msg.textContent = 'Entry saved!';
+      setTimeout(() => msg.textContent = '', 2000);
       await loadData();
     }
 
