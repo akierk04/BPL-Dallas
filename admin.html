@@ -743,7 +743,7 @@
         db.from('goals').select('*'),
         db.from('payments').select('*').order('created_at', { ascending: false }),
         db.from('payment_summary').select('*'),
-        db.from('top_payers').select('*').order('total_paid', { ascending: false })
+        db.from('top_payers').select('*')
       ]);
 
       if (capRes.error) {
@@ -751,10 +751,10 @@
         return;
       }
 
+      // Store errors separately — a top_payers error shouldn't blank the whole tab
       paymentLoadError = [
-        paymentsRes.error?.message,
-        summaryRes.error?.message,
-        topPayersRes.error?.message
+        paymentsRes.error ? 'payments: ' + paymentsRes.error.message : null,
+        summaryRes.error  ? 'summary: '  + summaryRes.error.message  : null
       ].filter(Boolean).join(' | ');
 
       allCaptains = capRes.data || [];
@@ -1862,7 +1862,7 @@
         return;
       }
 
-      const totalOwing   = paymentSummary.filter(r => r.status === 'Owing').length;
+      const totalOwing   = paymentSummary.filter(r => r.status === 'Pending').length;
       const totalCollected = paymentSummary.reduce((s, r) => s + Number(r.total_paid || 0), 0);
       const totalOutstanding = paymentSummary.reduce((s, r) => s + Number(r.outstanding || 0), 0);
 
