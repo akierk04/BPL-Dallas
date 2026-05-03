@@ -558,7 +558,7 @@
         <div class="form-card">
           <div class="form-row">
             <select id="scorerPlayer" style="flex:3;"><option value="">Select player...</option></select>
-            <select id="scorerTeam" style="flex:2;"><option value="">Their team...</option></select>
+            <select id="scorerTeam" onchange="updateScorerPlayers()" style="flex:2;"><option value="">Their team...</option></select>
             <button class="btn-primary" onclick="addGoal()">Add Goal</button>
           </div>
           <p id="scorerMsg" class="text-muted mt-8"></p>
