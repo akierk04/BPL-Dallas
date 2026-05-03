@@ -1923,11 +1923,16 @@
       function bracketMatch(m, homeC, awayC, label) {
         const played  = m && m.played;
         const live    = m && !m.played && (homeC || m?.home_captain_id) && (awayC || m?.away_captain_id);
-        const homeN   = homeC ? displayCaptainName(homeC) : 'TBD';
-        const awayN   = awayC ? displayCaptainName(awayC) : 'TBD';
+        const cls     = played ? 'winner' : live ? 'live' : '';
+
+        // When played, use actual DB teams so scores always match the right team
+        const actualHome = played ? allCaptains.find(c => c.id === m.home_captain_id) : homeC;
+        const actualAway = played ? allCaptains.find(c => c.id === m.away_captain_id) : awayC;
+        const homeN = actualHome ? displayCaptainName(actualHome) : (homeC ? displayCaptainName(homeC) : 'TBD');
+        const awayN = actualAway ? displayCaptainName(actualAway) : (awayC ? displayCaptainName(awayC) : 'TBD');
+
         const homeWon = played && m.home_score > m.away_score;
         const awayWon = played && m.away_score > m.home_score;
-        const cls     = played ? 'winner' : live ? 'live' : '';
         return `
           <div class="bracket-match ${cls}">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;">${label}</div>
