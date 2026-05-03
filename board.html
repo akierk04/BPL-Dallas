@@ -87,8 +87,9 @@
       margin-bottom:20px;
     }
     .tournament-mode-icon{font-size:2.5rem;margin-bottom:8px;}
-    .tournament-mode-title{font-family:var(--font-display);font-size:2rem;letter-spacing:0.08em;color:var(--accent);}
-    .tournament-mode-sub{font-size:13px;color:var(--muted);margin-top:6px;}
+    .tournament-mode-title{font-family:var(--font-display);font-size:2.4rem;letter-spacing:0.08em;color:var(--accent);}
+    .tournament-mode-sub{font-size:14px;color:var(--muted);margin-top:6px;}
+    #tournamentModeBanner.champion .tournament-mode-title{color:#FFD700;text-shadow:0 0 30px rgba(255,215,0,0.4);}
     @media(max-width:900px){.auction-grid{grid-template-columns:1fr;}}
     @media(max-width:480px){.board-grid{grid-template-columns:1fr;}.pool-grid{grid-template-columns:repeat(2,1fr);}.board-title{font-size:1.6rem;}.now-bidding-name,.sold-banner-main{font-size:2rem;}}
     @media(max-width:600px){#boardMatchDayBanner>div{grid-template-columns:1fr;}}
@@ -121,9 +122,9 @@
   <div class="page">
   <!-- #10 Tournament Mode Banner (shown when auction is done) -->
   <div id="tournamentModeBanner" class="tournament-mode-banner" style="display:none;">
-    <div class="tournament-mode-icon">🏆</div>
-    <div class="tournament-mode-title">Tournament Mode</div>
-    <div class="tournament-mode-sub">The auction is complete. Let the games begin!</div>
+    <div class="tournament-mode-icon" id="tournamentModeIcon">🏆</div>
+    <div class="tournament-mode-title" id="tournamentModeTitle">Tournament Mode</div>
+    <div class="tournament-mode-sub" id="tournamentModeSub">The auction is complete. Let the games begin!</div>
   </div>
 
     <div class="tabs" style="flex-wrap:wrap;margin-bottom:20px;">
@@ -555,8 +556,24 @@
       const auctionDone = allPlayers.length > 0 && unsoldCount === 0;
 
       if (auctionDone) {
-        // #10 Tournament mode: hide auction UI, show tournament banner, auto-switch to standings
-        el.textContent = 'Tournament mode · auction complete';
+        // Check if Final has been played — show champion banner
+        const finalMatch = allMatches.find(m => m.round === 'Final' && m.played);
+        if (finalMatch) {
+          const winnerId = finalMatch.home_score > finalMatch.away_score
+            ? finalMatch.home_captain_id : finalMatch.away_captain_id;
+          const winner = allCaptains.find(c => c.id === winnerId);
+          const winnerName = winner ? (winner.team_name || winner.name) : 'Champions';
+          document.getElementById('tournamentModeIcon').textContent = '🥇';
+          document.getElementById('tournamentModeTitle').textContent = winnerName;
+          document.getElementById('tournamentModeSub').innerHTML =
+            '🏆 BPL Dallas Season 1 Champions';
+          el.textContent = `${winnerName} are Champions!`;
+        } else {
+          document.getElementById('tournamentModeIcon').textContent = '🏆';
+          document.getElementById('tournamentModeTitle').textContent = 'Tournament Mode';
+          document.getElementById('tournamentModeSub').textContent = 'The auction is complete. Let the games begin!';
+          el.textContent = 'Tournament mode · auction complete';
+        }
         tournamentBanner.style.display = 'block';
 
         // Hide the auction-specific elements
