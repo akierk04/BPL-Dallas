@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -18,340 +17,337 @@
       align-items: start;
     }
 
-```
-.auction-live-card {
-  background: linear-gradient(135deg, rgba(240,192,64,0.12), rgba(240,192,64,0.04));
-  border: 1px solid rgba(240,192,64,0.45);
-  border-radius: var(--radius-lg);
-  padding: 22px 24px;
-}
+    .auction-live-card {
+      background: linear-gradient(135deg, rgba(240,192,64,0.12), rgba(240,192,64,0.04));
+      border: 1px solid rgba(240,192,64,0.45);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+    }
 
-.auction-live-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
-  margin-bottom: 18px;
-}
+    .auction-live-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
 
-.auction-live-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--accent);
-  margin-bottom: 6px;
-}
+    .auction-live-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
 
-.auction-live-player {
-  font-family: var(--font-display);
-  font-size: 2.4rem;
-  line-height: 1;
-  color: var(--text);
-  letter-spacing: 0.04em;
-  margin-bottom: 6px;
-}
+    .auction-live-player {
+      font-family: var(--font-display);
+      font-size: 2.4rem;
+      line-height: 1;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
 
-.auction-live-meta {
-  font-size: 13px;
-  color: var(--muted);
-}
+    .auction-live-meta {
+      font-size: 13px;
+      color: var(--muted);
+    }
 
-.auction-status-pill {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--surface2);
-  color: var(--muted);
-  border: 1px solid var(--border);
-  white-space: nowrap;
-}
+    .auction-status-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
 
-.auction-status-pill.live {
-  color: var(--accent);
-  border-color: rgba(240,192,64,0.35);
-  background: rgba(240,192,64,0.08);
-}
+    .auction-status-pill.live {
+      color: var(--accent);
+      border-color: rgba(240,192,64,0.35);
+      background: rgba(240,192,64,0.08);
+    }
 
-.auction-status-pill.locked {
-  color: var(--red);
-  border-color: rgba(224,90,43,0.35);
-  background: rgba(224,90,43,0.08);
-}
+    .auction-status-pill.locked {
+      color: var(--red);
+      border-color: rgba(224,90,43,0.35);
+      background: rgba(224,90,43,0.08);
+    }
 
-.auction-status-pill.ready {
-  color: var(--green);
-  border-color: rgba(62,207,142,0.35);
-  background: rgba(62,207,142,0.08);
-}
+    .auction-status-pill.ready {
+      color: var(--green);
+      border-color: rgba(62,207,142,0.35);
+      background: rgba(62,207,142,0.08);
+    }
 
-.auction-live-body {
-  display: flex;
-  gap: 20px;
-  align-items: end;
-  justify-content: space-between;
-  margin-bottom: 18px;
-  flex-wrap: wrap;
-}
+    .auction-live-body {
+      display: flex;
+      gap: 20px;
+      align-items: end;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
 
-.auction-live-amount {
-  font-family: var(--font-display);
-  font-size: 3.4rem;
-  line-height: 1;
-  color: var(--accent);
-  letter-spacing: 0.03em;
-}
+    .auction-live-amount {
+      font-family: var(--font-display);
+      font-size: 3.4rem;
+      line-height: 1;
+      color: var(--accent);
+      letter-spacing: 0.03em;
+    }
 
-.auction-live-amount-label,
-.auction-live-bidder-label {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-top: 4px;
-}
+    .auction-live-amount-label,
+    .auction-live-bidder-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
 
-.auction-live-bidder {
-  font-size: 1rem;
-  color: var(--text);
-  font-weight: 600;
-  margin-top: 4px;
-}
+    .auction-live-bidder {
+      font-size: 1rem;
+      color: var(--text);
+      font-weight: 600;
+      margin-top: 4px;
+    }
 
-.auction-live-after {
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--muted);
-}
+    .auction-live-after {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
 
-.auction-live-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+    .auction-live-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
-.captain-status-row,
-.recent-sale-row {
-  padding: 10px 0;
-  border-bottom: 0.5px solid var(--border);
-}
+    .captain-status-row,
+    .recent-sale-row {
+      padding: 10px 0;
+      border-bottom: 0.5px solid var(--border);
+    }
 
-.captain-status-row:last-child,
-.recent-sale-row:last-child {
-  border-bottom: none;
-}
+    .captain-status-row:last-child,
+    .recent-sale-row:last-child {
+      border-bottom: none;
+    }
 
-.captain-status-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
-}
+    .captain-status-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
 
-.captain-status-name {
-  font-weight: 600;
-  color: var(--text);
-}
+    .captain-status-name {
+      font-weight: 600;
+      color: var(--text);
+    }
 
-.captain-status-meta {
-  font-size: 12px;
-  color: var(--muted);
-}
+    .captain-status-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
 
-.undo-bar {
-  position: fixed;
-  left: 20px;
-  right: 20px;
-  bottom: 20px;
-  z-index: 300;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-}
+    .undo-bar {
+      position: fixed;
+      left: 20px;
+      right: 20px;
+      bottom: 20px;
+      z-index: 300;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
 
-@media (max-width: 900px) {
-  .auction-layout {
-    grid-template-columns: 1fr;
-  }
-}
-.fixture-tip {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 12px;
-}
-.fixture-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-  margin-bottom: 8px;
-}
-.fixture-card {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-.fixture-card:hover {
-  border-color: var(--accent);
-  background: rgba(240,192,64,0.06);
-}
-.fixture-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin-bottom: 5px;
-}
-.fixture-teamline {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 4px;
-}
-.fixture-meta {
-  font-size: 11px;
-  color: var(--muted);
-}
+    @media (max-width: 900px) {
+      .auction-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .fixture-tip {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .fixture-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .fixture-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .fixture-card:hover {
+      border-color: var(--accent);
+      background: rgba(240,192,64,0.06);
+    }
+    .fixture-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .fixture-teamline {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .fixture-meta {
+      font-size: 11px;
+      color: var(--muted);
+    }
 
-.schedule-admin-section {
-  margin-bottom: 18px;
-}
+    .schedule-admin-section {
+      margin-bottom: 18px;
+    }
 
-.schedule-admin-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin-bottom: 10px;
-  font-weight: 500;
-}
+    .schedule-admin-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
 
-.schedule-dropzone {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+    .schedule-dropzone {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-.schedule-card {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  cursor: grab;
-  user-select: none;
-  -webkit-user-drag: element;
-  transition: border-color 0.15s, transform 0.1s, opacity 0.15s;
-}
+    .schedule-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-drag: element;
+      transition: border-color 0.15s, transform 0.1s, opacity 0.15s;
+    }
 
-.schedule-card:hover {
-  border-color: var(--accent);
-}
+    .schedule-card:hover {
+      border-color: var(--accent);
+    }
 
-.schedule-card.dragging {
-  opacity: 0.45;
-  transform: scale(0.99);
-}
+    .schedule-card.dragging {
+      opacity: 0.45;
+      transform: scale(0.99);
+    }
 
-.schedule-card.drop-target {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(240,192,64,0.15) inset;
-}
+    .schedule-card.drop-target {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(240,192,64,0.15) inset;
+    }
 
-.schedule-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 6px;
-}
+    .schedule-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
 
-.schedule-card-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-}
+    .schedule-card-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
 
-.schedule-card-order {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  color: var(--accent);
-  line-height: 1;
-  min-width: 34px;
-  text-align: right;
-}
+    .schedule-card-order {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--accent);
+      line-height: 1;
+      min-width: 34px;
+      text-align: right;
+    }
 
-.schedule-card-teams {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 4px;
-}
+    .schedule-card-teams {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
 
-.schedule-card-meta {
-  font-size: 12px;
-  color: var(--muted);
-}
+    .schedule-card-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
 
-.schedule-admin-tip {
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 12px;
-}
+    .schedule-admin-tip {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
 
 
-/* ── Knockout Bracket ── */
-.bracket-wrap { display:flex; gap:0; align-items:stretch; overflow-x:auto; padding-bottom:8px; }
-.bracket-round { display:flex; flex-direction:column; justify-content:space-around; min-width:160px; }
-.bracket-round-title { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); text-align:center; margin-bottom:12px; font-weight:500; }
-.bracket-match {
-  background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
-  padding:10px 12px; margin:6px 0; position:relative;
-}
-.bracket-match.winner { border-color:rgba(62,207,142,0.4); background:rgba(62,207,142,0.05); }
-.bracket-match.live   { border-color:rgba(240,192,64,0.5); background:rgba(240,192,64,0.06); }
-.bracket-team { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:3px 0; }
-.bracket-team.won { font-weight:700; color:var(--text); }
-.bracket-team.lost { color:var(--muted); }
-.bracket-team.tbd  { color:var(--muted); font-style:italic; }
-.bracket-score { font-family:var(--font-display); font-size:1rem; color:var(--accent); min-width:18px; text-align:right; }
-.bracket-connector { display:flex; align-items:center; padding:0 8px; }
-.bracket-connector-line { width:24px; border-top:1px solid var(--border); }
+    /* ── Knockout Bracket ── */
+    .bracket-wrap { display:flex; gap:0; align-items:stretch; overflow-x:auto; padding-bottom:8px; }
+    .bracket-round { display:flex; flex-direction:column; justify-content:space-around; min-width:160px; }
+    .bracket-round-title { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); text-align:center; margin-bottom:12px; font-weight:500; }
+    .bracket-match {
+      background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+      padding:10px 12px; margin:6px 0; position:relative;
+    }
+    .bracket-match.winner { border-color:rgba(62,207,142,0.4); background:rgba(62,207,142,0.05); }
+    .bracket-match.live   { border-color:rgba(240,192,64,0.5); background:rgba(240,192,64,0.06); }
+    .bracket-team { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:3px 0; }
+    .bracket-team.won { font-weight:700; color:var(--text); }
+    .bracket-team.lost { color:var(--muted); }
+    .bracket-team.tbd  { color:var(--muted); font-style:italic; }
+    .bracket-score { font-family:var(--font-display); font-size:1rem; color:var(--accent); min-width:18px; text-align:right; }
+    .bracket-connector { display:flex; align-items:center; padding:0 8px; }
+    .bracket-connector-line { width:24px; border-top:1px solid var(--border); }
 
-/* tiebreaker tooltip */
-.tb-tooltip-wrap { position: relative; display: inline-block; }
-.tb-tooltip {
-  display: none;
-  position: absolute;
-  left: 0; top: 100%;
-  z-index: 50;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px 12px;
-  font-size: 12px;
-  color: var(--text);
-  white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-  margin-top: 4px;
-}
-.tb-tooltip-wrap:hover .tb-tooltip { display: block; }
-.tb-row { color: var(--accent); font-size: 11px; }
+    /* tiebreaker tooltip */
+    .tb-tooltip-wrap { position: relative; display: inline-block; }
+    .tb-tooltip {
+      display: none;
+      position: absolute;
+      left: 0; top: 100%;
+      z-index: 50;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text);
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      margin-top: 4px;
+    }
+    .tb-tooltip-wrap:hover .tb-tooltip { display: block; }
+    .tb-row { color: var(--accent); font-size: 11px; }
 
-@media (max-width: 600px) {
-  #matchDayBanner > div { grid-template-columns: 1fr; }
-}
-```
-
+    @media (max-width: 600px) {
+      #matchDayBanner > div { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -374,329 +370,324 @@
       <button class="tab" onclick="switchTab('payments')">Payments</button>
     </div>
 
-```
-<!-- Auction Control -->
-<div id="tab-auction-control">
-  <div class="auction-layout">
-    <div class="auction-main">
-      <div class="section-title">Start Auction</div>
+    <!-- Auction Control -->
+    <div id="tab-auction-control">
+      <div class="auction-layout">
+        <div class="auction-main">
+          <div class="section-title">Start Auction</div>
+          <div class="form-card">
+            <div class="form-row">
+              <select id="biddingPlayer" style="flex:3;">
+                <option value="">Select player to go live...</option>
+              </select>
+              <button class="btn-primary" onclick="setBiddingPlayer()">Go Live</button>
+              <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="clearBiddingPlayer()">Clear</button>
+            </div>
+            <p id="biddingMsg" class="text-muted mt-8"></p>
+          </div>
+
+          <div class="section-title">Live Auction</div>
+          <div id="liveBidStatus" class="auction-live-card" style="display:none;">
+            <div class="auction-live-top">
+              <div>
+                <div class="auction-live-label">Now Bidding</div>
+                <div id="liveBidPlayerName" class="auction-live-player">—</div>
+                <div id="liveBidMeta" class="auction-live-meta">—</div>
+              </div>
+              <div id="auctionStatusPill" class="auction-status-pill">Waiting</div>
+            </div>
+
+            <div class="auction-live-body">
+              <div class="auction-live-amount-wrap">
+                <div class="auction-live-amount" id="liveBidAmount">0</div>
+                <div class="auction-live-amount-label">current bid</div>
+              </div>
+              <div class="auction-live-bidder-wrap">
+                <div class="auction-live-bidder-label">Highest bidder</div>
+                <div class="auction-live-bidder" id="liveBidder">No bids yet</div>
+                <div class="auction-live-after" id="liveBidWalletAfter"></div>
+              </div>
+            </div>
+
+            <div class="auction-live-actions">
+              <button class="btn-primary" onclick="confirmCloseBidding()" style="width:auto;padding:12px 24px;font-size:1.05rem;">✓ Close Bidding</button>
+              <button class="btn-cancel" style="width:auto;padding:12px 16px;" onclick="clearBiddingPlayer()">Cancel Auction</button>
+            </div>
+            <p id="closeMsg" class="text-muted mt-8"></p>
+          </div>
+
+          <div id="liveBidEmpty" class="form-card text-muted">
+            No player is live right now.
+          </div>
+        </div>
+
+        <div class="auction-side">
+          <div class="section-title">Captain Status</div>
+          <div class="form-card">
+            <div id="captainStatusList"></div>
+          </div>
+
+          <div class="section-title">Manual Override</div>
+          <div class="form-card">
+            <div class="form-row">
+              <select id="consolePlayer" style="flex:2;" onchange="updateConsoleWarning()">
+                <option value="">Select player...</option>
+              </select>
+              <select id="consoleCaptain" style="flex:2;" onchange="updateConsoleWarning()">
+                <option value="">Select captain...</option>
+              </select>
+              <input type="number" id="consolePrice" placeholder="Sold price (pts)" min="0" style="flex:1;min-width:120px;" />
+              <button class="btn-primary" onclick="doAssign()">Assign Manually</button>
+            </div>
+            <div id="consoleWarning" style="margin-top:8px;"></div>
+            <p id="consoleMsg" class="text-muted mt-8"></p>
+          </div>
+
+          <div class="section-title">Recently Sold</div>
+          <div class="form-card">
+            <div id="recentSalesList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overview -->
+    <div id="tab-overview" style="display:none;">
+      <div class="section-title">Captains & Purses</div>
+      <div id="overviewMsg" class="text-muted" style="margin-bottom:12px;"></div>
+      <div class="captains-grid" id="adminCaptainsGrid"></div>
+    </div>
+
+    <!-- Players -->
+    <div id="tab-players" style="display:none;">
+      <div class="section-title">Add Player</div>
       <div class="form-card">
         <div class="form-row">
-          <select id="biddingPlayer" style="flex:3;">
-            <option value="">Select player to go live...</option>
+          <input type="text" id="playerName" placeholder="Player name" />
+          <select id="playerGroup">
+            <option value="X">Group X (150 pts base)</option>
+            <option value="Y">Group Y (50 pts base)</option>
           </select>
-          <button class="btn-primary" onclick="setBiddingPlayer()">Go Live</button>
-          <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="clearBiddingPlayer()">Clear</button>
+          <select id="playerStatus">
+            <option value="confirmed">Confirmed</option>
+            <option value="tentative">Tentative</option>
+          </select>
+          <button class="btn-primary" onclick="addPlayer()">Add</button>
         </div>
-        <p id="biddingMsg" class="text-muted mt-8"></p>
+        <p id="playerMsg" class="text-muted mt-8"></p>
+      </div>
+      <div class="section-title">Player Pool <span id="playerCount" style="font-size:0.85rem;color:var(--muted);font-family:var(--font-body);font-weight:400;letter-spacing:0;margin-left:8px;"></span></div>
+      <div id="playersList" class="players-list"></div>
+    </div>
+
+    <!-- Matches -->
+    <div id="tab-matches" style="display:none;">
+      <!-- Now Playing / Up Next Banner -->
+      <div id="matchDayBanner" style="display:none;margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.5);border-radius:var(--radius-lg);padding:16px 20px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">⚡ Now Playing</div>
+            <div id="nowPlayingTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+            <div id="nowPlayingMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;">Up Next</div>
+            <div id="upNextTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+            <div id="upNextMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+          </div>
+        </div>
       </div>
 
-      <div class="section-title">Live Auction</div>
-      <div id="liveBidStatus" class="auction-live-card" style="display:none;">
-        <div class="auction-live-top">
-          <div>
-            <div class="auction-live-label">Now Bidding</div>
-            <div id="liveBidPlayerName" class="auction-live-player">—</div>
-            <div id="liveBidMeta" class="auction-live-meta">—</div>
-          </div>
-          <div id="auctionStatusPill" class="auction-status-pill">Waiting</div>
+      <!-- Round Generator -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="margin-bottom:0;">Round Fixtures</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-sm" id="genR1Btn" onclick="generateRound('1')" style="width:auto;">Generate Round 1</button>
+          <button class="btn-sm" id="genR2Btn" onclick="generateRound('2')" style="width:auto;">Generate Round 2</button>
+          <button class="btn-sm" id="genR3Btn" onclick="generateRound('3')" style="width:auto;">Generate Round 3</button>
+          <button class="btn-sm" onclick="generateKnockouts()" style="width:auto;">⚡ Generate Knockouts</button>
         </div>
+      </div>
+      <p id="generateMsg" class="text-muted" style="margin-bottom:14px;"></p>
 
-        <div class="auction-live-body">
-          <div class="auction-live-amount-wrap">
-            <div class="auction-live-amount" id="liveBidAmount">0</div>
-            <div class="auction-live-amount-label">current bid</div>
-          </div>
-          <div class="auction-live-bidder-wrap">
-            <div class="auction-live-bidder-label">Highest bidder</div>
-            <div class="auction-live-bidder" id="liveBidder">No bids yet</div>
-            <div class="auction-live-after" id="liveBidWalletAfter"></div>
-          </div>
-        </div>
+      <!-- Per-round fixture cards with ↑↓ reorder -->
+      <div id="roundFixturesWrap"></div>
 
-        <div class="auction-live-actions">
-          <button class="btn-primary" onclick="confirmCloseBidding()" style="width:auto;padding:12px 24px;font-size:1.05rem;">✓ Close Bidding</button>
-          <button class="btn-cancel" style="width:auto;padding:12px 16px;" onclick="clearBiddingPlayer()">Cancel Auction</button>
+      <!-- Delete Fixture (loaded when a fixture card is tapped) -->
+      <div id="deleteFixtureWrap" style="display:none;margin-bottom:20px;">
+        <div class="form-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div id="deleteFixtureLabel" class="text-muted" style="font-size:13px;"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-sm" onclick="clearDeleteFixture()" style="width:auto;">Cancel</button>
+            <button class="btn-danger" onclick="deleteSelectedFixture()" style="width:auto;">Delete Fixture</button>
+          </div>
         </div>
-        <p id="closeMsg" class="text-muted mt-8"></p>
       </div>
 
-      <div id="liveBidEmpty" class="form-card text-muted">
-        No player is live right now.
+      <div class="section-title">Enter Match Result</div>
+      <div class="form-card">
+        <div class="form-row" style="margin-bottom:10px;">
+          <select id="matchType" onchange="toggleMatchType()" style="flex:1;">
+            <option value="1">Round 1</option>
+            <option value="2">Round 2</option>
+            <option value="3">Round 3</option>
+            <option value="QF1">Quarter-Final 1</option>
+            <option value="QF2">Quarter-Final 2</option>
+            <option value="SF1">Semi-Final 1</option>
+            <option value="SF2">Semi-Final 2</option>
+            <option value="Final">🏆 Final</option>
+          </select>
+          <button class="btn-sm" onclick="resetMatchForm()" style="width:auto;">Clear Form</button>
+        </div>
+        <div class="form-row">
+          <select id="matchHome" style="flex:2;"><option value="">Home team...</option></select>
+          <div class="score-shell">
+            <select id="matchHomeScore" style="width:70px;min-width:70px;"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option></select>
+            <span style="align-self:center;color:var(--muted);font-size:14px;padding:0 4px;">vs</span>
+            <select id="matchAwayScore" style="width:70px;min-width:70px;"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option></select>
+          </div>
+          <select id="matchAway" style="flex:2;"><option value="">Away team...</option></select>
+          <button class="btn-primary" onclick="saveMatch()">Save</button>
+        </div>
+        <div id="matchPrefillHint" class="fixture-tip"></div>
+        <p id="matchMsg" class="text-muted mt-8"></p>
+      </div>
+
+      <div id="goalScorerSection" style="display:none;">
+        <div class="section-title">Goal Scorers</div>
+        <div class="form-card">
+          <div class="form-row">
+            <select id="scorerPlayer" style="flex:3;"><option value="">Select player...</option></select>
+            <select id="scorerTeam" style="flex:2;"><option value="">Their team...</option></select>
+            <button class="btn-primary" onclick="addGoal()">Add Goal</button>
+          </div>
+          <p id="scorerMsg" class="text-muted mt-8"></p>
+          <div id="goalsList" style="margin-top:12px;"></div>
+          <div id="goalCountWarning" style="display:none;margin-top:8px;padding:7px 12px;border-radius:8px;background:rgba(240,192,64,0.1);border:1px solid rgba(240,192,64,0.35);font-size:13px;color:var(--accent);"></div>
+          <div style="margin-top:16px;border-top:0.5px solid var(--border);padding-top:14px;">
+            <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px;">⭐ Match MVP</div>
+            <select id="mvpPlayer" style="width:100%;"><option value="">Select MVP (optional)...</option></select>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+            <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="cancelMatch()">Cancel</button>
+            <button class="btn-primary" onclick="finalizeMatch()" style="width:auto;padding:9px 20px;">Confirm Match</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:8px;">Match Results</div>
+      <div id="matchesList" class="players-list"></div>
+    </div>
+
+    <!-- Standings -->
+    <div id="tab-standings" style="display:none;">
+      <div class="section-title">Team Standings</div>
+      <div class="form-card" style="padding:0 0.5rem;">
+        <div id="standingsTable"></div>
       </div>
     </div>
 
-    <div class="auction-side">
-      <div class="section-title">Captain Status</div>
+    <!-- Stats -->
+    <div id="tab-stats" style="display:none;">
+      <div class="section-title">Top Scorers</div>
       <div class="form-card">
-        <div id="captainStatusList"></div>
+        <div id="topScorers"></div>
       </div>
+      <div class="section-title" style="margin-top:16px;">Tournament MVP</div>
+      <div class="form-card">
+        <div id="mvpLeaderboard"></div>
+      </div>
+    </div>
 
-      <div class="section-title">Manual Override</div>
+    <!-- Schedule -->
+    <div id="tab-schedule" style="display:none;">
+      <div class="section-title">Knockout Bracket</div>
+      <div class="form-card" id="bracketCard" style="display:none;">
+        <div id="adminBracket"></div>
+      </div>
+      <div class="section-title" style="margin-top:8px;">Full Schedule</div>
+      <div class="form-card">
+        <div id="adminSchedule"></div>
+      </div>
+    </div>
+
+    <!-- Payments -->
+    <div id="tab-payments" style="display:none;">
+      <div class="section-title">Add Game Entry</div>
       <div class="form-card">
         <div class="form-row">
-          <select id="consolePlayer" style="flex:2;" onchange="updateConsoleWarning()">
-            <option value="">Select player...</option>
+          <input type="text" id="paymentPlayer" placeholder="Player name" autocomplete="off" style="flex:2;" />
+          <input type="date" id="paymentDate" style="flex:1;cursor:pointer;" onclick="this.showPicker && this.showPicker()" onfocus="this.showPicker && this.showPicker()" />
+          <select id="paymentAmount" style="flex:0 0 90px;">
+            <option value="3">$3</option>
+            <option value="6">$6</option>
+            <option value="9">$9</option>
+            <option value="12">$12</option>
           </select>
-          <select id="consoleCaptain" style="flex:2;" onchange="updateConsoleWarning()">
-            <option value="">Select captain...</option>
+          <select id="paymentStatus" style="flex:1;">
+            <option value="received">Received</option>
+            <option value="pending">Pending</option>
           </select>
-          <input type="number" id="consolePrice" placeholder="Sold price (pts)" min="0" style="flex:1;min-width:120px;" />
-          <button class="btn-primary" onclick="doAssign()">Assign Manually</button>
+          <button class="btn-primary" onclick="addPaymentEntry()">Save</button>
         </div>
-        <div id="consoleWarning" style="margin-top:8px;"></div>
-        <p id="consoleMsg" class="text-muted mt-8"></p>
+        <div class="form-row" style="margin-top:10px;">
+          <input type="text" id="paymentNotes" placeholder="Notes (optional)" />
+        </div>
+        <p id="paymentMsg" class="text-muted mt-8"></p>
       </div>
 
-      <div class="section-title">Recently Sold</div>
+      <div class="section-title">Payment Summary</div>
       <div class="form-card">
-        <div id="recentSalesList"></div>
+        <div id="adminPaymentSummary"></div>
       </div>
-    </div>
-  </div>
-</div>
 
-<!-- Overview -->
-<div id="tab-overview" style="display:none;">
-  <div class="section-title">Captains & Purses</div>
-  <div id="overviewMsg" class="text-muted" style="margin-bottom:12px;"></div>
-  <div class="captains-grid" id="adminCaptainsGrid"></div>
-</div>
-
-<!-- Players -->
-<div id="tab-players" style="display:none;">
-  <div class="section-title">Add Player</div>
-  <div class="form-card">
-    <div class="form-row">
-      <input type="text" id="playerName" placeholder="Player name" />
-      <select id="playerGroup">
-        <option value="X">Group X (150 pts base)</option>
-        <option value="Y">Group Y (50 pts base)</option>
-      </select>
-      <select id="playerStatus">
-        <option value="confirmed">Confirmed</option>
-        <option value="tentative">Tentative</option>
-      </select>
-      <button class="btn-primary" onclick="addPlayer()">Add</button>
-    </div>
-    <p id="playerMsg" class="text-muted mt-8"></p>
-  </div>
-  <div class="section-title">Player Pool <span id="playerCount" style="font-size:0.85rem;color:var(--muted);font-family:var(--font-body);font-weight:400;letter-spacing:0;margin-left:8px;"></span></div>
-  <div id="playersList" class="players-list"></div>
-</div>
-
-<!-- Matches -->
-<div id="tab-matches" style="display:none;">
-  <!-- Now Playing / Up Next Banner -->
-  <div id="matchDayBanner" style="display:none;margin-bottom:20px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.5);border-radius:var(--radius-lg);padding:16px 20px;">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">⚡ Now Playing</div>
-        <div id="nowPlayingTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
-        <div id="nowPlayingMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;">Up Next</div>
-        <div id="upNextTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
-        <div id="upNextMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+      <div class="section-title" style="margin-top:16px;">All Entries</div>
+      <div class="form-card">
+        <div id="adminPaymentsList"></div>
       </div>
     </div>
   </div>
 
-  <!-- Round Generator -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-    <div class="section-title" style="margin-bottom:0;">Round Fixtures</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn-sm" id="genR1Btn" onclick="generateRound('1')" style="width:auto;">Generate Round 1</button>
-      <button class="btn-sm" id="genR2Btn" onclick="generateRound('2')" style="width:auto;">Generate Round 2</button>
-      <button class="btn-sm" id="genR3Btn" onclick="generateRound('3')" style="width:auto;">Generate Round 3</button>
-      <button class="btn-sm" onclick="generateKnockouts()" style="width:auto;">⚡ Generate Knockouts</button>
-    </div>
-  </div>
-  <p id="generateMsg" class="text-muted" style="margin-bottom:14px;"></p>
 
-  <!-- Per-round fixture cards with ↑↓ reorder -->
-  <div id="roundFixturesWrap"></div>
-
-  <!-- Delete Fixture (loaded when a fixture card is tapped) -->
-  <div id="deleteFixtureWrap" style="display:none;margin-bottom:20px;">
-    <div class="form-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-      <div id="deleteFixtureLabel" class="text-muted" style="font-size:13px;"></div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-sm" onclick="clearDeleteFixture()" style="width:auto;">Cancel</button>
-        <button class="btn-danger" onclick="deleteSelectedFixture()" style="width:auto;">Delete Fixture</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="section-title">Enter Match Result</div>
-  <div class="form-card">
-    <div class="form-row" style="margin-bottom:10px;">
-      <select id="matchType" onchange="toggleMatchType()" style="flex:1;">
-        <option value="1">Round 1</option>
-        <option value="2">Round 2</option>
-        <option value="3">Round 3</option>
-        <option value="QF1">Quarter-Final 1</option>
-        <option value="QF2">Quarter-Final 2</option>
-        <option value="SF1">Semi-Final 1</option>
-        <option value="SF2">Semi-Final 2</option>
-        <option value="Final">🏆 Final</option>
-      </select>
-      <button class="btn-sm" onclick="resetMatchForm()" style="width:auto;">Clear Form</button>
-    </div>
-    <div class="form-row">
-      <select id="matchHome" style="flex:2;"><option value="">Home team...</option></select>
-      <div class="score-shell">
-        <select id="matchHomeScore" style="width:70px;min-width:70px;"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option></select>
-        <span style="align-self:center;color:var(--muted);font-size:14px;padding:0 4px;">vs</span>
-        <select id="matchAwayScore" style="width:70px;min-width:70px;"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option></select>
-      </div>
-      <select id="matchAway" style="flex:2;"><option value="">Away team...</option></select>
-      <button class="btn-primary" onclick="saveMatch()">Save</button>
-    </div>
-    <div id="matchPrefillHint" class="fixture-tip"></div>
-    <p id="matchMsg" class="text-muted mt-8"></p>
-  </div>
-
-  <div id="goalScorerSection" style="display:none;">
-    <div class="section-title">Goal Scorers</div>
-    <div class="form-card">
-      <div class="form-row">
-        <select id="scorerPlayer" style="flex:3;"><option value="">Select player...</option></select>
-        <select id="scorerTeam" style="flex:2;"><option value="">Their team...</option></select>
-        <button class="btn-primary" onclick="addGoal()">Add Goal</button>
-      </div>
-      <p id="scorerMsg" class="text-muted mt-8"></p>
-      <div id="goalsList" style="margin-top:12px;"></div>
-      <div id="goalCountWarning" style="display:none;margin-top:8px;padding:7px 12px;border-radius:8px;background:rgba(240,192,64,0.1);border:1px solid rgba(240,192,64,0.35);font-size:13px;color:var(--accent);"></div>
-      <div style="margin-top:16px;border-top:0.5px solid var(--border);padding-top:14px;">
-        <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px;">⭐ Match MVP</div>
-        <select id="mvpPlayer" style="width:100%;"><option value="">Select MVP (optional)...</option></select>
-      </div>
-      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
-        <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="cancelMatch()">Cancel</button>
-        <button class="btn-primary" onclick="finalizeMatch()" style="width:auto;padding:9px 20px;">Confirm Match</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="section-title" style="margin-top:8px;">Match Results</div>
-  <div id="matchesList" class="players-list"></div>
-</div>
-
-<!-- Standings -->
-<div id="tab-standings" style="display:none;">
-  <div class="section-title">Team Standings</div>
-  <div class="form-card" style="padding:0 0.5rem;">
-    <div id="standingsTable"></div>
-  </div>
-</div>
-
-<!-- Stats -->
-<div id="tab-stats" style="display:none;">
-  <div class="section-title">Top Scorers</div>
-  <div class="form-card">
-    <div id="topScorers"></div>
-  </div>
-  <div class="section-title" style="margin-top:16px;">Tournament MVP</div>
-  <div class="form-card">
-    <div id="mvpLeaderboard"></div>
-  </div>
-</div>
-
-<!-- Schedule -->
-<div id="tab-schedule" style="display:none;">
-  <div class="section-title">Knockout Bracket</div>
-  <div class="form-card" id="bracketCard" style="display:none;">
-    <div id="adminBracket"></div>
-  </div>
-  <div class="section-title" style="margin-top:8px;">Full Schedule</div>
-  <div class="form-card">
-    <div id="adminSchedule"></div>
-  </div>
-</div>
-
-<!-- Payments -->
-<div id="tab-payments" style="display:none;">
-  <div class="section-title">Add Game Entry</div>
-  <div class="form-card">
-    <div class="form-row">
-      <input type="text" id="paymentPlayer" placeholder="Player name" autocomplete="off" style="flex:2;" />
-      <input type="date" id="paymentDate" style="flex:1;cursor:pointer;" onclick="this.showPicker && this.showPicker()" onfocus="this.showPicker && this.showPicker()" />
-      <select id="paymentAmount" style="flex:0 0 90px;">
-        <option value="3">$3</option>
-        <option value="6">$6</option>
-        <option value="9">$9</option>
-        <option value="12">$12</option>
-      </select>
-      <select id="paymentStatus" style="flex:1;">
-        <option value="received">Received</option>
-        <option value="pending">Pending</option>
-      </select>
-      <button class="btn-primary" onclick="addPaymentEntry()">Save</button>
-    </div>
-    <div class="form-row" style="margin-top:10px;">
-      <input type="text" id="paymentNotes" placeholder="Notes (optional)" />
-    </div>
-    <p id="paymentMsg" class="text-muted mt-8"></p>
-  </div>
-
-  <div class="section-title">Payment Summary</div>
-  <div class="form-card">
-    <div id="adminPaymentSummary"></div>
-  </div>
-
-  <div class="section-title" style="margin-top:16px;">All Entries</div>
-  <div class="form-card">
-    <div id="adminPaymentsList"></div>
-  </div>
-</div>
-```
-
-  </div>
 
   <!-- Edit Match Result Modal -->
-
   <div id="editMatchModal" class="modal-overlay" style="display:none;">
     <div class="modal" style="max-width:520px;max-height:90dvh;overflow-y:auto;">
       <div class="modal-title">Edit Match Result</div>
       <div class="modal-sub" id="editMatchLabel" style="margin-bottom:12px;">—</div>
 
-```
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
-    <select id="editMatchHome" style="flex:2;"></select>
-    <div style="display:flex;gap:6px;align-items:center;">
-      <input type="number" id="editMatchHomeScore" min="0" style="width:56px;min-width:56px;text-align:center;" />
-      <span style="color:var(--muted);">–</span>
-      <input type="number" id="editMatchAwayScore" min="0" style="width:56px;min-width:56px;text-align:center;" />
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+        <select id="editMatchHome" style="flex:2;"></select>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="editMatchHomeScore" min="0" style="width:56px;min-width:56px;text-align:center;" />
+          <span style="color:var(--muted);">–</span>
+          <input type="number" id="editMatchAwayScore" min="0" style="width:56px;min-width:56px;text-align:center;" />
+        </div>
+        <select id="editMatchAway" style="flex:2;"></select>
+      </div>
+
+      <div style="border-top:0.5px solid var(--border);padding-top:12px;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;">⚽ Goal Scorers</div>
+        <div id="editGoalsList" style="margin-bottom:10px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select id="editScorerTeam" onchange="updateEditScorerPlayers()" style="flex:1;min-width:120px;"></select>
+          <select id="editScorerPlayer" style="flex:2;min-width:140px;"></select>
+          <button class="btn-sm" onclick="addEditGoal()" style="width:auto;">+ Add Goal</button>
+        </div>
+        <p id="editScorerMsg" class="text-muted mt-8"></p>
+      </div>
+
+      <div style="border-top:0.5px solid var(--border);padding-top:12px;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;">⭐ Match MVP</div>
+        <select id="editMvpPlayer" style="width:100%;"></select>
+      </div>
+
+      <p id="editMatchError" class="text-muted" style="color:var(--red);margin-bottom:8px;"></p>
+      <div class="modal-actions">
+        <button class="btn-cancel" style="width:auto;" onclick="closeEditMatchModal()">Cancel</button>
+        <button class="btn-primary" style="width:auto;" onclick="saveEditMatch()">Save Changes</button>
+      </div>
     </div>
-    <select id="editMatchAway" style="flex:2;"></select>
-  </div>
-
-  <div style="border-top:0.5px solid var(--border);padding-top:12px;margin-bottom:10px;">
-    <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;">⚽ Goal Scorers</div>
-    <div id="editGoalsList" style="margin-bottom:10px;"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <select id="editScorerTeam" onchange="updateEditScorerPlayers()" style="flex:1;min-width:120px;"></select>
-      <select id="editScorerPlayer" style="flex:2;min-width:140px;"></select>
-      <button class="btn-sm" onclick="addEditGoal()" style="width:auto;">+ Add Goal</button>
-    </div>
-    <p id="editScorerMsg" class="text-muted mt-8"></p>
-  </div>
-
-  <div style="border-top:0.5px solid var(--border);padding-top:12px;margin-bottom:14px;">
-    <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;">⭐ Match MVP</div>
-    <select id="editMvpPlayer" style="width:100%;"></select>
-  </div>
-
-  <p id="editMatchError" class="text-muted" style="color:var(--red);margin-bottom:8px;"></p>
-  <div class="modal-actions">
-    <button class="btn-cancel" style="width:auto;" onclick="closeEditMatchModal()">Cancel</button>
-    <button class="btn-primary" style="width:auto;" onclick="saveEditMatch()">Save Changes</button>
-  </div>
-</div>
-```
-
   </div>
 
   <div id="saleConfirmModal" class="modal-overlay" style="display:none;">
@@ -716,13 +707,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <script src="supabase-config.js"></script>
-
   <script src="budget-warning.js"></script>
-
   <script src="standings.js"></script>
-
   <script>
     if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
@@ -1446,7 +1433,7 @@
         // Check previous round is complete
         const prevRound = String(Number(round) - 1);
         const prevMatches = allMatches.filter(m => String(m.round) === prevRound);
-        const prevComplete = prevMatches.length === 4 && prevMatches.every(m => m.played);
+        const prevComplete = prevMatches.length === 4 && prevMatches.every(m => m.played === true || m.played === 1);
         if (!prevComplete) {
           msg.textContent = `Round ${prevRound} must be complete before generating Round ${round}.`;
           setTimeout(() => msg.textContent = '', 4000);
@@ -1483,7 +1470,7 @@
       const standings = computeStandings(allCaptains, allMatches);
       // Check all 3 rounds complete
       const round3 = allMatches.filter(m => m.round === '3');
-      if (round3.length < 4 || !round3.every(m => m.played)) {
+      if (round3.length < 4 || !round3.every(m => m.played === true || m.played === 1)) {
         msg.textContent = 'All 3 rounds must be complete before generating knockouts.';
         setTimeout(() => msg.textContent = '', 4000);
         return;
@@ -1776,6 +1763,15 @@
       document.getElementById('standingsTable').innerHTML = standingsTableHtml(allCaptains, allMatches);
     }
 
+    function renderStats() {
+      const scorers = computeTopScorers(allPlayers, allGoals, allCaptains);
+      const el = document.getElementById('topScorers');
+      if (el) el.innerHTML = topScorersHtml(scorers);
+      const mvps = computeMvpLeaderboard(allPlayers, allMatches);
+      const el2 = document.getElementById('mvpLeaderboard');
+      if (el2) el2.innerHTML = mvpLeaderboardHtml(mvps, allMatches, allPlayers, allCaptains);
+    }
+
     function renderSchedule() {
       const rows = computeStandings(allCaptains, allMatches);
       document.getElementById('adminSchedule').innerHTML = matchScheduleHtml(allMatches, allCaptains, allPlayers, rows);
@@ -1861,11 +1857,16 @@
       document.getElementById('upNextMeta').textContent      = next ? metaLine(next) : 'No more fixtures';
     }
 
-        function populateMvpDropdown() {
+    function populateMvpDropdown() {
       const sel = document.getElementById('mvpPlayer');
       if (!sel) return;
+      const homeCap = allCaptains.find(c => c.id === pendingHomeId);
+      const awayCap = allCaptains.find(c => c.id === pendingAwayId);
       const teamPlayers = allPlayers.filter(p => p.captain_id === pendingHomeId || p.captain_id === pendingAwayId);
+      const captainOpts = [homeCap, awayCap].filter(Boolean)
+        .map(c => `<option value="${c.id}">${c.name} (C) (${displayCaptainName(c)})</option>`).join('');
       sel.innerHTML = '<option value="">Select MVP (optional)...</option>' +
+        captainOpts +
         teamPlayers.map(p => {
           const cap = allCaptains.find(c => c.id === p.captain_id);
           return `<option value="${p.id}">${p.name} (${cap ? displayCaptainName(cap) : '?'})</option>`;
@@ -2024,6 +2025,5 @@
 
     loadData();
   </script>
-
 </body>
 </html>
