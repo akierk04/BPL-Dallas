@@ -290,33 +290,7 @@
     let previousBidValue = 0;
     let previousBidPlayerId = null;
     let previousSoldKey = '';
-    let audioUnlocked = false;
-    const sounds = {
-      bid: new Audio('sounds/bid.mp3'),
-      sold: new Audio('sounds/sold.mp3'),
-      countdown: new Audio('sounds/countdown.mp3')
-    };
-    Object.values(sounds).forEach(sound => { sound.preload = 'auto'; sound.volume = 0.9; });
-    function unlockAudio() {
-      if (audioUnlocked) return;
-      audioUnlocked = true;
-      Object.values(sounds).forEach(sound => {
-        sound.play().then(() => {
-          sound.pause();
-          sound.currentTime = 0;
-        }).catch(() => {});
-      });
-    }
-    function playSound(type) {
-      if (!audioUnlocked || !sounds[type]) return;
-      try {
-        sounds[type].pause();
-        sounds[type].currentTime = 0;
-        sounds[type].play().catch(() => {});
-      } catch (e) {}
-    }
-    document.addEventListener('click', unlockAudio, { once: true });
-    document.addEventListener('touchstart', unlockAudio, { once: true });
+
     const BTABS=['auction','standings','stats','schedule','teams','dues'];
 
     function switchBoardTab(tab) {
@@ -400,11 +374,9 @@
     function handleAuctionDrama() {
       const currentBid = bidState?.current_bid || 0;
       if (currentPlayerId && previousBidPlayerId === currentPlayerId && currentBid > previousBidValue) {
-        playSound('bid');
         triggerBidPulse();
       }
       if (lastSoldEvent?.key && lastSoldEvent.key !== previousSoldKey) {
-        playSound('sold');
         previousSoldKey = lastSoldEvent.key;
       }
       previousBidValue = currentBid;
