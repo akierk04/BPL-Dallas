@@ -1606,15 +1606,22 @@
     function updateScorerPlayers() {
       const teamId = document.getElementById('scorerTeam').value;
       const pSel = document.getElementById('scorerPlayer');
-      const teamPlayers = allPlayers.filter(p => p.captain_id === teamId);
-      pSel.innerHTML = '<option value="">Select player...</option>' + teamPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      const captain = allCaptains.find(c => c.id === teamId);
+      const teamPlayers = allPlayers.filter(p => p.captain_id === teamId && p.is_sold);
+      const options = [];
+      if (captain) options.push(`<option value="captain-${captain.id}">${captain.name} (C)</option>`);
+      teamPlayers.forEach(p => options.push(`<option value="${p.id}">${p.name}</option>`));
+      pSel.innerHTML = '<option value="">Select player...</option>' + options.join('');
     }
 
     function addGoal() {
-      const pid = document.getElementById('scorerPlayer').value, tid = document.getElementById('scorerTeam').value;
+      const rawPid = document.getElementById('scorerPlayer').value;
+      const tid = document.getElementById('scorerTeam').value;
       const msg = document.getElementById('scorerMsg');
-      if (!pid) { msg.textContent = 'Select a player.'; return; }
-      pendingGoals.push({ player_id: pid, captain_id: tid, match_id: pendingMatchId });
+      if (!rawPid) { msg.textContent = 'Select a player.'; return; }
+      const isCaptain = rawPid.startsWith('captain-');
+      const pid = isCaptain ? rawPid.replace('captain-', '') : rawPid;
+      pendingGoals.push({ player_id: pid, captain_id: tid, match_id: pendingMatchId, isCaptain });
       renderPendingGoals();
       msg.textContent = '';
       document.getElementById('scorerPlayer').value = '';
@@ -1623,9 +1630,13 @@
     function renderPendingGoals() {
       document.getElementById('goalsList').innerHTML = pendingGoals.length
         ? pendingGoals.map((g, i) => {
-            const p = allPlayers.find(x => x.id === g.player_id), c = allCaptains.find(x => x.id === g.captain_id);
+            const p = g.isCaptain
+              ? allCaptains.find(x => x.id === g.player_id)
+              : allPlayers.find(x => x.id === g.player_id);
+            const c = allCaptains.find(x => x.id === g.captain_id);
+            const pName = g.isCaptain ? `${p?.name || '?'} (C)` : (p?.name || '?');
             return `<div class="player-row" style="padding:8px 12px;">
-              <span>⚽ ${p ? p.name : '?'}</span>
+              <span>⚽ ${pName}</span>
               <span class="player-row-meta">${c ? displayCaptainName(c) : '?'}</span>
               <button class="btn-danger" onclick="removeGoal(${i})">✕</button>
             </div>`;
@@ -1665,7 +1676,8 @@
         if (!confirm(msg)) return;
       }
       if (pendingGoals.length) {
-        const { error } = await db.from('goals').insert(pendingGoals);
+        const goalsToInsert = pendingGoals.map(({ player_id, captain_id, match_id }) => ({ player_id, captain_id, match_id }));
+        const { error } = await db.from('goals').insert(goalsToInsert);
         if (error) { alert('Error saving goals: ' + error.message); return; }
       }
       const mvpId = document.getElementById('mvpPlayer').value || null;
