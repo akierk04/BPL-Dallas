@@ -1721,7 +1721,9 @@
         const h = allCaptains.find(c => c.id === m.home_captain_id), a = allCaptains.find(c => c.id === m.away_captain_id);
         const mGoals = allGoals.filter(g => g.match_id === m.id);
         const scorers = mGoals.map(g => {
-          const p = allPlayers.find(x => x.id === g.player_id); return p ? p.name : '?';
+          const p = allPlayers.find(x => x.id === g.player_id);
+          const c = !p ? allCaptains.find(x => x.id === g.player_id) : null;
+          return p ? p.name : (c ? c.name + ' (C)' : '?');
         }).join(', ');
         const label = ['QF1','QF2','SF1','SF2','Final'].includes(m.round) ? m.round : (m.round ? `Round ${m.round}` : '—');
         return `
@@ -1737,6 +1739,117 @@
             </div>
           </div>`;
       }).join('');
+    }
+
+    function updateEditScorerPlayers() {
+      const teamId = document.getElementById('editScorerTeam').value;
+      const captain = allCaptains.find(c => c.id === teamId);
+      const players = allPlayers.filter(p => p.captain_id === teamId && p.is_sold);
+      const options = [];
+      if (captain) options.push(`<option value="${captain.id}">${captain.name} (C)</option>`);
+      players.forEach(p => options.push(`<option value="${p.id}">${p.name}</option>`));
+      document.getElementById('editScorerPlayer').innerHTML =
+        '<option value="">Select player...</option>' + options.join('');
+    }
+
+    let editMatchState = null;
+
+    function editMatch(matchId) {
+      const m = allMatches.find(x => x.id === matchId);
+      if (!m) return;
+      editMatchState = {
+        matchId,
+        goals: allGoals.filter(g => g.match_id === matchId).map(g => ({ ...g }))
+      };
+      const h = allCaptains.find(c => c.id === m.home_captain_id);
+      const a = allCaptains.find(c => c.id === m.away_captain_id);
+      document.getElementById('editMatchLabel').textContent =
+        `${displayCaptainName(h)} vs ${displayCaptainName(a)}` +
+        (m.round ? ` · ${['1','2','3'].includes(m.round) ? 'Round ' + m.round : m.round}` : '');
+      const teamOpts = allCaptains.map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
+      document.getElementById('editMatchHome').innerHTML = teamOpts;
+      document.getElementById('editMatchAway').innerHTML = teamOpts;
+      document.getElementById('editMatchHome').value = m.home_captain_id;
+      document.getElementById('editMatchAway').value = m.away_captain_id;
+      document.getElementById('editMatchHomeScore').value = m.home_score;
+      document.getElementById('editMatchAwayScore').value = m.away_score;
+      // Scorer team dropdown — both teams
+      const scorerTeamOpts = [h, a].filter(Boolean)
+        .map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
+      document.getElementById('editScorerTeam').innerHTML = scorerTeamOpts;
+      updateEditScorerPlayers();
+      // MVP dropdown — captains + squad players from both teams
+      const teamPlayers = allPlayers.filter(p => p.captain_id === m.home_captain_id || p.captain_id === m.away_captain_id);
+      const captainOpts = [h, a].filter(Boolean)
+        .map(c => `<option value="${c.id}" ${c.id === m.mvp_player_id ? 'selected' : ''}>${c.name} (C)</option>`).join('');
+      document.getElementById('editMvpPlayer').innerHTML =
+        '<option value="">No MVP</option>' + captainOpts +
+        teamPlayers.map(p => `<option value="${p.id}" ${p.id === m.mvp_player_id ? 'selected' : ''}>${p.name} (${displayCaptainName(allCaptains.find(c=>c.id===p.captain_id))})</option>`).join('');
+      document.getElementById('editMatchError').textContent = '';
+      renderEditGoalsList();
+      document.getElementById('editMatchModal').style.display = 'flex';
+    }
+
+    function addEditGoal() {
+      const pid = document.getElementById('editScorerPlayer').value;
+      const tid = document.getElementById('editScorerTeam').value;
+      const msg = document.getElementById('editScorerMsg');
+      if (!pid) { msg.textContent = 'Select a player.'; return; }
+      editMatchState.goals.push({ player_id: pid, captain_id: tid, match_id: editMatchState.matchId });
+      document.getElementById('editScorerPlayer').value = '';
+      msg.textContent = '';
+      renderEditGoalsList();
+    }
+
+    function removeEditGoal(i) {
+      editMatchState.goals.splice(i, 1);
+      renderEditGoalsList();
+    }
+
+    function renderEditGoalsList() {
+      const el = document.getElementById('editGoalsList');
+      if (!editMatchState?.goals.length) {
+        el.innerHTML = '<div class="text-muted" style="padding:4px 0 8px;">No goals.</div>';
+        return;
+      }
+      el.innerHTML = editMatchState.goals.map((g, i) => {
+        const p = allPlayers.find(x => x.id === g.player_id) || allCaptains.find(x => x.id === g.player_id);
+        const c = allCaptains.find(x => x.id === g.captain_id);
+        const pName = p ? (allCaptains.find(x => x.id === p.id) ? p.name + ' (C)' : p.name) : '?';
+        return `<div class="player-row" style="padding:6px 10px;margin-bottom:4px;">
+          <span>⚽ ${pName}</span>
+          <span class="player-row-meta">${c ? displayCaptainName(c) : '?'}</span>
+          <button class="btn-danger" onclick="removeEditGoal(${i})">✕</button>
+        </div>`;
+      }).join('');
+    }
+
+    async function saveEditMatch() {
+      if (!editMatchState) return;
+      const { matchId } = editMatchState;
+      const hs  = parseInt(document.getElementById('editMatchHomeScore').value);
+      const as_ = parseInt(document.getElementById('editMatchAwayScore').value);
+      const mvpId = document.getElementById('editMvpPlayer').value || null;
+      const err = document.getElementById('editMatchError');
+      if (isNaN(hs) || isNaN(as_) || hs < 0 || as_ < 0) { err.textContent = 'Enter valid scores.'; return; }
+      await db.from('goals').delete().eq('match_id', matchId);
+      if (editMatchState.goals.length) {
+        const { error } = await db.from('goals').insert(
+          editMatchState.goals.map(g => ({ player_id: g.player_id, captain_id: g.captain_id, match_id: matchId }))
+        );
+        if (error) { err.textContent = 'Error saving goals: ' + error.message; return; }
+      }
+      const { error } = await db.from('matches').update({
+        home_score: hs, away_score: as_, mvp_player_id: mvpId
+      }).eq('id', matchId);
+      if (error) { err.textContent = 'Error: ' + error.message; return; }
+      closeEditMatchModal();
+      await loadData();
+    }
+
+    function closeEditMatchModal() {
+      editMatchState = null;
+      document.getElementById('editMatchModal').style.display = 'none';
     }
 
     async function deleteMatch(id) {
