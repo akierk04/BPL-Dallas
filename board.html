@@ -134,6 +134,7 @@
       <button class="tab" onclick="switchBoardTab('schedule')">Schedule</button>
       <button class="tab" onclick="switchBoardTab('teams')">Teams</button>
       <button class="tab" onclick="switchBoardTab('dues')">Dues</button>
+      <button class="tab" onclick="switchBoardTab('halloffame')">Hall of Fame</button>
     </div>
 
     <!-- Auction tab -->
@@ -263,6 +264,12 @@
       <div id="boardTeamsGrid" class="board-grid"></div>
     </div>
 
+    <!-- Hall of Fame tab -->
+    <div id="btab-halloffame" style="display:none;">
+      <div class="section-title">Hall of Fame</div>
+      <div id="boardHofList"></div>
+    </div>
+
     <!-- Dues tab -->
     <div id="btab-dues" style="display:none;">
       <div class="section-title">Top Payers</div>
@@ -282,7 +289,7 @@
   <script src="budget-warning.js"></script>
   <script src="standings.js"></script>
   <script>
-    let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], paymentSummary=[], topPayers=[], currentFilter='all', currentPlayerId=null, bidState=null;
+    let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], paymentSummary=[], topPayers=[], hofEntries=[], currentFilter='all', currentPlayerId=null, bidState=null;
 
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
     let previousSoldState = new Map();
@@ -291,7 +298,7 @@
     let previousBidPlayerId = null;
     let previousSoldKey = '';
 
-    const BTABS=['auction','standings','stats','schedule','teams','dues'];
+    const BTABS=['auction','standings','stats','schedule','teams','dues','halloffame'];
 
     function switchBoardTab(tab) {
       BTABS.forEach(t=>document.getElementById('btab-'+t).style.display=t===tab?'block':'none');
@@ -323,12 +330,13 @@
     }
 
     async function loadData() {
-      const [capRes,playRes,bidRes,matchRes,goalRes,paymentsRes,summaryRes,topPayersRes]=await Promise.all([
+      const [capRes,playRes,bidRes,matchRes,goalRes,paymentsRes,summaryRes,topPayersRes,hofRes]=await Promise.all([
         db.from('captains').select('*').order('name'),
         db.from('players').select('*').order('name'),
         db.from('bidding_state').select('*').eq('id',1).single(),
         db.from('matches').select('*').order('created_at'),
         db.from('goals').select('*'),
+        db.from('hall_of_fame').select('*').order('season', { ascending: false }),
         db.from('payments').select('*').order('created_at', { ascending: false }),
         db.from('payment_summary').select('*'),
         db.from('top_payers').select('*').order('total_paid', { ascending: false })
@@ -339,6 +347,7 @@
       allPlayers=playRes.data||[];
       allMatches=matchRes.data||[];
       allGoals=goalRes.data||[];
+      hofEntries=hofRes?.data||[];
       allPayments=paymentsRes.data||[];
       paymentSummary=summaryRes.data||[];
       topPayers=topPayersRes.data||[];
@@ -360,6 +369,7 @@
       renderBoardSchedule();
       renderTeams();
       renderBoardDues();
+      renderBoardHof();
     }
 
 
@@ -875,6 +885,48 @@ function renderRecentSales() {
       }).join('');
     }
 
+
+    function renderBoardHof() {
+      const wrap = document.getElementById('boardHofList');
+      if (!wrap) return;
+      if (!hofEntries.length) {
+        wrap.innerHTML = '<div class="text-muted">No seasons recorded yet.</div>';
+        return;
+      }
+      wrap.innerHTML = hofEntries.map(e => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="font-family:var(--font-display);font-size:2rem;color:var(--accent);">S${e.season}</div>
+            <div style="font-size:13px;color:var(--muted);">${e.year}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;">
+            <div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:4px;">🏆 Champions</div>
+              <div style="font-weight:700;color:var(--text);font-size:16px;">${e.champion}</div>
+              <div style="font-size:12px;color:var(--muted);">${e.captain}</div>
+            </div>
+            ${e.runner_up ? `<div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">🥈 Runner-Up</div>
+              <div style="font-weight:600;color:var(--text);font-size:14px;">${e.runner_up}</div>
+              <div style="font-size:12px;color:var(--muted);">${e.runner_up_captain || ''}</div>
+            </div>` : ''}
+            ${e.top_scorer ? `<div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">⚽ Top Scorer</div>
+              <div style="font-weight:600;color:var(--text);font-size:14px;">${e.top_scorer}</div>
+              <div style="font-size:12px;color:var(--muted);">${e.top_scorer_goals ? e.top_scorer_goals + ' goals' : ''}</div>
+            </div>` : ''}
+            ${e.mvp ? `<div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">⭐ MVP</div>
+              <div style="font-weight:600;color:var(--text);font-size:14px;">${e.mvp}</div>
+            </div>` : ''}
+            ${e.total_goals ? `<div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">🥅 Total Goals</div>
+              <div style="font-weight:600;color:var(--text);font-size:14px;">${e.total_goals}</div>
+            </div>` : ''}
+          </div>
+          ${e.notes ? `<div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--border);font-size:12px;color:var(--muted);">${e.notes}</div>` : ''}
+        </div>`).join('');
+    }
 
     function renderBoardDues() {
       renderBoardTopPayers();
