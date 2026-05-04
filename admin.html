@@ -695,7 +695,10 @@
           </div>
           <div style="flex:0 0 120px;">
             <div class="captain-wallet-label" style="margin-bottom:4px;">Goals</div>
-            <input type="number" id="hofTopScorerGoals" placeholder="0" min="0" style="width:100%;" />
+            <select id="hofTopScorerGoals" style="width:100%;">
+            <option value="">Goals...</option>
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option>
+          </select>
           </div>
           <div style="flex:1;min-width:200px;">
             <div class="captain-wallet-label" style="margin-bottom:4px;">⭐ Tournament MVP</div>
@@ -2308,10 +2311,7 @@
               <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">⭐ Tournament MVP</div>
               <div style="font-weight:600;color:var(--text);font-size:14px;">${e.mvp}</div>
             </div>` : ''}
-            ${e.total_goals ? `<div>
-              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">🥅 Total Goals</div>
-              <div style="font-weight:600;color:var(--text);font-size:14px;">${e.total_goals}</div>
-            </div>` : ''}
+
           </div>
           ${e.notes ? `<div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--border);font-size:12px;color:var(--muted);">${e.notes}</div>` : ''}
         </div>`).join('');
