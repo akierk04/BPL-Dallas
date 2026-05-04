@@ -919,10 +919,7 @@ function renderRecentSales() {
               <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">⭐ MVP</div>
               <div style="font-weight:600;color:var(--text);font-size:14px;">${e.mvp}</div>
             </div>` : ''}
-            ${e.total_goals ? `<div>
-              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">🥅 Total Goals</div>
-              <div style="font-weight:600;color:var(--text);font-size:14px;">${e.total_goals}</div>
-            </div>` : ''}
+
           </div>
           ${e.notes ? `<div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--border);font-size:12px;color:var(--muted);">${e.notes}</div>` : ''}
         </div>`).join('');
