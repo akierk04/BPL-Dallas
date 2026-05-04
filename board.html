@@ -336,10 +336,10 @@
         db.from('bidding_state').select('*').eq('id',1).single(),
         db.from('matches').select('*').order('created_at'),
         db.from('goals').select('*'),
-        db.from('hall_of_fame').select('*').order('season', { ascending: false }),
         db.from('payments').select('*').order('created_at', { ascending: false }),
         db.from('payment_summary').select('*'),
-        db.from('top_payers').select('*').order('total_paid', { ascending: false })
+        db.from('top_payers').select('*'),
+        db.from('hall_of_fame').select('*').order('season', { ascending: false })
       ]);
 
       allCaptains=capRes.data||[];
