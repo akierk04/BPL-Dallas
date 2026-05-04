@@ -655,22 +655,53 @@
     <div id="tab-halloffame" style="display:none;">
       <div class="section-title">Add Season</div>
       <div class="form-card">
+        <div class="form-row" style="flex-wrap:wrap;margin-bottom:10px;">
+          <input type="number" id="hofSeason" placeholder="Season #" min="1" style="flex:0 0 110px;" oninput="loadHofArchiveCaptains()" />
+          <input type="number" id="hofYear" placeholder="Year" min="2024" style="flex:0 0 110px;" />
+          <button class="btn-sm" onclick="loadHofArchiveCaptains()" style="width:auto;">Load Season Data</button>
+        </div>
+        <p id="hofLoadMsg" class="text-muted" style="margin-bottom:10px;"></p>
+        <div class="form-row" style="flex-wrap:wrap;margin-bottom:10px;">
+          <div style="flex:1;min-width:200px;">
+            <div class="captain-wallet-label" style="margin-bottom:4px;">🏆 Champion Team</div>
+            <select id="hofChampionId" style="width:100%;" onchange="hofSyncName('hofChampionId','hofChampion','hofCaptain')">
+              <option value="">Select champion...</option>
+            </select>
+            <input type="hidden" id="hofChampion" />
+            <input type="hidden" id="hofCaptain" />
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <div class="captain-wallet-label" style="margin-bottom:4px;">🥈 Runner-Up Team</div>
+            <select id="hofRunnerUpId" style="width:100%;" onchange="hofSyncName('hofRunnerUpId','hofRunnerUp','hofRunnerUpCaptain')">
+              <option value="">Select runner-up...</option>
+            </select>
+            <input type="hidden" id="hofRunnerUp" />
+            <input type="hidden" id="hofRunnerUpCaptain" />
+          </div>
+        </div>
+        <div class="form-row" style="flex-wrap:wrap;margin-bottom:10px;">
+          <div style="flex:1;min-width:200px;">
+            <div class="captain-wallet-label" style="margin-bottom:4px;">⚽ Top Scorer</div>
+            <select id="hofTopScorerId" style="width:100%;" onchange="hofSyncPlayerName('hofTopScorerId','hofTopScorer')">
+              <option value="">Select top scorer...</option>
+            </select>
+            <input type="hidden" id="hofTopScorer" />
+          </div>
+          <div style="flex:0 0 120px;">
+            <div class="captain-wallet-label" style="margin-bottom:4px;">Goals</div>
+            <input type="number" id="hofTopScorerGoals" placeholder="0" min="0" style="width:100%;" />
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <div class="captain-wallet-label" style="margin-bottom:4px;">⭐ Tournament MVP</div>
+            <select id="hofMvpId" style="width:100%;" onchange="hofSyncPlayerName('hofMvpId','hofMvp')">
+              <option value="">Select MVP...</option>
+            </select>
+            <input type="hidden" id="hofMvp" />
+          </div>
+        </div>
         <div class="form-row" style="flex-wrap:wrap;">
-          <input type="number" id="hofSeason" placeholder="Season #" min="1" style="flex:0 0 100px;" />
-          <input type="number" id="hofYear" placeholder="Year" min="2024" style="flex:0 0 100px;" />
-          <input type="text" id="hofChampion" placeholder="Champion team name" style="flex:2;" />
-          <input type="text" id="hofCaptain" placeholder="Captain name" style="flex:2;" />
-        </div>
-        <div class="form-row" style="flex-wrap:wrap;margin-top:10px;">
-          <input type="text" id="hofRunnerUp" placeholder="Runner-up team name" style="flex:2;" />
-          <input type="text" id="hofRunnerUpCaptain" placeholder="Runner-up captain" style="flex:2;" />
-          <input type="text" id="hofTopScorer" placeholder="Top scorer name" style="flex:2;" />
-          <input type="number" id="hofTopScorerGoals" placeholder="Goals" min="0" style="flex:0 0 80px;" />
-        </div>
-        <div class="form-row" style="flex-wrap:wrap;margin-top:10px;">
-          <input type="text" id="hofMvp" placeholder="Tournament MVP" style="flex:2;" />
-          <input type="number" id="hofTotalGoals" placeholder="Total goals" min="0" style="flex:0 0 100px;" />
-          <input type="text" id="hofNotes" placeholder="Notes (optional)" style="flex:3;" />
+          <input type="number" id="hofTotalGoals" placeholder="Total goals in tournament" min="0" style="flex:1;" />
+          <input type="text" id="hofNotes" placeholder="Notes (optional)" style="flex:2;" />
           <button class="btn-primary" onclick="addHallOfFameEntry()" style="width:auto;">Add Season</button>
         </div>
         <p id="hofMsg" class="text-muted mt-8"></p>
@@ -2177,6 +2208,64 @@
     }
 
     // ── Hall of Fame ──
+    let hofArchiveCaptains = [];
+    let hofArchivePlayers  = [];
+
+    async function loadHofArchiveCaptains() {
+      const season = parseInt(document.getElementById('hofSeason').value);
+      const msg    = document.getElementById('hofLoadMsg');
+      if (!season || season < 1) { msg.textContent = ''; return; }
+
+      msg.textContent = `Loading Season ${season} data...`;
+
+      const [capRes, playRes] = await Promise.all([
+        db.from('archive_captains').select('*').eq('season', season).order('name'),
+        db.from('archive_players').select('*').eq('season', season).order('name')
+      ]);
+
+      if (capRes.error || !capRes.data?.length) {
+        msg.textContent = `No archive data found for Season ${season}. Run the archive SQL first.`;
+        hofArchiveCaptains = []; hofArchivePlayers = [];
+        populateHofDropdowns();
+        return;
+      }
+
+      hofArchiveCaptains = capRes.data;
+      hofArchivePlayers  = playRes.data || [];
+      msg.textContent = `✓ Loaded ${hofArchiveCaptains.length} captains and ${hofArchivePlayers.length} players from Season ${season}.`;
+      populateHofDropdowns();
+    }
+
+    function populateHofDropdowns() {
+      const capOpt = '<option value="">Select...</option>' +
+        hofArchiveCaptains.map(c => `<option value="${c.id}" data-team="${c.team_name || c.name}" data-captain="${c.name}">${c.team_name || c.name} (${c.name})</option>`).join('');
+
+      // All scorers = players + captains
+      const playerOpts = '<option value="">Select...</option>' +
+        hofArchivePlayers.filter(p => p.is_sold).map(p => {
+          const cap = hofArchiveCaptains.find(c => c.id === p.captain_id);
+          return `<option value="${p.id}" data-name="${p.name}">${p.name}${cap ? ' (' + (cap.team_name || cap.name) + ')' : ''}</option>`;
+        }).join('') +
+        hofArchiveCaptains.map(c => `<option value="${c.id}" data-name="${c.name} (C)">${c.name} (C) — ${c.team_name || c.name}</option>`).join('');
+
+      document.getElementById('hofChampionId').innerHTML  = capOpt;
+      document.getElementById('hofRunnerUpId').innerHTML  = capOpt;
+      document.getElementById('hofTopScorerId').innerHTML = playerOpts;
+      document.getElementById('hofMvpId').innerHTML       = playerOpts;
+    }
+
+    function hofSyncName(selectId, teamField, captainField) {
+      const sel = document.getElementById(selectId);
+      const opt = sel.options[sel.selectedIndex];
+      document.getElementById(teamField).value    = opt?.dataset?.team    || '';
+      document.getElementById(captainField).value = opt?.dataset?.captain || '';
+    }
+
+    function hofSyncPlayerName(selectId, nameField) {
+      const sel = document.getElementById(selectId);
+      const opt = sel.options[sel.selectedIndex];
+      document.getElementById(nameField).value = opt?.dataset?.name || '';
+    }
     function renderHallOfFame() {
       const wrap = document.getElementById('hofList');
       if (!wrap) return;
