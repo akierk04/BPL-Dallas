@@ -424,11 +424,11 @@
         const p = allPlayers.find(x => x.id === currentPlayerId);
         if (p && !p.is_sold) {
           nm.textContent = p.name;
-          const grpColor = p.group_name === 'X' ? 'var(--groupX)' : 'var(--green)';
+          const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : '#7c8cf8';
           bp.innerHTML =
             `Base price ${p.base_price} pts` +
             ` <span style="margin-left:6px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${grpColor}18;border:1px solid ${grpColor}55;color:${grpColor};">Group ${p.group_name}</span>` +
-            (p.status === 'tentative' ? ` <span style="margin-left:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);color:var(--green);">Tentative +50</span>` : '');
+            (p.status === 'tentative' ? ' <span style="margin-left:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);color:var(--green);">Tentative</span>' : '');
 
           const currentBid    = bidState?.current_bid || 0;
           const currentBidder = bidState?.current_bidder_id
@@ -593,20 +593,20 @@
 
       const top = spendRows[0];
       const pressure = [...allCaptains].map(c => {
-        const roster = sold.filter(p => p.captain_id === c.id).length;
-        const hasGroupX = sold.some(p => p.captain_id === c.id && p.group_name === 'X');
-        const safe = budgetWarning(c.wallet, roster, hasGroupX, sold.some(p => p.captain_id === c.id && p.status === 'tentative')).safe;
+        const soldForCap = sold.filter(p => p.captain_id === c.id);
+        const roster = soldForCap.length;
+        const safe = budgetWarning(c.wallet, c.captain_group, soldForCap).safe;
         return { captain: c, roster, safe, wallet: c.wallet };
       }).sort((a,b) => a.safe - b.safe || a.wallet - b.wallet)[0];
 
       document.getElementById('topSpenderName').textContent = top && top.spent > 0 ? displayCaptainName(top.captain) : 'No leader yet';
       document.getElementById('topSpenderCopy').textContent = top && top.spent > 0
-        ? `${top.spent} pts spent across ${top.roster}/4 slots. They are setting the auction pace.`
+        ? `${top.spent} pts spent across ${top.roster}/5 slots. They are setting the auction pace.`
         : 'The board is waiting for the first statement buy.';
 
       document.getElementById('pressureWatchName').textContent = pressure ? displayCaptainName(pressure.captain) : 'No alert';
       document.getElementById('pressureWatchCopy').textContent = pressure && allPlayers.filter(p => p.is_sold).length
-        ? `${pressure.wallet} pts left with ${Math.max(0, 4 - pressure.roster)} slots remaining. Safe spend: ${pressure.safe} pts.`
+        ? `${pressure.wallet} pts left with ${Math.max(0, 5 - pressure.roster)} slots remaining. Safe spend: ${pressure.safe} pts.`
         : 'Nobody is under purse pressure yet.';
     }
 
@@ -621,7 +621,7 @@
         captain: c,
         spent: sold.filter(p => p.captain_id === c.id).reduce((sum,p) => sum + (p.sold_price||0), 0),
         roster: sold.filter(p => p.captain_id === c.id).length,
-        safe: budgetWarning(c.wallet, sold.filter(p => p.captain_id === c.id).length, sold.some(p => p.captain_id === c.id && p.group_name === 'X'), sold.some(p => p.captain_id === c.id && p.status === 'tentative')).safe
+        safe: budgetWarning(c.wallet, c.captain_group, sold.filter(p => p.captain_id === c.id)).safe
       })).sort((a,b) => b.spent - a.spent);
       const topSpender = spendRows[0];
       const pressure = [...spendRows].sort((a,b) => a.safe - b.safe || a.captain.wallet - b.captain.wallet)[0];
@@ -690,10 +690,8 @@ function renderRecentSales() {
 
       grid.innerHTML=sorted.map(c=>{
         const roster = allPlayers.filter(p=>p.captain_id===c.id && p.is_sold);
-        const hasGroupX    = roster.some(p=>p.group_name==='X');
-        const hasTentative = roster.some(p=>p.status==='tentative');
-        const totalSlots   = hasTentative ? 5 : 4;
         const slotsUsed    = roster.length;
+        const totalSlots   = 5; // captain + 5 bids
         const teamName     = c.team_name || null;
         const groupColor   = c.group_name === 'A' ? 'var(--groupX)' : 'var(--green)';
 
@@ -702,7 +700,7 @@ function renderRecentSales() {
               <div class="board-player-row">
                 <span class="board-player-name">
                   ${p.name}
-                  ${p.group_name==='X' ? '<span style="font-size:10px;background:rgba(240,192,64,0.15);color:var(--groupX);padding:1px 5px;border-radius:3px;margin-left:4px;">X</span>' : ''}
+                  <span style="font-size:10px;background:rgba(240,192,64,0.1);color:var(--muted);padding:1px 5px;border-radius:3px;margin-left:4px;">G${p.group_name}</span>
                   ${p.status==='tentative' ? '<span style="font-size:10px;background:rgba(62,207,142,0.1);color:var(--green);padding:1px 5px;border-radius:3px;margin-left:2px;">T</span>' : ''}
                 </span>
                 <span class="board-player-price">${p.sold_price} pts</span>
@@ -729,7 +727,7 @@ function renderRecentSales() {
                 <div class="board-purse-label">pts left</div>
               </div>
             </div>
-            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet, slotsUsed, hasGroupX, hasTentative)}</div>
+            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet, c.captain_group, roster)}</div>
             <div class="board-roster">${rHtml}</div>
           </div>`;
       }).join('');
