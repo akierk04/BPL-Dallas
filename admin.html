@@ -466,8 +466,10 @@
         <div class="form-row">
           <input type="text" id="playerName" placeholder="Player name" />
           <select id="playerGroup">
-            <option value="X">Group X (150 pts base)</option>
-            <option value="Y">Group Y (50 pts base)</option>
+            <option value="1">Group 1 (500 pts base)</option>
+            <option value="2">Group 2 (400 pts base)</option>
+            <option value="3">Group 3 (300 pts base)</option>
+            <option value="4">Group 4 (200 pts base)</option>
           </select>
           <select id="playerStatus">
             <option value="confirmed">Confirmed</option>
@@ -895,7 +897,7 @@
         : null;
 
       document.getElementById('liveBidPlayerName').textContent = player.name;
-      document.getElementById('liveBidMeta').textContent = `Group ${player.group_name} · Base ${player.base_price} pts`;
+      document.getElementById('liveBidMeta').textContent = 'Group ' + player.group_name + ' · Base ' + player.base_price + ' pts';
       document.getElementById('liveBidAmount').textContent = currentBid.toLocaleString();
       document.getElementById('liveBidder').textContent = currentBidder ? displayCaptainName(currentBidder) : 'No bids yet';
 
@@ -937,7 +939,7 @@
               <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.75rem;color:var(--muted)">pts</span></div>
             </div>
             <div class="captain-status-meta">${bought}/4 players bought</div>
-            ${warningBadgeHtml(c.wallet, bought, allPlayers.some(p => p.captain_id === c.id && p.is_sold && p.group_name === 'X'))}
+            ${warningBadgeHtml(c.wallet, c.captain_group, allPlayers.filter(p => p.captain_id === c.id && p.is_sold))}
           </div>`;
       }).join('');
     }
@@ -997,13 +999,14 @@
       }
 
       const captain = allCaptains.find(c => c.id === currentBidderId);
-      const afterWallet = Math.max(0, (captain?.wallet || 0) - currentBid);
-
-      text.innerHTML = `
-        <div><strong>Player:</strong> ${player.name}</div>
-        <div class="mt-8"><strong>Winner:</strong> ${captain ? displayCaptainName(captain) : '—'}</div>
-        <div class="mt-8"><strong>Sold Price:</strong> ${currentBid} pts</div>
-        <div class="mt-8"><strong>Wallet After Sale:</strong> ${afterWallet} pts</div>`;
+      const isTentative = player?.status === 'tentative';
+      const walletCost = isTentative ? 0 : currentBid;
+      const afterWallet = Math.max(0, (captain?.wallet || 0) - walletCost);
+      text.innerHTML = '<div><strong>Player:</strong> ' + player.name + ' (Group ' + (player.group_name||'?') + ')</div>'
+        + '<div class="mt-8"><strong>Winner:</strong> ' + (captain ? displayCaptainName(captain) : '—') + '</div>'
+        + '<div class="mt-8"><strong>Sold Price:</strong> ' + currentBid + ' pts</div>'
+        + (isTentative ? '<div class="mt-8" style="color:var(--green);">Tentative — full refund if no-show</div>' : '')
+        + '<div class="mt-8"><strong>Wallet After Sale:</strong> ' + afterWallet + ' pts</div>';
 
       document.getElementById('saleConfirmModal').style.display = 'flex';
     }
@@ -1045,7 +1048,7 @@
         sold_at: new Date().toISOString()
       }).eq('id', currentPlayerId);
 
-      const tentativeBonus = player?.status === 'tentative' ? 50 : 0;
+      const tentativeBonus = player?.status === 'tentative' ? currentBid : 0;
       await db.from('captains').update({ wallet: currentWallet - currentBid + tentativeBonus }).eq('id', currentBidderId);
       await db.from('bidding_state').update({
         player_id: null,
@@ -1098,7 +1101,7 @@
       }).eq('id', lastSale.playerId);
 
       await db.from('captains').update({
-        wallet: currentWallet + lastSale.soldPrice - (lastSale.wasTentative ? 50 : 0)
+        wallet: currentWallet + lastSale.soldPrice - (lastSale.wasTentative ? lastSale.soldPrice : 0)
       }).eq('id', lastSale.captainId);
 
       document.getElementById('undoBar').style.display = 'none';
@@ -1170,8 +1173,10 @@
           <div class="player-row">
             <span class="player-row-name">${p.name}</span>
             <select onchange="updatePlayerGroup('${p.id}', this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);width:auto;">
-              <option value="X" ${p.group_name === 'X' ? 'selected' : ''}>Group X</option>
-              <option value="Y" ${p.group_name === 'Y' ? 'selected' : ''}>Group Y</option>
+              <option value="1" ${p.group_name === '1' ? 'selected' : ''}>Group 1</option>
+              <option value="2" ${p.group_name === '2' ? 'selected' : ''}>Group 2</option>
+              <option value="3" ${p.group_name === '3' ? 'selected' : ''}>Group 3</option>
+              <option value="4" ${p.group_name === '4' ? 'selected' : ''}>Group 4</option>
             </select>
             <select onchange="updatePlayerStatus('${p.id}', this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid ${isTentative ? 'rgba(240,192,64,0.5)' : 'var(--border)'};color:${isTentative ? 'var(--accent)' : 'var(--text)'};font-family:var(--font-body);width:auto;">
               <option value="confirmed" ${!isTentative ? 'selected' : ''}>Confirmed</option>
@@ -1192,7 +1197,7 @@
       const status = document.getElementById('playerStatus').value;
       const msg = document.getElementById('playerMsg');
       if (!name) { msg.textContent = 'Enter a player name.'; return; }
-      const basePrice = group === 'X' ? 150 : 50;
+      const basePrice = group === '1' ? 500 : group === '2' ? 400 : group === '3' ? 300 : 200;
       const { error } = await db.from('players').insert({ name, group_name: group, base_price: basePrice, status });
       if (error) { msg.textContent = 'Error: ' + error.message; return; }
       document.getElementById('playerName').value = '';
@@ -1208,7 +1213,7 @@
     }
 
     async function updatePlayerGroup(id, newGroup) {
-      const basePrice = newGroup === 'X' ? 150 : 50;
+      const basePrice = newGroup === '1' ? 500 : newGroup === '2' ? 400 : newGroup === '3' ? 300 : 200;
       await db.from('players').update({ group_name: newGroup, base_price: basePrice }).eq('id', id);
       loadData();
     }
@@ -1284,9 +1289,8 @@
       const captainId = document.getElementById('consoleCaptain').value, warn = document.getElementById('consoleWarning');
       if (!captainId) { warn.innerHTML = ''; return; }
       const captain = allCaptains.find(c => c.id === captainId);
-      const bought = allPlayers.filter(p => p.captain_id === captainId && p.is_sold).length;
-      const hasGroupX = allPlayers.some(p => p.captain_id === captainId && p.is_sold && p.group_name === 'X');
-      warn.innerHTML = warningBadgeHtml(captain.wallet, bought, hasGroupX);
+      const soldForCap = allPlayers.filter(p => p.captain_id === captainId && p.is_sold);
+      warn.innerHTML = warningBadgeHtml(captain.wallet, captain.captain_group, soldForCap);
     }
 
     async function doAssign() {
@@ -1304,7 +1308,7 @@
       }).eq('id', playerId);
 
       const assignedPlayer = allPlayers.find(p => p.id === playerId);
-      const tentativeBonus = assignedPlayer?.status === 'tentative' ? 50 : 0;
+      const tentativeBonus = assignedPlayer?.status === 'tentative' ? price : 0;
       await db.from('captains').update({ wallet: captain.wallet - price + tentativeBonus }).eq('id', captainId);
       if (playerId === currentPlayerId) {
         await db.from('bidding_state').update({
@@ -1338,7 +1342,8 @@
       const { data: fresh } = await db.from('captains').select('wallet').eq('id', captainId).single();
       const currentWallet = fresh?.wallet ?? allCaptains.find(c => c.id === captainId)?.wallet ?? 0;
       const player = allPlayers.find(p => p.id === playerId);
-      const tentativeBonus = player?.status === 'tentative' ? 50 : 0;
+      // Tentative bonus = sold price (full refund given at sale, so reverse it on unassign)
+      const tentativeBonus = player?.status === 'tentative' ? soldPrice : 0;
       await db.from('players').update({ captain_id: null, sold_price: null, is_sold: false, sold_at: null }).eq('id', playerId);
       // Refund sold price but reverse the tentative bonus that was given at purchase
       await db.from('captains').update({ wallet: currentWallet + soldPrice - tentativeBonus }).eq('id', captainId);
