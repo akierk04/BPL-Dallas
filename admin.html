@@ -503,8 +503,7 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
         <div class="section-title" style="margin-bottom:0;">Round Fixtures</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-sm" onclick="generateGroupFixtures('A')" style="width:auto;">Generate Group A</button>
-          <button class="btn-sm" onclick="generateGroupFixtures('B')" style="width:auto;">Generate Group B</button>
+          <button class="btn-sm" onclick="generateGroupMatches()" style="width:auto;">Generate Group Matches</button>
           <button class="btn-sm" onclick="generateSuper8()" style="width:auto;">⚡ Generate Super 8</button>
           <button class="btn-sm" onclick="generateSuper4()" style="width:auto;">Generate Super 4</button>
           <button class="btn-sm" onclick="generateSemis()" style="width:auto;">Generate Semis</button>
@@ -1453,7 +1452,7 @@
         html += koHtml;
       }
 
-      if (!html) html = '<div class="text-muted" style="margin-bottom:20px;">No fixtures yet. Use Generate Group A/B to start.</div>';
+      if (!html) html = '<div class="text-muted" style="margin-bottom:20px;">No fixtures yet. Use Generate Group Matches to start.</div>';
       wrap.innerHTML = html;
     }
 
@@ -1504,49 +1503,122 @@
 
     // ── Generate rounds ──
     // ── Generate group stage fixtures (round-robin within group) ──
-    async function generateGroupFixtures(group) {
+    // ── Generate all group stage fixtures (interleaved A/B, no back-to-back) ──
+    async function generateGroupMatches() {
       const msg = document.getElementById('generateMsg');
-      const groupCaps = allCaptains.filter(c => c.group_name === group);
-      if (groupCaps.length < 2) {
-        msg.textContent = `No captains found in Group ${group}. Assign group_name first.`;
-        setTimeout(() => msg.textContent = '', 4000);
-        return;
-      }
-      // Check if any fixtures already exist for this group
-      const existing = allMatches.filter(m => {
-        if (!['A','B'].includes(String(m.round))) return false;
-        const h = allCaptains.find(c => c.id === m.home_captain_id);
-        return h?.group_name === group;
-      });
+
+      // Check nothing already exists
+      const existing = allMatches.filter(m => ['A','B'].includes(String(m.round)));
       if (existing.length) {
-        msg.textContent = `Group ${group} fixtures already exist. Delete them first.`;
+        msg.textContent = 'Group fixtures already exist. Delete them first.';
         setTimeout(() => msg.textContent = '', 4000);
         return;
       }
-      // Round-robin: all pairs within group
-      const pairs = [];
-      for (let i = 0; i < groupCaps.length; i++) {
-        for (let j = i + 1; j < groupCaps.length; j++) {
-          pairs.push({ home: groupCaps[i].id, away: groupCaps[j].id });
+
+      const capsA = allCaptains.filter(c => c.group_name === 'A');
+      const capsB = allCaptains.filter(c => c.group_name === 'B');
+      if (capsA.length < 2 || capsB.length < 2) {
+        msg.textContent = 'Need at least 2 captains in each group. Assign group_name first.';
+        setTimeout(() => msg.textContent = '', 4000);
+        return;
+      }
+
+      // ── Round-robin schedule for N teams using circle method ──
+      // Returns array of {home, away} pairs in a good playing order (no team back-to-back)
+      function roundRobinSchedule(caps) {
+        const n = caps.length;
+        // If odd number of teams, add a bye
+        const teams = n % 2 === 0 ? caps.slice() : [...caps, null];
+        const half = teams.length / 2;
+        const rounds = teams.length - 1;
+        const pairs = [];
+        // Fix first team, rotate the rest
+        for (let r = 0; r < rounds; r++) {
+          for (let i = 0; i < half; i++) {
+            const home = teams[i];
+            const away = teams[teams.length - 1 - i];
+            if (home && away) pairs.push({ home: home.id, away: away.id });
+          }
+          // Rotate all except first
+          const last = teams[teams.length - 1];
+          for (let i = teams.length - 1; i > 1; i--) teams[i] = teams[i - 1];
+          teams[1] = last;
         }
+        return pairs;
       }
-      // Shuffle pairs for display variety
-      for (let i = pairs.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+
+      const pairsA = roundRobinSchedule(capsA); // 10 matches
+      const pairsB = roundRobinSchedule(capsB); // 10 matches
+
+      // ── Interleave A and B ensuring no team plays back-to-back ──
+      function teamsIn(pair) {
+        return new Set([pair.home, pair.away]);
       }
-      for (let i = 0; i < pairs.length; i++) {
+
+      function conflicts(pair, prevPair) {
+        if (!prevPair) return false;
+        const prev = teamsIn(prevPair);
+        return prev.has(pair.home) || prev.has(pair.away);
+      }
+
+      // Greedy interleave: at each slot pick one from A then one from B,
+      // backtracking within each group's remaining list to avoid conflicts.
+      function interleave(listA, listB) {
+        const remA = listA.slice(), remB = listB.slice();
+        const result = [];
+        let lastPair = null;
+
+        while (remA.length || remB.length) {
+          // Try to pick from A first
+          let pickedA = false;
+          for (let i = 0; i < remA.length; i++) {
+            if (!conflicts(remA[i], lastPair)) {
+              lastPair = remA.splice(i, 1)[0];
+              result.push({ ...lastPair, group: 'A' });
+              pickedA = true;
+              break;
+            }
+          }
+          // If couldn't pick A without conflict, just take first available
+          if (!pickedA && remA.length) {
+            lastPair = remA.shift();
+            result.push({ ...lastPair, group: 'A' });
+          }
+
+          // Then pick from B
+          let pickedB = false;
+          for (let i = 0; i < remB.length; i++) {
+            if (!conflicts(remB[i], lastPair)) {
+              lastPair = remB.splice(i, 1)[0];
+              result.push({ ...lastPair, group: 'B' });
+              pickedB = true;
+              break;
+            }
+          }
+          if (!pickedB && remB.length) {
+            lastPair = remB.shift();
+            result.push({ ...lastPair, group: 'B' });
+          }
+        }
+        return result;
+      }
+
+      const schedule = interleave(pairsA, pairsB);
+
+      // Insert all fixtures with sequential display_order
+      for (let i = 0; i < schedule.length; i++) {
         await db.from('matches').insert({
-          home_captain_id: pairs[i].home,
-          away_captain_id: pairs[i].away,
+          home_captain_id: schedule[i].home,
+          away_captain_id: schedule[i].away,
           home_score: 0, away_score: 0,
           played: false,
-          round: group,
+          round: schedule[i].group,
           display_order: i + 1
         });
       }
-      msg.textContent = `Group ${group} fixtures generated (${pairs.length} matches)!`;
-      setTimeout(() => msg.textContent = '', 3000);
+
+      msg.textContent = 'Group fixtures generated! ' + schedule.length + ' matches (interleaved A/B, no back-to-back).';
+      setTimeout(() => msg.textContent = '', 4000);
       await loadData();
     }
 
