@@ -503,10 +503,12 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
         <div class="section-title" style="margin-bottom:0;">Round Fixtures</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-sm" id="genR1Btn" onclick="generateRound('1')" style="width:auto;">Generate Round 1</button>
-          <button class="btn-sm" id="genR2Btn" onclick="generateRound('2')" style="width:auto;">Generate Round 2</button>
-          <button class="btn-sm" id="genR3Btn" onclick="generateRound('3')" style="width:auto;">Generate Round 3</button>
-          <button class="btn-sm" onclick="generateKnockouts()" style="width:auto;">⚡ Generate Knockouts</button>
+          <button class="btn-sm" onclick="generateGroupFixtures('A')" style="width:auto;">Generate Group A</button>
+          <button class="btn-sm" onclick="generateGroupFixtures('B')" style="width:auto;">Generate Group B</button>
+          <button class="btn-sm" onclick="generateSuper8()" style="width:auto;">⚡ Generate Super 8</button>
+          <button class="btn-sm" onclick="generateSuper4()" style="width:auto;">Generate Super 4</button>
+          <button class="btn-sm" onclick="generateSemis()" style="width:auto;">Generate Semis</button>
+          <button class="btn-sm" onclick="generateFinal()" style="width:auto;">Generate Final</button>
         </div>
       </div>
       <p id="generateMsg" class="text-muted" style="margin-bottom:14px;"></p>
@@ -529,14 +531,29 @@
       <div class="form-card">
         <div class="form-row" style="margin-bottom:10px;">
           <select id="matchType" onchange="toggleMatchType()" style="flex:1;">
-            <option value="1">Round 1</option>
-            <option value="2">Round 2</option>
-            <option value="3">Round 3</option>
-            <option value="QF1">Quarter-Final 1</option>
-            <option value="QF2">Quarter-Final 2</option>
-            <option value="SF1">Semi-Final 1</option>
-            <option value="SF2">Semi-Final 2</option>
-            <option value="Final">🏆 Final</option>
+            <optgroup label="Group Stage">
+              <option value="A">Group A Match</option>
+              <option value="B">Group B Match</option>
+            </optgroup>
+            <optgroup label="Super 8">
+              <option value="S8A">S8A · A2 vs B5</option>
+              <option value="S8B">S8B · B2 vs A5</option>
+              <option value="S8C">S8C · A3 vs B4</option>
+              <option value="S8D">S8D · B3 vs A4</option>
+            </optgroup>
+            <optgroup label="Super 4">
+              <option value="S4A">S4A · W(S8A) vs W(S8D)</option>
+              <option value="S4B">S4B · W(S8B) vs W(S8C)</option>
+            </optgroup>
+            <optgroup label="Semi-Finals">
+              <option value="SF1_L1">SF1 · Leg 1 (B1 vs W(S4B))</option>
+              <option value="SF1_L2">SF1 · Leg 2 (W(S4B) vs B1)</option>
+              <option value="SF2_L1">SF2 · Leg 1 (A1 vs W(S4A))</option>
+              <option value="SF2_L2">SF2 · Leg 2 (W(S4A) vs A1)</option>
+            </optgroup>
+            <optgroup label="Final">
+              <option value="Final">🏆 Final</option>
+            </optgroup>
           </select>
           <button class="btn-sm" onclick="resetMatchForm()" style="width:auto;">Clear Form</button>
         </div>
@@ -1365,64 +1382,78 @@
     function renderFixtures() {
       const wrap = document.getElementById('roundFixturesWrap');
       if (!wrap) return;
-      const rounds = ['1','2','3'];
       let html = '';
-      rounds.forEach(round => {
-        const rMatches = sortMatchesForDisplay(allMatches.filter(m => String(m.round) === round));
+
+      ['A','B'].forEach(group => {
+        const rMatches = sortMatchesForDisplay(
+          allMatches.filter(m => {
+            if (!['A','B'].includes(String(m.round))) return false;
+            const h = allCaptains.find(c => c.id === m.home_captain_id);
+            return h?.group_name === group;
+          })
+        );
         if (!rMatches.length) return;
         html += `<div style="margin-bottom:20px;">
-          <div class="section-title" style="margin-bottom:10px;">Round ${round}</div>
+          <div class="section-title" style="margin-bottom:10px;">Group ${group} Fixtures</div>
           <div style="display:flex;flex-direction:column;gap:8px;">
             ${rMatches.map((m, i) => {
               const h = allCaptains.find(c => c.id === m.home_captain_id);
               const a = allCaptains.find(c => c.id === m.away_captain_id);
-              const label = m.display_order ? `Match ${m.display_order}` : `Match ${i+1}`;
+              const label = m.display_order ? \`Match \${m.display_order}\` : \`Match \${i+1}\`;
               const played = m.played;
-              return `<div style="background:var(--surface);border:1px solid ${played?'rgba(62,207,142,0.3)':'var(--border)'};border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              return \`<div style="background:var(--surface);border:1px solid \${played?'rgba(62,207,142,0.3)':'var(--border)'};border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                 <div style="flex:1;min-width:0;">
-                  <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px;">${label}${played ? ' · <span style="color:var(--green);">Played</span>' : ''}</div>
-                  <div style="font-size:14px;font-weight:600;color:var(--text);">${h ? displayCaptainName(h) : 'TBD'} vs ${a ? displayCaptainName(a) : 'TBD'}</div>
-                  ${played ? `<div style="font-size:12px;color:var(--accent);font-family:var(--font-display);">${m.home_score} – ${m.away_score}</div>` : ''}
+                  <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px;">\${label}\${played ? ' · <span style="color:var(--green);">Played</span>' : ''}</div>
+                  <div style="font-size:14px;font-weight:600;color:var(--text);">\${h ? displayCaptainName(h) : 'TBD'} vs \${a ? displayCaptainName(a) : 'TBD'}</div>
+                  \${played ? \`<div style="font-size:12px;color:var(--accent);font-family:var(--font-display);">\${m.home_score} – \${m.away_score}</div>\` : ''}
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-                  ${!played ? `<button class="btn-primary" onclick="loadFixtureForResult('${m.id}')" style="width:auto;padding:7px 12px;font-size:0.8rem;">Enter Result</button>` : ''}
-                  <button class="btn-sm" onclick="moveFixture('${m.id}','${round}',-1)" style="width:auto;padding:6px 10px;" ${i===0?'disabled':''}>↑</button>
-                  <button class="btn-sm" onclick="moveFixture('${m.id}','${round}',1)" style="width:auto;padding:6px 10px;" ${i===rMatches.length-1?'disabled':''}>↓</button>
-                  <button class="btn-danger" onclick="confirmDeleteFixture('${m.id}')" style="padding:6px 10px;">✕</button>
+                  \${!played ? \`<button class="btn-primary" onclick="loadFixtureForResult('\${m.id}')" style="width:auto;padding:7px 12px;font-size:0.8rem;">Enter Result</button>\` : ''}
+                  <button class="btn-sm" onclick="moveFixture('\${m.id}','\${m.round}',-1)" style="width:auto;padding:6px 10px;" \${i===0?'disabled':''}>↑</button>
+                  <button class="btn-sm" onclick="moveFixture('\${m.id}','\${m.round}',1)" style="width:auto;padding:6px 10px;" \${i===rMatches.length-1?'disabled':''}>↓</button>
+                  <button class="btn-danger" onclick="confirmDeleteFixture('\${m.id}')" style="padding:6px 10px;">✕</button>
                 </div>
-              </div>`;
+              </div>\`;
             }).join('')}
           </div>
         </div>`;
       });
 
-      // KO fixtures
-      const koMatches = allMatches.filter(m => ['QF1','QF2','SF1','SF2','Final'].includes(m.round));
+      const KO_ORDER = ['S8A','S8B','S8C','S8D','S4A','S4B','SF1_L1','SF1_L2','SF2_L1','SF2_L2','Final'];
+      const KO_LABELS = {
+        'S8A':'S8A · A2 vs B5','S8B':'S8B · B2 vs A5','S8C':'S8C · A3 vs B4','S8D':'S8D · B3 vs A4',
+        'S4A':'S4A · W(S8A) vs W(S8D)','S4B':'S4B · W(S8B) vs W(S8C)',
+        'SF1_L1':'SF1 Leg 1','SF1_L2':'SF1 Leg 2','SF2_L1':'SF2 Leg 1','SF2_L2':'SF2 Leg 2',
+        'Final':'🏆 Final'
+      };
+      const koMatches = allMatches.filter(m => KO_ORDER.includes(m.round));
       if (koMatches.length) {
         html += `<div style="margin-bottom:20px;">
           <div class="section-title" style="margin-bottom:10px;">Knockouts</div>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            ${koMatches.map(m => {
+            ${KO_ORDER.map(r => {
+              const m = koMatches.find(x => x.round === r);
+              if (!m) return '';
               const h = allCaptains.find(c => c.id === m.home_captain_id);
               const a = allCaptains.find(c => c.id === m.away_captain_id);
               const played = m.played;
-              return `<div style="background:var(--surface);border:1px solid ${played?'rgba(62,207,142,0.3)':'var(--border)'};border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              return \`<div style="background:var(--surface);border:1px solid \${played?'rgba(62,207,142,0.3)':'var(--border)'};border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                 <div style="flex:1;min-width:0;">
-                  <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px;">${m.round}${played ? ' · <span style="color:var(--green);">Played</span>' : ''}</div>
-                  <div style="font-size:14px;font-weight:600;color:var(--text);">${h ? displayCaptainName(h) : 'TBD'} vs ${a ? displayCaptainName(a) : 'TBD'}</div>
-                  ${played ? `<div style="font-size:12px;color:var(--accent);font-family:var(--font-display);">${m.home_score} – ${m.away_score}</div>` : ''}
+                  <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px;">\${KO_LABELS[r]||r}\${played ? ' · <span style="color:var(--green);">Played</span>' : ''}</div>
+                  <div style="font-size:14px;font-weight:600;color:var(--text);">\${h ? displayCaptainName(h) : 'TBD'} vs \${a ? displayCaptainName(a) : 'TBD'}</div>
+                  \${played ? \`<div style="font-size:12px;color:var(--accent);font-family:var(--font-display);">\${m.home_score} – \${m.away_score}</div>\` : ''}
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-                  ${!played ? `<button class="btn-primary" onclick="loadFixtureForResult('${m.id}')" style="width:auto;padding:7px 12px;font-size:0.8rem;">Enter Result</button>` : ''}
-                  <button class="btn-danger" onclick="confirmDeleteFixture('${m.id}')" style="padding:6px 10px;">✕</button>
+                  \${!played ? \`<button class="btn-primary" onclick="loadFixtureForResult('\${m.id}')" style="width:auto;padding:7px 12px;font-size:0.8rem;">Enter Result</button>\` : ''}
+                  <button class="btn-danger" onclick="confirmDeleteFixture('\${m.id}')" style="padding:6px 10px;">✕</button>
                 </div>
-              </div>`;
+              </div>\`;
             }).join('')}
           </div>
         </div>`;
       }
 
-      if (!html) html = '<div class="text-muted" style="margin-bottom:20px;">No fixtures yet. Use Generate Round 1 to start.</div>';
+      if (!html) html = '<div class="text-muted" style="margin-bottom:20px;">No fixtures yet. Use Generate Group A/B to start.</div>';
       wrap.innerHTML = html;
     }
 
@@ -1452,7 +1483,7 @@
       pendingDeleteFixtureId = matchId;
       const h = allCaptains.find(c => c.id === m.home_captain_id);
       const a = allCaptains.find(c => c.id === m.away_captain_id);
-      const label = m.round ? `${m.round === '1'||m.round==='2'||m.round==='3' ? 'Round '+m.round : m.round}` : 'Fixture';
+      const label = m.round ? (['A','B'].includes(m.round) ? `Group ${m.round}` : m.round) : 'Fixture';
       document.getElementById('deleteFixtureLabel').textContent = `Delete: ${label} · ${displayCaptainName(h)} vs ${displayCaptainName(a)}?`;
       document.getElementById('deleteFixtureWrap').style.display = 'block';
       document.getElementById('deleteFixtureWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1472,114 +1503,180 @@
     }
 
     // ── Generate rounds ──
-    async function generateRound(round) {
+    // ── Generate group stage fixtures (round-robin within group) ──
+    async function generateGroupFixtures(group) {
       const msg = document.getElementById('generateMsg');
-      const existing = allMatches.filter(m => String(m.round) === String(round));
-      if (existing.length) {
-        msg.textContent = `Round ${round} fixtures already exist. Delete them first if you want to regenerate.`;
+      const groupCaps = allCaptains.filter(c => c.group_name === group);
+      if (groupCaps.length < 2) {
+        msg.textContent = `No captains found in Group ${group}. Assign group_name first.`;
         setTimeout(() => msg.textContent = '', 4000);
         return;
       }
-
-      let pairs = [];
-
-      if (round === '1') {
-        // Random draw
-        const captainIds = [...allCaptains].map(c => c.id);
-        // Fisher-Yates shuffle
-        for (let i = captainIds.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [captainIds[i], captainIds[j]] = [captainIds[j], captainIds[i]];
-        }
-        // Pair them up: 0v1, 2v3, 4v5, 6v7
-        for (let i = 0; i < captainIds.length; i += 2) {
-          pairs.push({ home: captainIds[i], away: captainIds[i+1] });
-        }
-      } else {
-        // Reseed from current standings: 1v2, 3v4, 5v6, 7v8
-        const standings = computeStandings(allCaptains, allMatches);
-        if (standings.length < 8) {
-          msg.textContent = 'Need all 8 captains in standings to generate this round.';
-          setTimeout(() => msg.textContent = '', 4000);
-          return;
-        }
-        // Check previous round is complete
-        const prevRound = String(Number(round) - 1);
-        const prevMatches = allMatches.filter(m => String(m.round) === prevRound);
-        const prevComplete = prevMatches.length === 4 && prevMatches.every(m => m.played === true || m.played === 1);
-        if (!prevComplete) {
-          msg.textContent = `Round ${prevRound} must be complete before generating Round ${round}.`;
-          setTimeout(() => msg.textContent = '', 4000);
-          return;
-        }
-        pairs = [
-          { home: standings[0].captain.id, away: standings[1].captain.id },
-          { home: standings[2].captain.id, away: standings[3].captain.id },
-          { home: standings[4].captain.id, away: standings[5].captain.id },
-          { home: standings[6].captain.id, away: standings[7].captain.id }
-        ];
+      // Check if any fixtures already exist for this group
+      const existing = allMatches.filter(m => {
+        if (!['A','B'].includes(String(m.round))) return false;
+        const h = allCaptains.find(c => c.id === m.home_captain_id);
+        return h?.group_name === group;
+      });
+      if (existing.length) {
+        msg.textContent = `Group ${group} fixtures already exist. Delete them first.`;
+        setTimeout(() => msg.textContent = '', 4000);
+        return;
       }
-
-      // Insert all 4 fixtures
+      // Round-robin: all pairs within group
+      const pairs = [];
+      for (let i = 0; i < groupCaps.length; i++) {
+        for (let j = i + 1; j < groupCaps.length; j++) {
+          pairs.push({ home: groupCaps[i].id, away: groupCaps[j].id });
+        }
+      }
+      // Shuffle pairs for display variety
+      for (let i = pairs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+      }
       for (let i = 0; i < pairs.length; i++) {
         await db.from('matches').insert({
           home_captain_id: pairs[i].home,
           away_captain_id: pairs[i].away,
           home_score: 0, away_score: 0,
           played: false,
-          round: String(round),
+          round: group,
           display_order: i + 1
         });
       }
-
-      msg.textContent = `Round ${round} fixtures generated!`;
+      msg.textContent = `Group ${group} fixtures generated (${pairs.length} matches)!`;
       setTimeout(() => msg.textContent = '', 3000);
       await loadData();
     }
 
-    // ── Generate knockouts ──
-    async function generateKnockouts() {
+    // ── Generate Super 8 ──
+    async function generateSuper8() {
       const msg = document.getElementById('generateMsg');
-      const standings = computeStandings(allCaptains, allMatches);
-      // Check all 3 rounds complete
-      const round3 = allMatches.filter(m => m.round === '3');
-      if (round3.length < 4 || !round3.every(m => m.played === true || m.played === 1)) {
-        msg.textContent = 'All 3 rounds must be complete before generating knockouts.';
+      const { groupA, groupB } = computeStandings(allCaptains, allMatches);
+      if (groupA.length < 5 || groupB.length < 5) {
+        msg.textContent = 'Need 5 captains in each group and league matches played to generate Super 8.';
         setTimeout(() => msg.textContent = '', 4000);
         return;
       }
-
-      const existing = allMatches.filter(m => ['QF1','QF2','SF1','SF2','Final'].includes(m.round));
-      const existingRounds = new Set(existing.map(m => m.round));
-      const toCreate = ['QF1','QF2','SF1','SF2','Final'].filter(r => !existingRounds.has(r));
-      if (!toCreate.length) {
-        msg.textContent = 'All knockout fixtures already exist.';
+      const existing = allMatches.filter(m => ['S8A','S8B','S8C','S8D'].includes(m.round));
+      if (existing.length) {
+        msg.textContent = 'Super 8 fixtures already exist.';
         setTimeout(() => msg.textContent = '', 3000);
         return;
       }
-
-      // QF1: 3rd(idx2) vs 6th(idx5), QF2: 4th(idx3) vs 5th(idx4)
-      const koFixtures = {
-        'QF1': { home: standings[2]?.captain?.id || null, away: standings[5]?.captain?.id || null },
-        'QF2': { home: standings[3]?.captain?.id || null, away: standings[4]?.captain?.id || null },
-        'SF1': { home: standings[0]?.captain?.id || null, away: null }, // 1st vs W(QF2)
-        'SF2': { home: standings[1]?.captain?.id || null, away: null }, // 2nd vs W(QF1)
-        'Final': { home: null, away: null }
-      };
-
-      for (const r of toCreate) {
+      // S8A: A2 vs B5, S8B: B2 vs A5, S8C: A3 vs B4, S8D: B3 vs A4
+      const fixtures = [
+        { round: 'S8A', home: groupA[1]?.captain?.id, away: groupB[4]?.captain?.id },
+        { round: 'S8B', home: groupB[1]?.captain?.id, away: groupA[4]?.captain?.id },
+        { round: 'S8C', home: groupA[2]?.captain?.id, away: groupB[3]?.captain?.id },
+        { round: 'S8D', home: groupB[2]?.captain?.id, away: groupA[3]?.captain?.id }
+      ];
+      for (const f of fixtures) {
         await db.from('matches').insert({
-          home_captain_id: koFixtures[r].home,
-          away_captain_id: koFixtures[r].away,
+          home_captain_id: f.home || null,
+          away_captain_id: f.away || null,
           home_score: 0, away_score: 0,
-          played: false,
-          round: r,
-          display_order: null
+          played: false, round: f.round, display_order: null
         });
       }
+      msg.textContent = 'Super 8 fixtures generated!';
+      setTimeout(() => msg.textContent = '', 3000);
+      await loadData();
+    }
 
-      msg.textContent = `Knockouts generated: ${toCreate.join(', ')}`;
-      setTimeout(() => msg.textContent = '', 4000);
+    // ── Generate Super 4 ──
+    async function generateSuper4() {
+      const msg = document.getElementById('generateMsg');
+      const existing = allMatches.filter(m => ['S4A','S4B'].includes(m.round));
+      if (existing.length) {
+        msg.textContent = 'Super 4 fixtures already exist.';
+        setTimeout(() => msg.textContent = '', 3000);
+        return;
+      }
+      function koWinnerId(round) {
+        const m = allMatches.find(x => x.round === round && x.played);
+        if (!m) return null;
+        return m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id;
+      }
+      const fixtures = [
+        { round: 'S4A', home: koWinnerId('S8A'), away: koWinnerId('S8D') },
+        { round: 'S4B', home: koWinnerId('S8B'), away: koWinnerId('S8C') }
+      ];
+      for (const f of fixtures) {
+        await db.from('matches').insert({
+          home_captain_id: f.home || null,
+          away_captain_id: f.away || null,
+          home_score: 0, away_score: 0,
+          played: false, round: f.round, display_order: null
+        });
+      }
+      msg.textContent = 'Super 4 fixtures generated!';
+      setTimeout(() => msg.textContent = '', 3000);
+      await loadData();
+    }
+
+    // ── Generate Semis (H&A legs) ──
+    async function generateSemis() {
+      const msg = document.getElementById('generateMsg');
+      const existing = allMatches.filter(m => ['SF1_L1','SF1_L2','SF2_L1','SF2_L2'].includes(m.round));
+      if (existing.length) {
+        msg.textContent = 'Semi-final legs already exist.';
+        setTimeout(() => msg.textContent = '', 3000);
+        return;
+      }
+      function koWinnerId(round) {
+        const m = allMatches.find(x => x.round === round && x.played);
+        if (!m) return null;
+        return m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id;
+      }
+      const { groupA, groupB } = computeStandings(allCaptains, allMatches);
+      const a1 = groupA[0]?.captain?.id || null;
+      const b1 = groupB[0]?.captain?.id || null;
+      const s4aWinner = koWinnerId('S4A');
+      const s4bWinner = koWinnerId('S4B');
+      // SF1: B1 vs W(S4B) — Leg1 home=B1, Leg2 home=W(S4B)
+      // SF2: A1 vs W(S4A) — Leg1 home=A1, Leg2 home=W(S4A)
+      const fixtures = [
+        { round: 'SF1_L1', home: b1, away: s4bWinner },
+        { round: 'SF1_L2', home: s4bWinner, away: b1 },
+        { round: 'SF2_L1', home: a1, away: s4aWinner },
+        { round: 'SF2_L2', home: s4aWinner, away: a1 }
+      ];
+      for (const f of fixtures) {
+        await db.from('matches').insert({
+          home_captain_id: f.home || null,
+          away_captain_id: f.away || null,
+          home_score: 0, away_score: 0,
+          played: false, round: f.round, display_order: null
+        });
+      }
+      msg.textContent = 'Semi-final legs generated!';
+      setTimeout(() => msg.textContent = '', 3000);
+      await loadData();
+    }
+
+    // ── Generate Final ──
+    async function generateFinal() {
+      const msg = document.getElementById('generateMsg');
+      const existing = allMatches.find(m => m.round === 'Final');
+      if (existing) {
+        msg.textContent = 'Final fixture already exists.';
+        setTimeout(() => msg.textContent = '', 3000);
+        return;
+      }
+      const sf1Agg = computeSfAggregate(allMatches, allCaptains, 'SF1');
+      const sf2Agg = computeSfAggregate(allMatches, allCaptains, 'SF2');
+      const sf1Winner = sf1Agg?.winner?.id || null;
+      const sf2Winner = sf2Agg?.winner?.id || null;
+      await db.from('matches').insert({
+        home_captain_id: sf1Winner,
+        away_captain_id: sf2Winner,
+        home_score: 0, away_score: 0,
+        played: false, round: 'Final', display_order: null
+      });
+      msg.textContent = 'Final fixture generated!';
+      setTimeout(() => msg.textContent = '', 3000);
       await loadData();
     }
 
@@ -1588,7 +1685,7 @@
       const match = allMatches.find(m => m.id === matchId);
       if (!match) return;
       selectedFixtureId = matchId;
-      document.getElementById('matchType').value = match.round || '1';
+      document.getElementById('matchType').value = match.round || 'A';
       populateMatchDropdowns();
       document.getElementById('matchHome').value = match.home_captain_id || '';
       document.getElementById('matchAway').value = match.away_captain_id || '';
@@ -1600,7 +1697,7 @@
 
     function resetMatchForm() {
       selectedFixtureId = null;
-      document.getElementById('matchType').value = '1';
+      document.getElementById('matchType').value = 'A';
       document.getElementById('matchHome').value = '';
       document.getElementById('matchAway').value = '';
       document.getElementById('matchHomeScore').value = '';
@@ -1612,23 +1709,34 @@
     function toggleMatchType() {
       const matchType = document.getElementById('matchType').value;
       const hint = document.getElementById('matchPrefillHint');
-      if (['1','2','3'].includes(matchType)) {
-        hint.textContent = selectedFixtureId ? 'Loaded from Round ' + matchType + ' fixture.' : '';
+      const LEAGUE = ['A','B'];
+      if (LEAGUE.includes(matchType)) {
+        hint.textContent = selectedFixtureId ? `Loaded from Group ${matchType} fixture.` : '';
         return;
       }
-      // KO rounds — prefill from standings
-      const standings = computeStandings(allCaptains, allMatches);
-      function koWinner(round) {
+      // KO rounds — prefill from standings/results
+      const { groupA, groupB } = computeStandings(allCaptains, allMatches);
+      function koWinnerId(round) {
         const m = allMatches.find(x => x.round === round && x.played);
         if (!m) return null;
         return m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id;
       }
+      function sfAggWinnerId(sfPrefix) {
+        const agg = computeSfAggregate(allMatches, allCaptains, sfPrefix);
+        return agg?.winner?.id || null;
+      }
       const map = {
-        'QF1': { home: standings[2]?.captain?.id, away: standings[5]?.captain?.id, label: 'QF1 · 3rd vs 6th' },
-        'QF2': { home: standings[3]?.captain?.id, away: standings[4]?.captain?.id, label: 'QF2 · 4th vs 5th' },
-        'SF1': { home: standings[0]?.captain?.id, away: koWinner('QF2'), label: 'SF1 · 1st vs W(QF2)' },
-        'SF2': { home: standings[1]?.captain?.id, away: koWinner('QF1'), label: 'SF2 · 2nd vs W(QF1)' },
-        'Final': { home: koWinner('SF1'), away: koWinner('SF2'), label: 'Final' }
+        'S8A': { home: groupA[1]?.captain?.id, away: groupB[4]?.captain?.id, label: 'S8A · A2 vs B5' },
+        'S8B': { home: groupB[1]?.captain?.id, away: groupA[4]?.captain?.id, label: 'S8B · B2 vs A5' },
+        'S8C': { home: groupA[2]?.captain?.id, away: groupB[3]?.captain?.id, label: 'S8C · A3 vs B4' },
+        'S8D': { home: groupB[2]?.captain?.id, away: groupA[3]?.captain?.id, label: 'S8D · B3 vs A4' },
+        'S4A': { home: koWinnerId('S8A'), away: koWinnerId('S8D'), label: 'S4A · W(S8A) vs W(S8D)' },
+        'S4B': { home: koWinnerId('S8B'), away: koWinnerId('S8C'), label: 'S4B · W(S8B) vs W(S8C)' },
+        'SF1_L1': { home: groupB[0]?.captain?.id, away: koWinnerId('S4B'), label: 'SF1 Leg 1 · B1 vs W(S4B)' },
+        'SF1_L2': { home: koWinnerId('S4B'), away: groupB[0]?.captain?.id, label: 'SF1 Leg 2 · W(S4B) vs B1' },
+        'SF2_L1': { home: groupA[0]?.captain?.id, away: koWinnerId('S4A'), label: 'SF2 Leg 1 · A1 vs W(S4A)' },
+        'SF2_L2': { home: koWinnerId('S4A'), away: groupA[0]?.captain?.id, label: 'SF2 Leg 2 · W(S4A) vs A1' },
+        'Final':  { home: sfAggWinnerId('SF1'), away: sfAggWinnerId('SF2'), label: 'Final' }
       };
       const seed = map[matchType];
       if (seed && !selectedFixtureId) {
@@ -1637,6 +1745,7 @@
         hint.textContent = seed.label + ' — prefilled from standings.';
       }
     }
+
 
     async function saveMatch() {
       const homeId = document.getElementById('matchHome').value, awayId = document.getElementById('matchAway').value;
@@ -1810,7 +1919,8 @@
           const c = !p ? allCaptains.find(x => x.id === g.player_id) : null;
           return p ? p.name : (c ? c.name + ' (C)' : '?');
         }).join(', ');
-        const label = ['QF1','QF2','SF1','SF2','Final'].includes(m.round) ? m.round : (m.round ? `Round ${m.round}` : '—');
+        const KO_ROUNDS_ADMIN = ['S8A','S8B','S8C','S8D','S4A','S4B','SF1_L1','SF1_L2','SF2_L1','SF2_L2','Final'];
+        const label = KO_ROUNDS_ADMIN.includes(m.round) ? m.round : (['A','B'].includes(m.round) ? `Group ${m.round}` : (m.round || '—'));
         return `
           <div class="player-row" style="flex-wrap:wrap;gap:8px;">
             <span class="unsold-badge">${label}</span>
@@ -1850,7 +1960,7 @@
       const a = allCaptains.find(c => c.id === m.away_captain_id);
       document.getElementById('editMatchLabel').textContent =
         `${displayCaptainName(h)} vs ${displayCaptainName(a)}` +
-        (m.round ? ` · ${['1','2','3'].includes(m.round) ? 'Round ' + m.round : m.round}` : '');
+        (m.round ? ` · ${['A','B'].includes(m.round) ? 'Group ' + m.round : m.round}` : '');
       const teamOpts = allCaptains.map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
       document.getElementById('editMatchHome').innerHTML = teamOpts;
       document.getElementById('editMatchAway').innerHTML = teamOpts;
@@ -1971,8 +2081,8 @@
     }
 
     function renderSchedule() {
-      const rows = computeStandings(allCaptains, allMatches);
-      document.getElementById('adminSchedule').innerHTML = matchScheduleHtml(allMatches, allCaptains, allPlayers, rows);
+      const standings = computeStandings(allCaptains, allMatches);
+      document.getElementById('adminSchedule').innerHTML = matchScheduleHtml(allMatches, allCaptains, allPlayers, standings);
       renderKnockoutBracket('adminBracket', 'bracketCard');
     }
 
@@ -1981,62 +2091,104 @@
       const card = cardId ? document.getElementById(cardId) : null;
       if (!container) return;
 
-      const ko = allMatches.filter(m => ['QF1','QF2','SF1','SF2','Final'].includes(m.round));
+      const KO_ALL = ['S8A','S8B','S8C','S8D','S4A','S4B','SF1_L1','SF1_L2','SF2_L1','SF2_L2','Final'];
+      const ko = allMatches.filter(m => KO_ALL.includes(m.round));
       if (!ko.length) { if (card) card.style.display = 'none'; return; }
       if (card) card.style.display = 'block';
 
-      const standings = computeStandings(allCaptains, allMatches);
-      function seed(i) { return standings[i]?.captain || null; }
+      const { groupA, groupB } = computeStandings(allCaptains, allMatches);
+      function seedA(i) { return groupA[i]?.captain || null; }
+      function seedB(i) { return groupB[i]?.captain || null; }
       function getMatch(r) { return ko.find(m => m.round === r) || null; }
       function getWinner(m) {
         if (!m || !m.played) return null;
         return allCaptains.find(c => c.id === (m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id));
       }
 
-      function bracketMatch(m, homeC, awayC, label) {
-        const played  = m && m.played;
-        const live    = m && !m.played && (homeC || m?.home_captain_id) && (awayC || m?.away_captain_id);
-        const cls     = played ? 'winner' : live ? 'live' : '';
-
-        // When played, use actual DB teams so scores always match the right team
+      function bm(m, homeC, awayC, label) {
+        const played = m && m.played;
+        const live = m && !m.played && (m.home_captain_id || homeC) && (m.away_captain_id || awayC);
         const actualHome = played ? allCaptains.find(c => c.id === m.home_captain_id) : homeC;
         const actualAway = played ? allCaptains.find(c => c.id === m.away_captain_id) : awayC;
         const homeN = actualHome ? displayCaptainName(actualHome) : (homeC ? displayCaptainName(homeC) : 'TBD');
         const awayN = actualAway ? displayCaptainName(actualAway) : (awayC ? displayCaptainName(awayC) : 'TBD');
-
         const homeWon = played && m.home_score > m.away_score;
         const awayWon = played && m.away_score > m.home_score;
-        return `
-          <div class="bracket-match ${cls}">
-            <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;">${label}</div>
-            <div class="bracket-team ${played?(homeWon?'won':'lost'):(homeC?'':'tbd')}">
-              <span>${homeN}</span>${played?`<span class="bracket-score">${m.home_score}</span>`:''}
-            </div>
-            <div class="bracket-team ${played?(awayWon?'won':'lost'):(awayC?'':'tbd')}">
-              <span>${awayN}</span>${played?`<span class="bracket-score">${m.away_score}</span>`:''}
-            </div>
-          </div>`;
+        const cls = played ? 'winner' : live ? 'live' : '';
+        return `<div class="bracket-match ${cls}">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;">${label}</div>
+          <div class="bracket-team ${played?(homeWon?'won':'lost'):(actualHome?'':'tbd')}">
+            <span>${homeN}</span>${played?`<span class="bracket-score">${m.home_score}</span>`:''}
+          </div>
+          <div class="bracket-team ${played?(awayWon?'won':'lost'):(actualAway?'':'tbd')}">
+            <span>${awayN}</span>${played?`<span class="bracket-score">${m.away_score}</span>`:''}
+          </div>
+        </div>`;
       }
 
-      const qf1=getMatch('QF1'), qf2=getMatch('QF2'), sf1=getMatch('SF1'), sf2=getMatch('SF2'), fin=getMatch('Final');
+      function sfBm(sfPrefix, label) {
+        const agg = computeSfAggregate(allMatches, allCaptains, sfPrefix);
+        if (!agg) return `<div class="bracket-match"><div style="font-size:9px;color:var(--muted);">${label}</div><div class="bracket-team tbd">TBD</div><div class="bracket-team tbd">TBD</div></div>`;
+        const homeC = allCaptains.find(c => c.id === agg.homeId);
+        const awayC = allCaptains.find(c => c.id === agg.awayId);
+        const homeN = homeC ? displayCaptainName(homeC) : 'TBD';
+        const awayN = awayC ? displayCaptainName(awayC) : 'TBD';
+        const done = agg.bothPlayed;
+        const homeWon = done && agg.homeAgg > agg.awayAgg;
+        const awayWon = done && agg.awayAgg > agg.homeAgg;
+        const cls = done ? 'winner' : (agg.l1 || agg.l2) ? 'live' : '';
+        const aggLine = done ? `<div style="font-size:10px;color:var(--muted);margin-top:4px;text-align:center;">Agg ${agg.homeAgg}–${agg.awayAgg}</div>` : '';
+        return `<div class="bracket-match ${cls}">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;">${label}</div>
+          <div class="bracket-team ${done?(homeWon?'won':'lost'):(homeC?'':'tbd')}">
+            <span>${homeN}</span>${done?`<span class="bracket-score">${agg.homeAgg}</span>`:''}
+          </div>
+          <div class="bracket-team ${done?(awayWon?'won':'lost'):(awayC?'':'tbd')}">
+            <span>${awayN}</span>${done?`<span class="bracket-score">${agg.awayAgg}</span>`:''}
+          </div>
+          ${aggLine}
+        </div>`;
+      }
+
+      const s8a=getMatch('S8A'),s8b=getMatch('S8B'),s8c=getMatch('S8C'),s8d=getMatch('S8D');
+      const s4a=getMatch('S4A'),s4b=getMatch('S4B');
+      const fin=getMatch('Final');
+      const sf1W = computeSfAggregate(allMatches,allCaptains,'SF1')?.winner||null;
+      const sf2W = computeSfAggregate(allMatches,allCaptains,'SF2')?.winner||null;
+
       let html = '<div class="bracket-wrap">';
-      if (qf1||qf2) {
-        html += `<div class="bracket-round"><div class="bracket-round-title">Quarter-Finals</div>
-          ${bracketMatch(qf1, seed(2), seed(5), 'QF1')}
-          ${bracketMatch(qf2, seed(3), seed(4), 'QF2')}
+
+      if (s8a||s8b||s8c||s8d) {
+        html += `<div class="bracket-round"><div class="bracket-round-title">Super 8</div>
+          ${bm(s8a, seedA(1), seedB(4), 'S8A')}
+          ${bm(s8b, seedB(1), seedA(4), 'S8B')}
+          ${bm(s8c, seedA(2), seedB(3), 'S8C')}
+          ${bm(s8d, seedB(2), seedA(3), 'S8D')}
         </div><div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
       }
-      if (sf1||sf2) {
+
+      if (s4a||s4b) {
+        html += `<div class="bracket-round"><div class="bracket-round-title">Super 4</div>
+          ${bm(s4a, getWinner(s8a), getWinner(s8d), 'S4A')}
+          ${bm(s4b, getWinner(s8b), getWinner(s8c), 'S4B')}
+        </div><div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
+      }
+
+      const sfAny = allMatches.some(m => ['SF1_L1','SF1_L2','SF2_L1','SF2_L2'].includes(m.round));
+      if (sfAny) {
         html += `<div class="bracket-round"><div class="bracket-round-title">Semi-Finals</div>
-          ${bracketMatch(sf1, seed(0), getWinner(qf2), 'SF1')}
-          ${bracketMatch(sf2, seed(1), getWinner(qf1), 'SF2')}
+          ${sfBm('SF1','SF1')}
+          ${sfBm('SF2','SF2')}
         </div><div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
       }
+
       html += `<div class="bracket-round"><div class="bracket-round-title">🏆 Final</div>
-        ${bracketMatch(fin, getWinner(sf1), getWinner(sf2), 'Final')}
+        ${bm(fin, sf1W, sf2W, 'Final')}
       </div></div>`;
+
       container.innerHTML = html;
     }
+
 
     function renderMatchDayBanner() {
       const banner = document.getElementById('matchDayBanner');
@@ -2050,8 +2202,8 @@
         return `${displayCaptainName(h)} vs ${displayCaptainName(a)}`;
       }
       function metaLine(m) {
-        const isLeague = ['1','2','3'].includes(String(m.round));
-        const base = isLeague ? `Round ${m.round}` : (m.round || 'Fixture');
+        const isLeague = ['A','B'].includes(String(m.round));
+        const base = isLeague ? `Group ${m.round}` : (m.round || 'Fixture');
         return m.display_order ? `${base} · Match ${m.display_order}` : base;
       }
       document.getElementById('nowPlayingTeams').textContent = teamLine(now);
