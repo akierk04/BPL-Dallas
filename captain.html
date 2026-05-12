@@ -449,10 +449,14 @@
       // Groups needed badges
       const badgeWrap = document.getElementById('groupsNeededBadge');
       if (me && myRoster.length > 0) {
-        const allGroups = ['1','2','3','4'].filter(g => g !== String(me.captain_group));
-        const have      = new Set(myRoster.map(p => String(p.group_name)));
-        badgeWrap.innerHTML = allGroups.map(g => {
-          const filled = have.has(g);
+        const needed = groupsStillNeeded(me.captain_group, myRoster);
+        // Show required slots: G1, G2, G3 (1 each, skip own) + G4 (×2)
+        const requiredSlots = [];
+        ['1','2','3'].filter(g => g !== String(me.captain_group)).forEach(g => requiredSlots.push(g));
+        requiredSlots.push('4'); requiredSlots.push('4');
+        badgeWrap.innerHTML = requiredSlots.map(g => {
+          const idx = needed.indexOf(g);
+          const filled = idx === -1;
           return '<div class="group-need-badge ' + (filled ? 'filled' : 'needed') + '">'
             + (filled ? '✅' : '⚠️') + ' Group ' + g
             + '</div>';
@@ -515,7 +519,7 @@
       if (me) {
         const myRoster = allPlayers.filter(p => p.captain_id === me.id && p.is_sold);
         const needed   = groupsStillNeeded(me.captain_group, myRoster);
-        const full     = needed.length === 0 && myRoster.length >= 3; // at least 3 bids (one per other group)
+        const full     = needed.length === 0 && myRoster.length >= 5; // 5 bids complete
         squadBanner.style.display = full ? 'block' : 'none';
         if (full) document.getElementById('squadCompleteSubtext').textContent = 'All ' + myRoster.length + ' players signed. Good luck!';
       }
