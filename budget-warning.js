@@ -19,7 +19,7 @@ const stillNeeded = [];
 
 // Mandatory single slots: G1, G2, G3 — skip captain’s own group
 const mandatory = [‘1’,‘2’,‘3’].filter(g => g !== own);
-const haveList  = […have];
+const haveList  = [...have];
 
 mandatory.forEach(g => {
 const idx = haveList.indexOf(g);
@@ -51,15 +51,15 @@ const reserve = needed.reduce((s, g) => s + (GROUP_BASE[g] || 0), 0);
 const safe    = wallet - reserve;
 
 if (needed.length === 0) {
-return { color: ‘var(–green)’, msg: ‘Squad complete — no more bids needed’, safe: 0, reserve: 0, needed: [] };
+return { color: ‘var(--green)’, msg: ‘Squad complete — no more bids needed’, safe: 0, reserve: 0, needed: [] };
 }
 if (safe <= 0) {
-return { color: ‘var(–red)’, msg: ‘Warning: Over budget reserve!’, safe, reserve, needed };
+return { color: ‘var(--red)’, msg: ‘Warning: Over budget reserve!’, safe, reserve, needed };
 }
 if (safe <= 200) {
-return { color: ‘var(–groupB)’, msg: ‘Caution: Only ’ + safe + ’ pts safe to spend’, safe, reserve, needed };
+return { color: ‘var(--groupB)’, msg: ‘Caution: Only ’ + safe + ’ pts safe to spend’, safe, reserve, needed };
 }
-return { color: ‘var(–green)’, msg: ‘Safe to spend: ’ + safe + ’ pts’, safe, reserve, needed };
+return { color: ‘var(--green)’, msg: ‘Safe to spend: ’ + safe + ’ pts’, safe, reserve, needed };
 }
 
 // HTML badge — drop-in for all pages
@@ -97,7 +97,7 @@ return { allowed: false, reason: ‘Insufficient funds (’ + captain.wallet + �
 
 // After bidding, can we still cover remaining reserve?
 const walletAfter     = captain.wallet - nextBid;
-const neededAfter     = […needed];
+const neededAfter     = [...needed];
 const idx = neededAfter.indexOf(pg);
 if (idx !== -1) neededAfter.splice(idx, 1);
 const reserveAfter    = neededAfter.reduce((s, g) => s + (GROUP_BASE[g] || 0), 0);
