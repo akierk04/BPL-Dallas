@@ -431,7 +431,7 @@
         const p = allPlayers.find(x => x.id === currentPlayerId);
         if (p && !p.is_sold) {
           nm.textContent = p.name;
-          const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : '#7c8cf8';
+          const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
           bp.innerHTML =
             `Base price ${p.base_price} pts` +
             ` <span style="margin-left:6px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${grpColor}18;border:1px solid ${grpColor}55;color:${grpColor};">Group ${p.group_name}</span>` +
@@ -698,7 +698,7 @@ function renderRecentSales() {
       grid.innerHTML=sorted.map(c=>{
         const roster = allPlayers.filter(p=>p.captain_id===c.id && p.is_sold);
         const slotsUsed    = roster.length;
-        const totalSlots   = 5; // captain + 5 bids
+        const totalSlots   = 5; // 5 bids per captain (6 total including captain)
         const teamName     = c.team_name || null;
         const groupColor   = c.group_name === 'A' ? 'var(--groupX)' : 'var(--green)';
 
