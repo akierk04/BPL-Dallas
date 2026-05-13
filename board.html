@@ -697,22 +697,28 @@
 
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
     function teamFlag(teamName) {
-      var flags = {
-        Spain: '🇪🇸',
-        Croatia: '🇭🇷',
-        Germany: '🇩🇪',
-        Netherlands: '🇳🇱',
-        France: '🇫🇷',
-        India: '🇮🇳',
-        Brazil: '🇧🇷',
-        England: '🏴',
-        Argentina: '🇦🇷',
-        Portugal: '🇵🇹',
-        'North Korea': '🇮🇳'
-      };
 
-      return flags[teamName] || '';
-    }
+    var flags = {
+      Spain: 'es',
+      Croatia: 'hr',
+      Germany: 'de',
+      Netherlands: 'nl',
+      France: 'fr',
+      India: 'in',
+      Brazil: 'br',
+      England: 'gb-eng',
+      Argentina: 'ar',
+      Portugal: 'pt'
+    };
+
+    var code = flags[teamName];
+  
+    if (!code) return '';
+  
+    return '<img src="https://flagcdn.com/28x21/' + code + '.png" ' +
+           'style="width:22px;height:16px;object-fit:cover;border-radius:2px;' +
+           'vertical-align:middle;margin-right:10px;box-shadow:0 0 0 1px rgba(255,255,255,0.08)">';
+  }
 
     function displayTeamName(teamName) {
       return teamName === 'North Korea' ? 'India' : teamName;
