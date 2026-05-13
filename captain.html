@@ -17,7 +17,6 @@
   <style>
     .captain-layout { display:flex; flex-direction:column; gap:20px; }
 
-```
 /* ── Stats ribbon ── */
 .status-ribbon { display:flex; gap:10px; flex-wrap:wrap; }
 .status-pill { padding:8px 14px; border-radius:999px; background:var(--surface); border:1px solid var(--border); font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; }
@@ -111,7 +110,6 @@
 
 @media (max-width:900px) { .insight-grid { grid-template-columns:1fr 1fr; } }
 @media (max-width:560px) { .insight-grid { grid-template-columns:1fr; } .bid-stats { grid-template-columns:1fr; } }
-```
 
   </style>
 </head>
@@ -126,7 +124,6 @@
 
   <div class="page captain-layout">
 
-```
 <!-- Squad Complete Banner -->
 <div id="squadCompleteBanner" class="squad-complete-banner">
   <div class="squad-complete-icon">✅</div>
@@ -220,7 +217,6 @@
 <!-- All Captains -->
 <div class="section-title">All Captains</div>
 <div class="captains-grid" id="captainsGrid"></div>
-```
 
   </div>
 
@@ -412,7 +408,7 @@
       if (!available.length) { wrap.innerHTML = '<div class="text-muted" style="font-size:13px;">No players remaining.</div>'; return; }
       wrap.innerHTML = available.map(p => {
         const isCur = p.id === curId;
-        const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : '#7c8cf8';
+        const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
         return '<div class="avail-player-row' + (isCur ? ' is-current' : '') + '">'
           + '<span>' + (isCur ? '⚡ ' : '') + p.name + '</span>'
           + '<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:' + grpColor + '18;color:' + grpColor + ';font-weight:600;">G' + p.group_name + '</span>'
@@ -454,6 +450,7 @@
         const requiredSlots = [];
         ['1','2','3'].filter(g => g !== String(me.captain_group)).forEach(g => requiredSlots.push(g));
         requiredSlots.push('4'); requiredSlots.push('4');
+        if (String(me.captain_group) !== '5') requiredSlots.push('5');
         badgeWrap.innerHTML = requiredSlots.map(g => {
           const idx = needed.indexOf(g);
           const filled = idx === -1;
@@ -468,7 +465,7 @@
       // Roster rows
       document.getElementById('myRoster').innerHTML = myRoster.length
         ? myRoster.map(p => {
-            const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : '#7c8cf8';
+            const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
             return '<div class="roster-player">'
               + '<span class="roster-player-name">' + p.name
               + ' <span style="font-size:10px;background:' + grpColor + '18;color:' + grpColor + ';padding:1px 6px;border-radius:4px;font-weight:600;">G' + p.group_name + '</span>'
@@ -487,7 +484,7 @@
         const roster = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
         const rosterHtml = roster.length
           ? roster.map(p => {
-              const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : '#7c8cf8';
+              const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
               return '<div class="roster-player">'
                 + '<span class="roster-player-name">' + p.name
                 + ' <span style="font-size:10px;background:' + grpColor + '18;color:' + grpColor + ';padding:1px 6px;border-radius:4px;font-weight:600;">G' + p.group_name + '</span>'
