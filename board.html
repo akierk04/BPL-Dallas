@@ -379,6 +379,7 @@
   <button class="tab" onclick="switchBoardTab('schedule')">Schedule</button>
   <button class="tab" onclick="switchBoardTab('teams')">Teams</button>
   <button class="tab" onclick="switchBoardTab('dues')">Dues</button>
+  <button class="tab" onclick="switchBoardTab('hall')">Hall of Fame</button>
 </div>
 
 <!-- Auction tab -->
@@ -534,6 +535,14 @@
   </div>
 </div>
 
+<!-- Hall of Fame tab -->
+<div id="btab-hall" style="display:none;">
+  <div class="section-title">Hall of Fame</div>
+  <div class="form-card">
+    <div id="boardHallOfFame"></div>
+  </div>
+</div>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -545,7 +554,7 @@
   <script src="standings.js"></script>
 
   <script>
-    let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], paymentSummary=[], topPayers=[], currentFilter='all', currentPlayerId=null, bidState=null;
+    let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], paymentSummary=[], topPayers=[], allHallOfFame=[], currentFilter='all', currentPlayerId=null, bidState=null;
 
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
     let previousSoldState = new Map();
@@ -555,7 +564,7 @@
     let previousSoldKey = '';
     
 
-    const BTABS=['auction','standings','stats','schedule','teams','dues'];
+    const BTABS=['auction','standings','stats','schedule','teams','dues','hall'];
 
     function switchBoardTab(tab) {
       BTABS.forEach(t=>document.getElementById('btab-'+t).style.display=t===tab?'block':'none');
@@ -587,7 +596,7 @@
     }
 
     async function loadData() {
-      const [capRes,playRes,bidRes,matchRes,goalRes,paymentsRes,summaryRes,topPayersRes]=await Promise.all([
+      const [capRes,playRes,bidRes,matchRes,goalRes,paymentsRes,summaryRes,topPayersRes,hofRes]=await Promise.all([
         db.from('captains').select('*').order('name'),
         db.from('players').select('*').order('name'),
         db.from('bidding_state').select('*').eq('id',1).single(),
@@ -595,7 +604,8 @@
         db.from('goals').select('*'),
         db.from('payments').select('*').order('created_at', { ascending: false }),
         db.from('payment_summary').select('*'),
-        db.from('top_payers').select('*').order('total_paid', { ascending: false })
+        db.from('top_payers').select('*').order('total_paid', { ascending: false }),
+        db.from('hall_of_fame').select('*').order('season', { ascending: false })
       ]);
 
       allCaptains=capRes.data||[];
@@ -606,6 +616,7 @@
       allPayments=paymentsRes.data||[];
       paymentSummary=summaryRes.data||[];
       topPayers=topPayersRes.data||[];
+      allHallOfFame=hofRes.data||[];
       currentPlayerId=bidRes.data?.player_id||null;
       bidState=bidRes.data||null;
 
@@ -626,6 +637,7 @@
       renderBoardSchedule();
       renderTeams();
       renderBoardDues();
+      renderHallOfFame();
     }
 
 
@@ -1290,6 +1302,60 @@ function renderRecentSales() {
       `;
     }
 
+    function renderHallOfFame() {
+      var wrap = document.getElementById('boardHallOfFame');
+      if (!wrap) return;
+
+      if (!allHallOfFame.length) {
+        wrap.innerHTML = '<div class="text-muted">No Hall of Fame records yet.</div>';
+        return;
+      }
+
+      function pick(row, keys) {
+        for (var i = 0; i < keys.length; i++) {
+          if (row[keys[i]] !== undefined && row[keys[i]] !== null && row[keys[i]] !== '') return row[keys[i]];
+        }
+        return '—';
+      }
+
+      wrap.innerHTML = allHallOfFame.map(function(row) {
+        var season = pick(row, ['season', 'season_no', 'year']);
+        var champion = pick(row, ['champion', 'champion_team', 'winner', 'winning_team']);
+        var runnerUp = pick(row, ['runner_up', 'runnerup', 'finalist', 'runner_up_team']);
+        var topScorer = pick(row, ['top_scorer', 'golden_boot', 'top_scorer_name']);
+        var mvp = pick(row, ['mvp', 'most_valuable_player', 'mvp_name']);
+
+        return `
+          <div class="recent-sale-row" style="padding:14px 0;">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+              <div>
+                <div style="font-family:var(--font-display);font-size:1.7rem;letter-spacing:0.06em;color:var(--accent);line-height:1;">Season ${season}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:4px;">BPL Dallas Hall of Fame</div>
+              </div>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);font-weight:700;">🏆 Archived</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:14px;">
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Champion</div>
+                <div style="font-weight:700;color:var(--text);margin-top:4px;">${champion}</div>
+              </div>
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Runner Up</div>
+                <div style="font-weight:700;color:var(--text);margin-top:4px;">${runnerUp}</div>
+              </div>
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Top Scorer</div>
+                <div style="font-weight:700;color:var(--text);margin-top:4px;">${topScorer}</div>
+              </div>
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">MVP</div>
+                <div style="font-weight:700;color:var(--text);margin-top:4px;">${mvp}</div>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
     const _cid = Math.random().toString(36).slice(2);
 
     function enterBoard() {
@@ -1319,6 +1385,7 @@ function renderRecentSales() {
       .on('postgres_changes',{event:'*',schema:'public',table:'matches'},loadData)
       .on('postgres_changes',{event:'*',schema:'public',table:'goals'},loadData)
       .on('postgres_changes',{event:'*',schema:'public',table:'payments'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'hall_of_fame'},loadData)
       .subscribe();
 
     const presenceChannel = db.channel('bpl-presence', { config: { presence: { key: crypto.randomUUID() } } });
