@@ -484,6 +484,7 @@
     <div class="sp-bottom">
       <div class="sp-bottom-l">Brown Munde &nbsp;&middot;&nbsp; <strong>Dallas, TX</strong></div>
       <div class="sp-bottom-r">
+        <div class="sp-bottom-url">Live board &nbsp;&middot;&nbsp; <span>bpldallas.team/board.html</span></div>
         <button class="sp-enter-btn" onclick="enterBoard()">Enter Live Board</button>
         <div style="width:1px;height:12px;background:#222;"></div>
         <a href="https://crossbardallas.com/" style="font-size:11px;color:#f0c040;font-weight:600;letter-spacing:0.06em;text-decoration:none;text-transform:uppercase;" target="_blank">crossbardallas.com</a>
@@ -695,6 +696,28 @@
     let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], paymentSummary=[], topPayers=[], allHallOfFame=[], currentFilter='all', currentPlayerId=null, bidState=null;
 
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
+    function teamFlag(teamName) {
+      var flags = {
+        Spain: '🇪🇸',
+        Croatia: '🇭🇷',
+        Germany: '🇩🇪',
+        Netherlands: '🇳🇱',
+        France: '🇫🇷',
+        India: '🇮🇳',
+        Brazil: '🇧🇷',
+        England: '🏴',
+        Argentina: '🇦🇷',
+        Portugal: '🇵🇹',
+        'North Korea': '🇮🇳'
+      };
+
+      return flags[teamName] || '';
+    }
+
+    function displayTeamName(teamName) {
+      return teamName === 'North Korea' ? 'India' : teamName;
+    }
+
     let previousSoldState = new Map();
     let lastSoldEvent = null;
     let previousBidValue = 0;
@@ -1157,7 +1180,7 @@ function renderRecentSales() {
         const roster = allPlayers.filter(p=>p.captain_id===c.id && p.is_sold);
         const slotsUsed    = roster.length;
         const totalSlots   = 5; // 5 bids per captain (6 total including captain)
-        const teamName     = c.team_name || null;
+        const teamName     = c.team_name ? displayTeamName(c.team_name) : null;
         const groupColor   = c.group_name === 'A' ? 'var(--groupX)' : 'var(--green)';
 
         const rHtml = roster.length
@@ -1177,7 +1200,7 @@ function renderRecentSales() {
             <div class="board-captain-header">
               <div style="flex:1;min-width:0;">
                 ${teamName
-                  ? `<div class="board-captain-name" style="font-size:16px;font-weight:700;">${teamName}</div>
+                  ? `<div class="board-captain-name" style="font-size:16px;font-weight:700;">${teamFlag(teamName)} ${teamName}</div>
                      <div style="font-size:12px;color:var(--muted);margin-top:2px;">Cap: ${c.name}</div>`
                   : `<div class="board-captain-name">${c.name}</div>`
                 }
@@ -1364,7 +1387,7 @@ function renderRecentSales() {
       const sorted = [...allCaptains].sort((a, b) => a.name.localeCompare(b.name));
       grid.innerHTML = sorted.map(c => {
         const roster = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
-        const teamName = c.team_name || c.name;
+        const teamName = displayTeamName(c.team_name || c.name);
         const playersHtml = roster.length
           ? roster.map(p =>
               '<div class="board-player-row" style="border-bottom:0.5px solid var(--border);padding:7px 0;">' +
@@ -1375,7 +1398,7 @@ function renderRecentSales() {
         return '<div class="board-captain-card">' +
           '<div class="board-captain-header" style="padding-bottom:12px;">' +
           '<div style="flex:1;min-width:0;">' +
-          '<div style="font-family:var(--font-display);font-size:1.5rem;letter-spacing:0.06em;color:var(--text);line-height:1;">' + teamName + '</div>' +
+          '<div style="font-family:var(--font-display);font-size:1.5rem;letter-spacing:0.06em;color:var(--text);line-height:1;">' + teamFlag(teamName) + ' ' + teamName + '</div>' +
           '<div style="font-size:13px;color:var(--muted);margin-top:4px;">' + c.name + ' <span style="color:var(--accent);font-weight:600;">(C)</span></div>' +
           '</div></div>' +
           '<div class="board-roster" style="padding-top:4px;">' + playersHtml + '</div>' +
