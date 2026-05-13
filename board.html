@@ -21,6 +21,21 @@
     .event-banner{background:linear-gradient(135deg,rgba(240,192,64,0.14),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.35);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:16px;text-align:center;}
     .event-banner-title{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--accent);margin-bottom:4px;}
     .event-banner-copy{font-size:13px;color:var(--text);}
+
+    .header-actions{margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+    .header-action-btn{background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--font-body);font-size:11px;padding:4px 12px;width:auto;letter-spacing:0;cursor:pointer;transition:all 0.15s;}
+    .header-action-btn:hover{color:var(--text);border-color:var(--accent);}
+    .pre-auction-panel{background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(20,20,20,0.75));border:1px solid rgba(240,192,64,0.32);border-radius:var(--radius-lg);padding:28px 24px;margin-bottom:20px;text-align:center;}
+    .pre-auction-kicker{font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:var(--accent);font-weight:700;margin-bottom:8px;}
+    .pre-auction-title{font-family:var(--font-display);font-size:2.4rem;letter-spacing:0.06em;color:var(--text);line-height:1;margin-bottom:8px;}
+    .pre-auction-copy{font-size:13px;color:var(--muted);margin-bottom:18px;}
+    .countdown-grid{display:grid;grid-template-columns:repeat(4,minmax(70px,1fr));gap:10px;max-width:520px;margin:0 auto 16px;}
+    .countdown-box{background:#141414;border:1px solid #242424;border-radius:12px;padding:14px 10px;}
+    .countdown-val{font-family:var(--font-display);font-size:2rem;color:var(--accent);line-height:1;}
+    .countdown-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:4px;}
+    .pre-auction-footnote{font-size:12px;color:var(--muted);line-height:1.5;max-width:640px;margin:0 auto;}
+    .viewer-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(62,207,142,0.28);background:rgba(62,207,142,0.08);border-radius:999px;padding:4px 10px;color:var(--green);}
+    @media(max-width:560px){.countdown-grid{grid-template-columns:repeat(2,1fr);}.pre-auction-title{font-size:1.9rem;}}
     .sold-banner{background:linear-gradient(135deg,rgba(62,207,142,0.16),rgba(62,207,142,0.05));border:1px solid rgba(62,207,142,0.35);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:16px;text-align:center;animation:fadeIn 0.25s ease;}
     .sold-banner-label{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--green);margin-bottom:6px;}
     .sold-banner-main{font-family:var(--font-display);font-size:2.3rem;line-height:1;color:var(--text);letter-spacing:0.04em;}
@@ -284,7 +299,7 @@
         <div class="sp-meta">
           <div class="sp-meta-row">
             <span class="sp-meta-label">Date</span>
-            <span class="sp-meta-value">Saturday, June 6, 2025</span>
+            <span class="sp-meta-value">Saturday, June 6, 2026</span>
           </div>
           <div class="sp-meta-row">
             <span class="sp-meta-label">Doors open</span>
@@ -343,9 +358,9 @@
     <div class="board-sub"><span class="live-dot"></span>Live · Season 2 · Dallas</div>
     <div class="board-viewers" id="viewerCount"></div>
     <div class="board-phase" id="boardPhase">Auction phase live</div>
-    <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-      <button onclick="showPoster()" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--font-body);font-size:11px;padding:4px 12px;width:auto;letter-spacing:0;cursor:pointer;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Home</button>
-      <button onclick="loadData()" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--font-body);font-size:11px;padding:4px 12px;width:auto;letter-spacing:0;cursor:pointer;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">↻ Refresh</button>
+    <div class="header-actions">
+      <button class="header-action-btn" onclick="showPoster()">Home</button>
+      <button class="header-action-btn" onclick="loadData()">Refresh</button>
     </div>
   </div>
 
@@ -368,9 +383,22 @@
 
 <!-- Auction tab -->
 <div id="btab-auction">
-  <div class="event-banner">
-    <div class="event-banner-title">Live Auction In Progress</div>
-    <div class="event-banner-copy">Watch bids rise, squads fill up, and the board update in real time.</div>
+  <div class="event-banner" id="auctionEventBanner">
+    <div class="event-banner-title" id="auctionEventTitle">Auction Begins Soon</div>
+    <div class="event-banner-copy" id="auctionEventCopy">Countdown to auction. Wallet details stay hidden until auction day.</div>
+  </div>
+
+  <div id="preAuctionPanel" class="pre-auction-panel" style="display:none;">
+    <div class="pre-auction-kicker">Pre-Auction Mode</div>
+    <div class="pre-auction-title">Countdown to Auction</div>
+    <div class="pre-auction-copy">The board is live, but bidding has not started yet.</div>
+    <div class="countdown-grid">
+      <div class="countdown-box"><div class="countdown-val" id="cdDays">--</div><div class="countdown-label">Days</div></div>
+      <div class="countdown-box"><div class="countdown-val" id="cdHours">--</div><div class="countdown-label">Hours</div></div>
+      <div class="countdown-box"><div class="countdown-val" id="cdMinutes">--</div><div class="countdown-label">Minutes</div></div>
+      <div class="countdown-box"><div class="countdown-val" id="cdSeconds">--</div><div class="countdown-label">Seconds</div></div>
+    </div>
+    <div class="pre-auction-footnote">Captains, wallets, and bidding strategy stay protected until the first nomination goes live.</div>
   </div>
 
   <div id="soldBanner" class="sold-banner" style="display:none;">
@@ -394,7 +422,7 @@
   </div>
   <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
 
-  <div class="auction-grid">
+  <div class="auction-grid" id="auctionGrid">
     <div class="story-stack">
       <div class="story-card">
         <div class="story-title">Live Storyline</div>
@@ -419,7 +447,7 @@
     </div>
   </div>
 
-  <div class="stats-bar">
+  <div class="stats-bar" id="auctionStatsBar">
     <div class="stat-item"><div class="stat-val" id="statSold">—</div><div class="stat-label">Players Sold</div></div>
     <div class="stat-div"></div>
     <div class="stat-item"><div class="stat-val" id="statAvail">—</div><div class="stat-label">Available</div></div>
@@ -428,10 +456,10 @@
     <div class="stat-div"></div>
     <div class="stat-item"><div class="stat-val" id="statTopSale">—</div><div class="stat-label">Highest Sale</div></div>
   </div>
-  <div class="section-title">Captains & Teams</div>
+  <div class="section-title" id="captainsSectionTitle">Captains & Teams</div>
   <div class="board-grid" id="boardCaptains"></div>
-  <div class="section-title" style="margin-top:8px;">Player Pool</div>
-  <div class="pool-filters">
+  <div class="section-title" id="playerPoolSectionTitle" style="margin-top:8px;">Player Pool</div>
+  <div class="pool-filters" id="poolFilters">
     <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
     <button class="filter-btn" onclick="setFilter('available',this)">Available</button>
     <button class="filter-btn" onclick="setFilter('sold',this)">Sold</button>
@@ -582,6 +610,7 @@
       bidState=bidRes.data||null;
 
       renderSplash();
+      renderAuctionState();
       handleAuctionDrama();
       renderCurrentPlayer();
       renderSoldBanner();
@@ -597,6 +626,61 @@
       renderBoardSchedule();
       renderTeams();
       renderBoardDues();
+    }
+
+
+    function isPreAuctionMode() {
+      var soldCount = allPlayers.filter(function(p) { return p.is_sold; }).length;
+      return soldCount === 0 && !currentPlayerId;
+    }
+
+    function updateCountdown() {
+      var target = new Date('2026-06-06T10:30:00-05:00').getTime();
+      var now = Date.now();
+      var diff = Math.max(0, target - now);
+      var days = Math.floor(diff / 86400000);
+      var hours = Math.floor((diff % 86400000) / 3600000);
+      var minutes = Math.floor((diff % 3600000) / 60000);
+      var seconds = Math.floor((diff % 60000) / 1000);
+      var d = document.getElementById('cdDays');
+      var h = document.getElementById('cdHours');
+      var m = document.getElementById('cdMinutes');
+      var s = document.getElementById('cdSeconds');
+      if (d) d.textContent = String(days);
+      if (h) h.textContent = String(hours).padStart(2, '0');
+      if (m) m.textContent = String(minutes).padStart(2, '0');
+      if (s) s.textContent = String(seconds).padStart(2, '0');
+    }
+
+    function renderAuctionState() {
+      var preAuction = isPreAuctionMode();
+      var soldCount = allPlayers.filter(function(p) { return p.is_sold; }).length;
+      var prePanel = document.getElementById('preAuctionPanel');
+      var auctionGrid = document.getElementById('auctionGrid');
+      var statsBar = document.getElementById('auctionStatsBar');
+      var waiting = document.getElementById('waitingBanner');
+      var poolFilters = document.getElementById('poolFilters');
+      var playerPoolTitle = document.getElementById('playerPoolSectionTitle');
+      var title = document.getElementById('auctionEventTitle');
+      var copy = document.getElementById('auctionEventCopy');
+
+      if (prePanel) prePanel.style.display = preAuction ? 'block' : 'none';
+      if (auctionGrid) auctionGrid.style.display = preAuction ? 'none' : 'grid';
+      if (statsBar) statsBar.style.display = preAuction ? 'none' : 'flex';
+      if (waiting) waiting.style.display = preAuction ? 'none' : waiting.style.display;
+      if (poolFilters) poolFilters.style.display = preAuction ? 'none' : 'flex';
+      if (playerPoolTitle) playerPoolTitle.style.display = preAuction ? 'none' : 'block';
+
+      if (title && copy) {
+        if (preAuction) {
+          title.textContent = 'Auction Begins Soon';
+          copy.textContent = 'Countdown to auction. Wallet details stay hidden until auction day.';
+        } else if (currentPlayerId || soldCount > 0) {
+          title.textContent = 'Live Auction In Progress';
+          copy.textContent = 'Watch bids rise, squads fill up, and the board update in real time.';
+        }
+      }
+      updateCountdown();
     }
 
 
@@ -668,7 +752,7 @@
         }
       }
       nb.style.display = 'none';
-      wb.style.display = 'block';
+      wb.style.display = isPreAuctionMode() ? 'none' : 'block';
     }
 
     function renderSoldBanner() {
@@ -711,6 +795,11 @@
       })).sort((a,b)=>b.count-a.count || a.captain.wallet-b.captain.wallet);
       const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
       const lines = [];
+
+      if (isPreAuctionMode()) {
+        wrap.innerHTML = '<div class="story-line"><span>Countdown to auction</span> is live. Wallet details are hidden until the first nomination.</div>';
+        return;
+      }
 
       if (currentPlayerId) {
         const p = allPlayers.find(x => x.id === currentPlayerId);
@@ -764,7 +853,10 @@
       const unsoldCount = allPlayers.filter(p => !p.is_sold).length;
       const auctionDone = allPlayers.length > 0 && unsoldCount === 0;
 
-      if (auctionDone) {
+      if (isPreAuctionMode()) {
+        el.textContent = 'Pre-auction mode · countdown live';
+        tournamentBanner.style.display = 'none';
+      } else if (auctionDone) {
         // #10 Tournament mode: hide auction UI, show tournament banner, auto-switch to standings
         el.textContent = 'Tournament mode · auction complete';
         tournamentBanner.style.display = 'block';
@@ -794,6 +886,13 @@
     }
 
     function renderSpotlights() {
+      if (isPreAuctionMode()) {
+        document.getElementById('topSpenderName').textContent = 'Auction begins soon';
+        document.getElementById('topSpenderCopy').textContent = 'Spending leaders will appear once bidding starts.';
+        document.getElementById('pressureWatchName').textContent = 'Wallets hidden';
+        document.getElementById('pressureWatchCopy').textContent = 'Budget pressure will appear after the first sale.';
+        return;
+      }
       const sold = allPlayers.filter(p => p.is_sold);
       const spendRows = allCaptains.map(c => {
         const spent = sold.filter(p => p.captain_id === c.id).reduce((sum, p) => sum + (p.sold_price || 0), 0);
@@ -1228,7 +1327,7 @@ function renderRecentSales() {
         const state = presenceChannel.presenceState();
         const count = Object.keys(state).length;
         const el = document.getElementById('viewerCount');
-        el.textContent = count === 1 ? '● 1 watching live' : `● ${count} watching live`;
+        el.innerHTML = count === 1 ? '<span class="viewer-pill"><span class="live-dot"></span>1 watching live</span>' : '<span class="viewer-pill"><span class="live-dot"></span>' + count + ' watching live</span>';
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -1236,6 +1335,8 @@ function renderRecentSales() {
         }
       });
 
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
     loadData();
   </script>
 
