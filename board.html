@@ -234,6 +234,29 @@
     .sp-bottom-r { display: flex; align-items: center; gap: 16px; }
     .sp-bottom-url { font-size: 11px; color: #555; }
     .sp-bottom-url span { color: #888; }
+
+    .sp-enter-btn {
+      background: #f0c040;
+      color: #0a0a0a;
+      border: 1px solid #f0c040;
+      border-radius: 999px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 10px 18px;
+      width: auto;
+      cursor: pointer;
+      box-shadow: 0 10px 28px rgba(240,192,64,0.18);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .sp-enter-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 34px rgba(240,192,64,0.24);
+      background: #ffd35c;
+    }
+    .sp-enter-btn:active { transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -308,6 +331,7 @@
       <div class="sp-bottom-l">Brown Munde &nbsp;&middot;&nbsp; <strong>Dallas, TX</strong></div>
       <div class="sp-bottom-r">
         <div class="sp-bottom-url">Live board &nbsp;&middot;&nbsp; <span>akierk04.github.io/BPL-Dallas/board.html</span></div>
+        <button class="sp-enter-btn" onclick="enterBoard()">Enter Live Board</button>
         <div style="width:1px;height:12px;background:#222;"></div>
         <a href="https://crossbardallas.com/" style="font-size:11px;color:#f0c040;font-weight:600;letter-spacing:0.06em;text-decoration:none;text-transform:uppercase;" target="_blank">crossbardallas.com</a>
       </div>
@@ -1167,11 +1191,21 @@ function renderRecentSales() {
     }
 
     const _cid = Math.random().toString(36).slice(2);
+
+    function enterBoard() {
+      var splash = document.getElementById('splashScreen');
+      if (splash) splash.style.display = 'none';
+      sessionStorage.setItem('bplBoardEntered', 'true');
+    }
+
     function renderSplash() {
       var splash = document.getElementById('splashScreen');
       if (!splash) return;
+
+      var userEntered = sessionStorage.getItem('bplBoardEntered') === 'true';
       var auctionStarted = allPlayers.some(function(p) { return p.is_sold; }) || !!currentPlayerId;
-      splash.style.display = auctionStarted ? 'none' : 'flex';
+
+      splash.style.display = (userEntered || auctionStarted) ? 'none' : 'flex';
     }
 
     db.channel('bpl-board-' + _cid)
