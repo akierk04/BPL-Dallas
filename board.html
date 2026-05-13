@@ -168,7 +168,7 @@
     .splash-sub { font-size: 13px; color: #555; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 14px; }
     .splash-info { display: flex; flex-direction: column; gap: 10px; }
     .splash-info-row { display: flex; align-items: center; gap: 12px; }
-    .splash-info-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #444; min-width: 56px; }
+    .splash-info-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; min-width: 56px; }
     .splash-info-value { font-size: 15px; font-weight: 600; color: #f0f0f0; }
     .splash-divider { width: 1px; height: 14px; background: #222; }
     .splash-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: #444; margin-bottom: 8px; font-weight: 600; }
@@ -210,9 +210,9 @@
       justify-content: space-between;
       flex-shrink: 0;
     }
-    .splash-bottom-left { font-size: 11px; color: #333; letter-spacing: 0.06em; text-transform: uppercase; }
-    .splash-bottom-left strong { color: #444; }
-    .splash-board-url { font-size: 11px; color: #3a3a3a; letter-spacing: 0.04em; }
+    .splash-bottom-left { font-size: 11px; color: #666; letter-spacing: 0.06em; text-transform: uppercase; }
+    .splash-bottom-left strong { color: #888; }
+    .splash-board-url { font-size: 11px; color: #666; letter-spacing: 0.04em; }
     .splash-board-url span { color: #f0c040; font-weight: 600; }
     .splash-glow {
       position: absolute;
@@ -262,7 +262,7 @@
           <div class="splash-section-label">Venue</div>
           <div class="splash-venue">
             <div class="splash-venue-name">Crossbar Denton</div>
-            <div class="splash-venue-addr">Denton, Texas &nbsp;&middot;&nbsp; Doors open 10:30 AM</div>
+            <div class="splash-venue-addr">Denton, Texas</div>
           </div>
         </div>
         <div>
@@ -287,7 +287,11 @@
     </div>
     <div class="splash-bottom">
       <div class="splash-bottom-left">Brown Munde &nbsp;&middot;&nbsp; <strong>Dallas, TX</strong></div>
-      <div class="splash-board-url">Live board &nbsp;&middot;&nbsp; <span>akierk04.github.io/BPL-Dallas/board.html</span></div>
+      <div style="display:flex;align-items:center;gap:20px;">
+        <div class="splash-board-url">Live board &nbsp;&middot;&nbsp; <span>akierk04.github.io/BPL-Dallas/board.html</span></div>
+        <div style="width:1px;height:14px;background:#222;"></div>
+        <a href="https://crossbardallas.com/" style="font-size:11px;color:#f0c040;font-weight:600;letter-spacing:0.06em;text-decoration:none;text-transform:uppercase;">crossbardallas.com</a>
+      </div>
     </div>
   </div>
 
