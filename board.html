@@ -343,7 +343,8 @@
     <div class="board-sub"><span class="live-dot"></span>Live · Season 2 · Dallas</div>
     <div class="board-viewers" id="viewerCount"></div>
     <div class="board-phase" id="boardPhase">Auction phase live</div>
-    <div style="margin-top:8px;">
+    <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+      <button onclick="showPoster()" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--font-body);font-size:11px;padding:4px 12px;width:auto;letter-spacing:0;cursor:pointer;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Home</button>
       <button onclick="loadData()" style="background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--font-body);font-size:11px;padding:4px 12px;width:auto;letter-spacing:0;cursor:pointer;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">↻ Refresh</button>
     </div>
   </div>
@@ -1198,14 +1199,18 @@ function renderRecentSales() {
       sessionStorage.setItem('bplBoardEntered', 'true');
     }
 
+    function showPoster() {
+      var splash = document.getElementById('splashScreen');
+      sessionStorage.removeItem('bplBoardEntered');
+      if (splash) splash.style.display = 'flex';
+    }
+
     function renderSplash() {
       var splash = document.getElementById('splashScreen');
       if (!splash) return;
 
       var userEntered = sessionStorage.getItem('bplBoardEntered') === 'true';
-      var auctionStarted = allPlayers.some(function(p) { return p.is_sold; }) || !!currentPlayerId;
-
-      splash.style.display = (userEntered || auctionStarted) ? 'none' : 'flex';
+      splash.style.display = userEntered ? 'none' : 'flex';
     }
 
     db.channel('bpl-board-' + _cid)
