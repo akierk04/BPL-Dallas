@@ -386,7 +386,6 @@
 <div id="btab-auction">
   <div class="event-banner" id="auctionEventBanner">
     <div class="event-banner-title" id="auctionEventTitle">Auction Begins Soon</div>
-    <div class="event-banner-copy" id="auctionEventCopy">Countdown to auction. Wallet details stay hidden until auction day.</div>
   </div>
 
   <div id="preAuctionPanel" class="pre-auction-panel" style="display:none;">
@@ -399,8 +398,7 @@
       <div class="countdown-box"><div class="countdown-val" id="cdMinutes">--</div><div class="countdown-label">Minutes</div></div>
       <div class="countdown-box"><div class="countdown-val" id="cdSeconds">--</div><div class="countdown-label">Seconds</div></div>
     </div>
-    <div class="pre-auction-footnote">Captains, wallets, and bidding strategy stay protected until the first nomination goes live.</div>
-  </div>
+</div>
 
   <div id="soldBanner" class="sold-banner" style="display:none;">
     <div class="sold-banner-label">Just Sold</div>
@@ -524,6 +522,8 @@
 
 <!-- Dues tab -->
 <div id="btab-dues" style="display:none;">
+  <div id="duesKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:20px;"></div>
+
   <div class="section-title">Top Payers</div>
   <div class="form-card">
     <div id="boardTopPayers"></div>
@@ -647,17 +647,23 @@
     }
 
     function updateCountdown() {
-      var target = new Date('2026-06-06T10:30:00-05:00').getTime();
+      if (!bidState || !bidState.auction_start_time) return;
+
+      var target = new Date(bidState.auction_start_time).getTime();
       var now = Date.now();
+
       var diff = Math.max(0, target - now);
+
       var days = Math.floor(diff / 86400000);
       var hours = Math.floor((diff % 86400000) / 3600000);
       var minutes = Math.floor((diff % 3600000) / 60000);
       var seconds = Math.floor((diff % 60000) / 1000);
+
       var d = document.getElementById('cdDays');
       var h = document.getElementById('cdHours');
       var m = document.getElementById('cdMinutes');
       var s = document.getElementById('cdSeconds');
+
       if (d) d.textContent = String(days);
       if (h) h.textContent = String(hours).padStart(2, '0');
       if (m) m.textContent = String(minutes).padStart(2, '0');
@@ -686,7 +692,7 @@
       if (title && copy) {
         if (preAuction) {
           title.textContent = 'Auction Begins Soon';
-          copy.textContent = 'Countdown to auction. Wallet details stay hidden until auction day.';
+          copy.textContent = 'Auction begins soon.';
         } else if (currentPlayerId || soldCount > 0) {
           title.textContent = 'Live Auction In Progress';
           copy.textContent = 'Watch bids rise, squads fill up, and the board update in real time.';
@@ -1241,8 +1247,67 @@ function renderRecentSales() {
 
 
     function renderBoardDues() {
+      renderBoardDuesKpis();
       renderBoardTopPayers();
       renderBoardDuesTable();
+    }
+
+    
+    function renderBoardDuesKpis() {
+      var wrap = document.getElementById('duesKpis');
+
+      if (!wrap || !paymentSummary.length) {
+        if (wrap) wrap.innerHTML = '';
+        return;
+      }
+
+      var totalDue = 0;
+      var totalPaid = 0;
+      var outstanding = 0;
+      var paidPlayers = 0;
+      var highestPayer = null;
+
+      paymentSummary.forEach(function(row) {
+        totalDue += Number(row.total_due || 0);
+        totalPaid += Number(row.total_paid || 0);
+        outstanding += Number(row.outstanding || 0);
+
+        if (Number(row.outstanding || 0) <= 0) {
+          paidPlayers++;
+        }
+
+        if (!highestPayer || Number(row.total_paid || 0) > Number(highestPayer.total_paid || 0)) {
+          highestPayer = row;
+        }
+      });
+
+      wrap.innerHTML = `
+        <div class="spotlight-card">
+          <div class="spotlight-title">Total Collected</div>
+          <div class="spotlight-name">$${totalPaid.toLocaleString()}</div>
+          <div class="spotlight-copy">Tournament dues received so far.</div>
+        </div>
+
+        <div class="spotlight-card">
+          <div class="spotlight-title">Outstanding Dues</div>
+          <div class="spotlight-name">$${outstanding.toLocaleString()}</div>
+          <div class="spotlight-copy">Remaining unpaid balance.</div>
+        </div>
+
+        <div class="spotlight-card">
+          <div class="spotlight-title">Paid Players</div>
+          <div class="spotlight-name">${paidPlayers}</div>
+          <div class="spotlight-copy">Players who have cleared dues.</div>
+        </div>
+
+        <div class="spotlight-card">
+          <div class="spotlight-title">Highest Spender</div>
+          <div class="spotlight-name">${highestPayer ? highestPayer.player_name : '—'}</div>
+          <div class="spotlight-copy">
+            ${highestPayer ? '$' + Number(highestPayer.total_paid || 0).toLocaleString() + ' paid so far.' : 'No payments yet.'}
+          </div>
+        </div>
+      `;
     }
 
     function renderBoardTopPayers() {
