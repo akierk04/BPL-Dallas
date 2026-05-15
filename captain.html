@@ -45,18 +45,15 @@
 .bid-stat-value.emph { font-family:var(--font-display); font-size:1.35rem; color:var(--accent); line-height:1; }
 .watch-only-strip { margin-top:14px; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid var(--border); font-size:12px; color:var(--muted); text-align:center; letter-spacing:0.02em; }
 .waiting-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; text-align:center; color:var(--muted); font-size:13px; }
-.insight-grid { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:20px; }
-.story-card, .recent-sales-card, .available-players-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px 20px; }
-.story-title, .recent-sales-title, .available-players-title { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:10px; }
-.story-line { font-size:14px; color:var(--text); line-height:1.5; margin-bottom:6px; }
-.story-line span { color:var(--accent); font-weight:600; }
-.recent-sale-row { padding:10px 0; border-bottom:0.5px solid var(--border); }
-.recent-sale-row:last-child { border-bottom:none; }
-.recent-sale-name { font-weight:600; color:var(--text); font-size:14px; }
-.recent-sale-meta { font-size:12px; color:var(--muted); margin-top:4px; }
-.avail-player-row { padding:7px 0; border-bottom:0.5px solid var(--border); font-size:13px; color:var(--text); display:flex; align-items:center; justify-content:space-between; }
-.avail-player-row:last-child { border-bottom:none; }
-.avail-player-row.is-current { color:var(--accent); font-weight:600; }
+.avail-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 18px; }
+.avail-section-title { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:12px; font-weight:500; }
+.avail-group-label { font-size:10px; text-transform:uppercase; letter-spacing:0.1em; font-weight:700; margin:10px 0 6px; }
+.avail-pool-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:6px; }
+.avail-chip { display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:13px; transition:border-color 0.15s; }
+.avail-chip.is-current { border-color:var(--accent); background:rgba(240,192,64,0.07); }
+.avail-chip.is-ineligible { opacity:0.45; }
+.avail-chip-name { color:var(--text); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.avail-chip.is-current .avail-chip-name { color:var(--accent); }
 .groups-needed-wrap { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
 .group-need-badge { padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600; }
 .group-need-badge.filled { background:rgba(62,207,142,0.12); border:1px solid rgba(62,207,142,0.35); color:var(--green); }
@@ -110,9 +107,10 @@
         <div class="bid-current-bidder" id="bidCurrentBidder">—</div>
       </div>
     </div>
-    <div class="bid-stats">
+    <div class="bid-stats" style="grid-template-columns:repeat(4,minmax(0,1fr));">
       <div class="bid-stat"><div class="bid-stat-label">Next Bid</div><div id="nextBidStat" class="bid-stat-value emph">—</div></div>
-      <div class="bid-stat"><div class="bid-stat-label">My Safe Spend</div><div id="safeSpendStat" class="bid-stat-value">—</div></div>
+      <div class="bid-stat"><div class="bid-stat-label">Reserve</div><div id="reserveStat" class="bid-stat-value" style="color:var(--muted);">—</div></div>
+      <div class="bid-stat"><div class="bid-stat-label">Safe Spend</div><div id="safeSpendStat" class="bid-stat-value" style="color:var(--green);">—</div></div>
       <div class="bid-stat"><div class="bid-stat-label">Slots Left</div><div id="playersLeftStat" class="bid-stat-value">—</div></div>
     </div>
     <div class="watch-only-strip">👀 Bidding is managed in person — raise your hand to bid</div>
@@ -121,19 +119,9 @@
 
 <div id="waitingPanel" class="waiting-panel">Waiting for next player to be presented...</div>
 
-<div class="insight-grid">
-  <div class="story-card">
-    <div class="story-title">Live Storyline</div>
-    <div id="captainStory" class="story-line">Auction room is warming up.</div>
-  </div>
-  <div class="recent-sales-card">
-    <div class="recent-sales-title">Recent Sales</div>
-    <div id="captainRecentSales"></div>
-  </div>
-  <div class="available-players-card">
-    <div class="available-players-title">Available Players</div>
-    <div id="captainAvailablePlayers"></div>
-  </div>
+<div class="avail-section">
+  <div class="avail-section-title">Available Players</div>
+  <div id="captainAvailablePlayers"></div>
 </div>
 
 <div class="wallet-hero">
@@ -219,8 +207,6 @@
 
       renderStatsRibbon();
       renderBidPanel();
-      renderStoryline();
-      renderRecentSales();
       renderAvailablePlayers();
       renderJustSold();
       renderRoster();
@@ -280,74 +266,51 @@
 
       document.getElementById('bidCurrentAmount').textContent = currentBid.toLocaleString() + ' pts';
       document.getElementById('bidCurrentBidder').textContent = currentBidder ? displayCaptainName(currentBidder) : 'No bids yet';
+      const reserveAmt = me ? budgetWarning(me.wallet, me.captain_group, myRoster).reserve : 0;
       document.getElementById('nextBidStat').textContent      = nextBid.toLocaleString() + ' pts';
+      document.getElementById('reserveStat').textContent      = reserveAmt.toLocaleString() + ' pts';
       document.getElementById('safeSpendStat').textContent    = safeSpend.toLocaleString() + ' pts';
       document.getElementById('playersLeftStat').textContent  = needed.length + ' group' + (needed.length !== 1 ? 's' : '');
     }
 
-    // ── Storyline ──
-    function renderStoryline() {
-      const el       = document.getElementById('captainStory');
-      const me       = allCaptains.find(c => c.id === user.id);
-      const myRoster = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
-      const needed   = me ? groupsStillNeeded(me.captain_group, myRoster) : [];
-
-      // KEY FIX: exclude live player's group from reserve for accurate safe spend display
-      const activePg = getActiveBidGroup();
-      const safe     = me ? budgetWarning(me.wallet, me.captain_group, myRoster, activePg).safe : 0;
-
-      const sold    = allPlayers.filter(p => p.is_sold);
-      const topSale = sold.reduce((max, p) => Math.max(max, p.sold_price || 0), 0);
-      const lines   = [];
-
-      if (bidState?.player_id) {
-        const p      = allPlayers.find(x => x.id === bidState.player_id);
-        const bidder = bidState.current_bidder_id ? allCaptains.find(c => c.id === bidState.current_bidder_id) : null;
-        const cur    = bidState.current_bid || p?.base_price || 0;
-        if (p && bidder) lines.push('<span>' + p.name + '</span> is live at <span>' + cur + ' pts</span>, led by <span>' + displayCaptainName(bidder) + '</span>.');
-        else if (p)      lines.push('<span>' + p.name + '</span> is live. Opening at <span>' + p.base_price + ' pts</span>.');
-      }
-      if (me) {
-        lines.push('You have <span>' + me.wallet.toLocaleString() + ' pts</span> left with <span>' + needed.length + '</span> group' + (needed.length !== 1 ? 's' : '') + ' to fill.');
-        if (needed.length > 0) lines.push('Safe to spend: <span>' + safe + ' pts</span>.');
-      }
-      if (topSale > 0) lines.push('Highest sale so far: <span>' + topSale + ' pts</span>.');
-      if (!lines.length) lines.push('Auction room is warming up.');
-      el.innerHTML = lines.slice(0, 3).map(l => '<div class="story-line">' + l + '</div>').join('');
-    }
-
-    // ── Recent Sales ──
-    function renderRecentSales() {
-      const wrap = document.getElementById('captainRecentSales');
-      const sold = [...allPlayers]
-        .filter(p => p.is_sold)
-        .sort((a, b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))
-        .slice(0, 5);
-      if (!sold.length) { wrap.innerHTML = '<div class="text-muted">No sales yet.</div>'; return; }
-      wrap.innerHTML = sold.map(p => {
-        const cap = allCaptains.find(c => c.id === p.captain_id);
-        return '<div class="recent-sale-row"><div class="recent-sale-name">' + p.name + '</div>'
-          + '<div class="recent-sale-meta">' + (cap ? displayCaptainName(cap) : '—') + ' · ' + (p.sold_price || 0) + ' pts</div></div>';
-      }).join('');
-    }
-
-    // ── Available Players ──
+    // ── Available Players — grouped by G1-G5, chips layout ──
     function renderAvailablePlayers() {
-      const wrap      = document.getElementById('captainAvailablePlayers');
+      const wrap    = document.getElementById('captainAvailablePlayers');
+      const me      = allCaptains.find(c => c.id === user.id);
+      const myRoster = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
+      const needed  = me ? groupsStillNeeded(me.captain_group, myRoster) : [];
+      const curId   = bidState?.player_id || null;
       const available = allPlayers.filter(p => !p.is_sold).sort((a, b) => a.name.localeCompare(b.name));
-      const curId     = bidState?.player_id || null;
+
       if (!available.length) { wrap.innerHTML = '<div class="text-muted" style="font-size:13px;">No players remaining.</div>'; return; }
-      wrap.innerHTML = available.map(p => {
-        const isCur    = p.id === curId;
-        const grpColor = p.group_name === '1' ? '#e05a2b'
-                       : p.group_name === '2' ? '#f0c040'
-                       : p.group_name === '3' ? '#3ecf8e'
-                       : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
-        return '<div class="avail-player-row' + (isCur ? ' is-current' : '') + '">'
-          + '<span>' + (isCur ? '⚡ ' : '') + p.name + '</span>'
-          + '<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:' + grpColor + '18;color:' + grpColor + ';font-weight:600;">G' + p.group_name + '</span>'
-          + '</div>';
-      }).join('');
+
+      const GRP_COLOR = { '1':'#e05a2b','2':'#f0c040','3':'#3ecf8e','4':'#7c8cf8','5':'#a78bfa' };
+      const GRP_LABEL = { '1':'Group 1 — 500 pts base','2':'Group 2 — 400 pts base','3':'Group 3 — 300 pts base','4':'Group 4 — 200 pts base','5':'Group 5 — 100 pts base' };
+
+      let html = '';
+      ['1','2','3','4','5'].forEach(g => {
+        const grpPlayers = available.filter(p => p.group_name === g);
+        if (!grpPlayers.length) return;
+        const color = GRP_COLOR[g];
+        // Ineligible = own group OR slot already filled
+        const isOwnGroup   = me && String(me.captain_group) === g;
+        const slotFilled   = me && needed.indexOf(g) === -1 && !isOwnGroup;
+        const ineligible   = isOwnGroup || slotFilled;
+        const labelSuffix  = isOwnGroup ? ' <span style="color:var(--muted);font-weight:400;">(your group)</span>'
+                           : slotFilled ? ' <span style="color:var(--green);font-weight:400;">✓ slot filled</span>'
+                           : '';
+        html += '<div class="avail-group-label" style="color:' + color + ';">' + GRP_LABEL[g] + labelSuffix + '</div>';
+        html += '<div class="avail-pool-grid">';
+        grpPlayers.forEach(p => {
+          const isCur = p.id === curId;
+          html += '<div class="avail-chip' + (isCur ? ' is-current' : '') + (ineligible && !isCur ? ' is-ineligible' : '') + '">'
+            + '<span class="avail-chip-name">' + (isCur ? '⚡ ' : '') + p.name + '</span>'
+            + '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:' + color + '18;color:' + color + ';font-weight:700;flex-shrink:0;margin-left:4px;">G' + g + '</span>'
+            + '</div>';
+        });
+        html += '</div>';
+      });
+      wrap.innerHTML = html;
     }
 
     // ── Just Sold ──
