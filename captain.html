@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -16,49 +15,22 @@
   <link rel="stylesheet" href="style.css" />
   <style>
     .captain-layout { display:flex; flex-direction:column; gap:20px; }
-
-/* ── Stats ribbon ── */
 .status-ribbon { display:flex; gap:10px; flex-wrap:wrap; }
 .status-pill { padding:8px 14px; border-radius:999px; background:var(--surface); border:1px solid var(--border); font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; }
 .status-pill strong { color:var(--text); }
 .status-pill.alert { border-color:rgba(224,90,43,0.4); color:var(--red); }
 .status-pill.good  { border-color:rgba(62,207,142,0.4); color:var(--green); }
-
-/* ── Squad complete banner ── */
-.squad-complete-banner {
-  display:none;
-  background:linear-gradient(135deg,rgba(62,207,142,0.16),rgba(62,207,142,0.05));
-  border:1px solid rgba(62,207,142,0.4);
-  border-radius:var(--radius-lg);
-  padding:16px 20px; text-align:center;
-}
+.squad-complete-banner { display:none; background:linear-gradient(135deg,rgba(62,207,142,0.16),rgba(62,207,142,0.05)); border:1px solid rgba(62,207,142,0.4); border-radius:var(--radius-lg); padding:16px 20px; text-align:center; }
 .squad-complete-icon  { font-size:2rem; margin-bottom:6px; }
 .squad-complete-title { font-family:var(--font-display); font-size:1.5rem; letter-spacing:0.06em; color:var(--green); }
 .squad-complete-sub   { font-size:13px; color:var(--muted); margin-top:4px; }
-
-/* ── Auction complete banner ── */
-.auction-complete-banner {
-  display:none;
-  background:linear-gradient(135deg,rgba(240,192,64,0.16),rgba(240,192,64,0.05));
-  border:1px solid rgba(240,192,64,0.4);
-  border-radius:var(--radius-lg);
-  padding:18px 20px; text-align:center;
-}
+.auction-complete-banner { display:none; background:linear-gradient(135deg,rgba(240,192,64,0.16),rgba(240,192,64,0.05)); border:1px solid rgba(240,192,64,0.4); border-radius:var(--radius-lg); padding:18px 20px; text-align:center; }
 .auction-complete-title { font-family:var(--font-display); font-size:1.5rem; letter-spacing:0.06em; color:var(--accent); }
 .auction-complete-sub   { font-size:13px; color:var(--muted); margin-top:4px; }
-
-/* ── Just Sold banner ── */
 .sold-banner { display:none; background:linear-gradient(135deg,rgba(62,207,142,0.14),rgba(62,207,142,0.05)); border:1px solid rgba(62,207,142,0.35); border-radius:var(--radius-lg); padding:16px 18px; }
 .sold-banner-label { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--green); margin-bottom:6px; }
 .sold-banner-text  { color:var(--text); font-weight:600; font-size:14px; }
-
-/* ── Live Bidding panel (display only) ── */
-.bid-panel {
-  background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));
-  border:1px solid rgba(240,192,64,0.5);
-  border-radius:var(--radius-lg);
-  padding:20px;
-}
+.bid-panel { background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04)); border:1px solid rgba(240,192,64,0.5); border-radius:var(--radius-lg); padding:20px; }
 .bid-panel-label    { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--accent); margin-bottom:6px; }
 .bid-player-name    { font-family:var(--font-display); font-size:2.4rem; letter-spacing:0.06em; color:var(--text); line-height:1; margin-bottom:6px; }
 .bid-base-price     { font-size:12px; color:var(--muted); margin-bottom:16px; }
@@ -66,29 +38,13 @@
 .bid-current-amount { font-family:var(--font-display); font-size:3rem; color:var(--accent); line-height:1; }
 .bid-current-label  { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-top:4px; }
 .bid-current-bidder { font-size:15px; color:var(--text); font-weight:600; margin-top:4px; }
-
 .bid-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:16px; }
 .bid-stat  { background:rgba(0,0,0,0.16); border:1px solid rgba(255,255,255,0.04); border-radius:12px; padding:12px; }
 .bid-stat-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:5px; }
 .bid-stat-value { color:var(--text); font-weight:600; font-size:14px; }
 .bid-stat-value.emph { font-family:var(--font-display); font-size:1.35rem; color:var(--accent); line-height:1; }
-
-/* Display-only notice strip */
-.watch-only-strip {
-  margin-top:14px;
-  padding:10px 14px;
-  border-radius:8px;
-  background:rgba(255,255,255,0.03);
-  border:1px solid var(--border);
-  font-size:12px;
-  color:var(--muted);
-  text-align:center;
-  letter-spacing:0.02em;
-}
-
+.watch-only-strip { margin-top:14px; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid var(--border); font-size:12px; color:var(--muted); text-align:center; letter-spacing:0.02em; }
 .waiting-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; text-align:center; color:var(--muted); font-size:13px; }
-
-/* ── Insight grid ── */
 .insight-grid { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:20px; }
 .story-card, .recent-sales-card, .available-players-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px 20px; }
 .story-title, .recent-sales-title, .available-players-title { font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-bottom:10px; }
@@ -101,16 +57,12 @@
 .avail-player-row { padding:7px 0; border-bottom:0.5px solid var(--border); font-size:13px; color:var(--text); display:flex; align-items:center; justify-content:space-between; }
 .avail-player-row:last-child { border-bottom:none; }
 .avail-player-row.is-current { color:var(--accent); font-weight:600; }
-
-/* ── Groups needed badge ── */
 .groups-needed-wrap { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
 .group-need-badge { padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600; }
 .group-need-badge.filled { background:rgba(62,207,142,0.12); border:1px solid rgba(62,207,142,0.35); color:var(--green); }
 .group-need-badge.needed { background:rgba(240,192,64,0.10); border:1px solid rgba(240,192,64,0.35); color:var(--accent); }
-
 @media (max-width:900px) { .insight-grid { grid-template-columns:1fr 1fr; } }
 @media (max-width:560px) { .insight-grid { grid-template-columns:1fr; } .bid-stats { grid-template-columns:1fr; } }
-
   </style>
 </head>
 <body>
@@ -124,30 +76,25 @@
 
   <div class="page captain-layout">
 
-<!-- Squad Complete Banner -->
 <div id="squadCompleteBanner" class="squad-complete-banner">
   <div class="squad-complete-icon">✅</div>
   <div class="squad-complete-title">Squad Complete!</div>
   <div id="squadCompleteSubtext" class="squad-complete-sub">Your full squad is locked in. Good luck!</div>
 </div>
 
-<!-- Auction Complete Banner -->
 <div id="auctionCompleteBanner" class="auction-complete-banner">
   <div style="font-size:2rem;margin-bottom:6px;">🏆</div>
   <div class="auction-complete-title">Auction Complete</div>
   <div class="auction-complete-sub">All players have been sold. The tournament begins!</div>
 </div>
 
-<!-- Just Sold -->
 <div id="justSoldBanner" class="sold-banner">
   <div class="sold-banner-label">Just Sold</div>
   <div id="justSoldText" class="sold-banner-text">—</div>
 </div>
 
-<!-- Stats Ribbon -->
 <div class="status-ribbon" id="statsRibbon"></div>
 
-<!-- Live Bidding Panel — display only -->
 <div id="biddingPanel" style="display:none;">
   <div class="bid-panel">
     <div class="bid-panel-label">⚡ Now Bidding</div>
@@ -164,18 +111,9 @@
       </div>
     </div>
     <div class="bid-stats">
-      <div class="bid-stat">
-        <div class="bid-stat-label">Next Bid</div>
-        <div id="nextBidStat" class="bid-stat-value emph">—</div>
-      </div>
-      <div class="bid-stat">
-        <div class="bid-stat-label">My Safe Spend</div>
-        <div id="safeSpendStat" class="bid-stat-value">—</div>
-      </div>
-      <div class="bid-stat">
-        <div class="bid-stat-label">Slots Left</div>
-        <div id="playersLeftStat" class="bid-stat-value">—</div>
-      </div>
+      <div class="bid-stat"><div class="bid-stat-label">Next Bid</div><div id="nextBidStat" class="bid-stat-value emph">—</div></div>
+      <div class="bid-stat"><div class="bid-stat-label">My Safe Spend</div><div id="safeSpendStat" class="bid-stat-value">—</div></div>
+      <div class="bid-stat"><div class="bid-stat-label">Slots Left</div><div id="playersLeftStat" class="bid-stat-value">—</div></div>
     </div>
     <div class="watch-only-strip">👀 Bidding is managed in person — raise your hand to bid</div>
   </div>
@@ -183,7 +121,6 @@
 
 <div id="waitingPanel" class="waiting-panel">Waiting for next player to be presented...</div>
 
-<!-- Insight grid -->
 <div class="insight-grid">
   <div class="story-card">
     <div class="story-title">Live Storyline</div>
@@ -199,7 +136,6 @@
   </div>
 </div>
 
-<!-- My Wallet -->
 <div class="wallet-hero">
   <div class="wallet-label">My Purse</div>
   <div class="wallet-amount" id="myWalletAmount">—</div>
@@ -207,25 +143,20 @@
   <div id="myWarning"></div>
 </div>
 
-<!-- My Team -->
 <div class="section-title">My Team</div>
 <div class="captain-card" style="margin-bottom:4px;">
   <div id="groupsNeededBadge" class="groups-needed-wrap"></div>
   <div class="team-roster" id="myRoster"></div>
 </div>
 
-<!-- All Captains -->
 <div class="section-title">All Captains</div>
 <div class="captains-grid" id="captainsGrid"></div>
 
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <script src="supabase-config.js"></script>
-
   <script src="budget-warning.js"></script>
-
   <script>
     const user = JSON.parse(sessionStorage.getItem('bpl_user') || 'null');
     if (!user || sessionStorage.getItem('bpl_role') !== 'captain') window.location.href = 'index.html';
@@ -235,6 +166,14 @@
 
     let allCaptains = [], allPlayers = [], bidState = null;
     let previousSoldState = new Map(), lastSoldEvent = null, isFirstLoad = true;
+
+    // Returns the group_name of the player currently live for bidding (or null).
+    // Passed to budgetWarning() so that group is excluded from reserve calculation.
+    function getActiveBidGroup() {
+      if (!bidState?.player_id) return null;
+      const p = allPlayers.find(p => p.id === bidState.player_id && !p.is_sold);
+      return p ? p.group_name : null;
+    }
 
     function detectSoldTransition(nextPlayers) {
       if (isFirstLoad) {
@@ -274,7 +213,8 @@
         const myRoster = allPlayers.filter(p => p.captain_id === me.id && p.is_sold);
         document.getElementById('myWalletAmount').textContent = me.wallet.toLocaleString() + ' pts';
         document.getElementById('myWalletName').textContent   = displayCaptainName(me);
-        document.getElementById('myWarning').innerHTML        = warningBadgeHtml(me.wallet, me.captain_group, myRoster);
+        // Wallet card shows full reserve (no activeGroup) — correct outside live bid context
+        document.getElementById('myWarning').innerHTML = warningBadgeHtml(me.wallet, me.captain_group, myRoster);
       }
 
       renderStatsRibbon();
@@ -293,39 +233,25 @@
       const ribbon = document.getElementById('statsRibbon');
       const me = allCaptains.find(c => c.id === user.id);
       if (!me) { ribbon.innerHTML = ''; return; }
-
-      const myRoster   = allPlayers.filter(p => p.captain_id === me.id && p.is_sold);
-      const needed     = groupsStillNeeded(me.captain_group, myRoster);
-      const slotsLeft  = needed.length;
-      const unsold     = allPlayers.filter(p => !p.is_sold).length;
-
+      const myRoster  = allPlayers.filter(p => p.captain_id === me.id && p.is_sold);
+      const needed    = groupsStillNeeded(me.captain_group, myRoster);
+      const slotsLeft = needed.length;
+      const unsold    = allPlayers.filter(p => !p.is_sold).length;
       ribbon.innerHTML =
         '<div class="status-pill"><strong>' + unsold + '</strong>&nbsp;players remaining</div>' +
         '<div class="status-pill ' + (slotsLeft === 0 ? 'good' : '') + '">' +
           (slotsLeft === 0 ? '✅' : '⬜') + '&nbsp;<strong>' + slotsLeft + '</strong>&nbsp;slot' + (slotsLeft !== 1 ? 's' : '') + ' to fill' +
         '</div>' +
-        (slotsLeft > 0
-          ? '<div class="status-pill">Need: ' + needed.map(g => 'G' + g).join(', ') + '</div>'
-          : '');
+        (slotsLeft > 0 ? '<div class="status-pill">Need: ' + needed.map(g => 'G' + g).join(', ') + '</div>' : '');
     }
 
     // ── Live Bidding Panel (display only) ──
     function renderBidPanel() {
       const panel   = document.getElementById('biddingPanel');
       const waiting = document.getElementById('waitingPanel');
-
-      if (!bidState?.player_id) {
-        panel.style.display   = 'none';
-        waiting.style.display = 'block';
-        return;
-      }
-
+      if (!bidState?.player_id) { panel.style.display = 'none'; waiting.style.display = 'block'; return; }
       const player = allPlayers.find(p => p.id === bidState.player_id);
-      if (!player || player.is_sold) {
-        panel.style.display   = 'none';
-        waiting.style.display = 'block';
-        return;
-      }
+      if (!player || player.is_sold) { panel.style.display = 'none'; waiting.style.display = 'block'; return; }
 
       panel.style.display   = 'block';
       waiting.style.display = 'none';
@@ -334,14 +260,17 @@
       const myRoster      = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
       const currentBid    = bidState.current_bid || player.base_price;
       const nextBid       = bidState.current_bid === 0 ? player.base_price : currentBid + 50;
-      const currentBidder = bidState.current_bidder_id
-        ? allCaptains.find(c => c.id === bidState.current_bidder_id) : null;
+      const currentBidder = bidState.current_bidder_id ? allCaptains.find(c => c.id === bidState.current_bidder_id) : null;
       const needed        = me ? groupsStillNeeded(me.captain_group, myRoster) : [];
-      const safeSpend     = me ? budgetWarning(me.wallet, me.captain_group, myRoster).safe : 0;
+
+      // KEY FIX: exclude the live player's group from reserve so safe spend is correct
+      const activePg  = getActiveBidGroup();
+      const safeSpend = me ? budgetWarning(me.wallet, me.captain_group, myRoster, activePg).safe : 0;
 
       const grpColor = player.group_name === '1' ? '#e05a2b'
                      : player.group_name === '2' ? '#f0c040'
-                     : player.group_name === '3' ? '#3ecf8e' : '#7c8cf8';
+                     : player.group_name === '3' ? '#3ecf8e'
+                     : player.group_name === '4' ? '#7c8cf8' : '#a78bfa';
 
       document.getElementById('bidPlayerName').textContent = player.name;
       document.getElementById('bidBasePrice').innerHTML =
@@ -358,15 +287,19 @@
 
     // ── Storyline ──
     function renderStoryline() {
-      const el      = document.getElementById('captainStory');
-      const me      = allCaptains.find(c => c.id === user.id);
+      const el       = document.getElementById('captainStory');
+      const me       = allCaptains.find(c => c.id === user.id);
       const myRoster = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
       const needed   = me ? groupsStillNeeded(me.captain_group, myRoster) : [];
-      const safe     = me ? budgetWarning(me.wallet, me.captain_group, myRoster).safe : 0;
-      const sold     = allPlayers.filter(p => p.is_sold);
-      const topSale  = sold.reduce((max, p) => Math.max(max, p.sold_price || 0), 0);
 
-      const lines = [];
+      // KEY FIX: exclude live player's group from reserve for accurate safe spend display
+      const activePg = getActiveBidGroup();
+      const safe     = me ? budgetWarning(me.wallet, me.captain_group, myRoster, activePg).safe : 0;
+
+      const sold    = allPlayers.filter(p => p.is_sold);
+      const topSale = sold.reduce((max, p) => Math.max(max, p.sold_price || 0), 0);
+      const lines   = [];
+
       if (bidState?.player_id) {
         const p      = allPlayers.find(x => x.id === bidState.player_id);
         const bidder = bidState.current_bidder_id ? allCaptains.find(c => c.id === bidState.current_bidder_id) : null;
@@ -393,10 +326,8 @@
       if (!sold.length) { wrap.innerHTML = '<div class="text-muted">No sales yet.</div>'; return; }
       wrap.innerHTML = sold.map(p => {
         const cap = allCaptains.find(c => c.id === p.captain_id);
-        return '<div class="recent-sale-row">'
-          + '<div class="recent-sale-name">' + p.name + '</div>'
-          + '<div class="recent-sale-meta">' + (cap ? displayCaptainName(cap) : '—') + ' · ' + (p.sold_price || 0) + ' pts</div>'
-          + '</div>';
+        return '<div class="recent-sale-row"><div class="recent-sale-name">' + p.name + '</div>'
+          + '<div class="recent-sale-meta">' + (cap ? displayCaptainName(cap) : '—') + ' · ' + (p.sold_price || 0) + ' pts</div></div>';
       }).join('');
     }
 
@@ -407,8 +338,11 @@
       const curId     = bidState?.player_id || null;
       if (!available.length) { wrap.innerHTML = '<div class="text-muted" style="font-size:13px;">No players remaining.</div>'; return; }
       wrap.innerHTML = available.map(p => {
-        const isCur = p.id === curId;
-        const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
+        const isCur    = p.id === curId;
+        const grpColor = p.group_name === '1' ? '#e05a2b'
+                       : p.group_name === '2' ? '#f0c040'
+                       : p.group_name === '3' ? '#3ecf8e'
+                       : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
         return '<div class="avail-player-row' + (isCur ? ' is-current' : '') + '">'
           + '<span>' + (isCur ? '⚡ ' : '') + p.name + '</span>'
           + '<span style="font-size:11px;padding:1px 6px;border-radius:4px;background:' + grpColor + '18;color:' + grpColor + ';font-weight:600;">G' + p.group_name + '</span>'
@@ -420,13 +354,10 @@
     function renderJustSold() {
       const banner = document.getElementById('justSoldBanner');
       const text   = document.getElementById('justSoldText');
-      const latest = lastSoldEvent
-        ? { name: lastSoldEvent.player, sold_price: lastSoldEvent.price, captainName: lastSoldEvent.captain }
-        : null;
+      const latest = lastSoldEvent ? { name: lastSoldEvent.player, sold_price: lastSoldEvent.price, captainName: lastSoldEvent.captain } : null;
       if (!latest) {
-        // Fall back to most recently sold by sold_at
-        const byDate = [...allPlayers].filter(p => p.is_sold).sort((a, b) =>
-          (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))[0];
+        const byDate = [...allPlayers].filter(p => p.is_sold)
+          .sort((a, b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))[0];
         if (!byDate) { banner.style.display = 'none'; return; }
         const cap = allCaptains.find(c => c.id === byDate.captain_id);
         text.textContent = byDate.name + ' sold to ' + (cap ? displayCaptainName(cap) : '—') + ' for ' + (byDate.sold_price || 0) + ' pts';
@@ -441,31 +372,27 @@
     function renderRoster() {
       const me       = allCaptains.find(c => c.id === user.id);
       const myRoster = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
-
-      // Groups needed badges
       const badgeWrap = document.getElementById('groupsNeededBadge');
       if (me && myRoster.length > 0) {
         const needed = groupsStillNeeded(me.captain_group, myRoster);
-        // Show required slots: G1, G2, G3 (1 each, skip own) + G4 (×2)
         const requiredSlots = [];
         ['1','2','3'].filter(g => g !== String(me.captain_group)).forEach(g => requiredSlots.push(g));
         requiredSlots.push('4'); requiredSlots.push('4');
         if (String(me.captain_group) !== '5') requiredSlots.push('5');
         badgeWrap.innerHTML = requiredSlots.map(g => {
-          const idx = needed.indexOf(g);
-          const filled = idx === -1;
+          const filled = needed.indexOf(g) === -1;
           return '<div class="group-need-badge ' + (filled ? 'filled' : 'needed') + '">'
-            + (filled ? '✅' : '⚠️') + ' Group ' + g
-            + '</div>';
+            + (filled ? '✅' : '⚠️') + ' Group ' + g + '</div>';
         }).join('');
       } else {
         badgeWrap.innerHTML = '';
       }
-
-      // Roster rows
       document.getElementById('myRoster').innerHTML = myRoster.length
         ? myRoster.map(p => {
-            const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
+            const grpColor = p.group_name === '1' ? '#e05a2b'
+                           : p.group_name === '2' ? '#f0c040'
+                           : p.group_name === '3' ? '#3ecf8e'
+                           : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
             return '<div class="roster-player">'
               + '<span class="roster-player-name">' + p.name
               + ' <span style="font-size:10px;background:' + grpColor + '18;color:' + grpColor + ';padding:1px 6px;border-radius:4px;font-weight:600;">G' + p.group_name + '</span>'
@@ -478,13 +405,17 @@
     }
 
     // ── All Captains grid ──
+    // warningBadgeHtml here does NOT pass activeGroup — full reserve is correct on captain cards
     function renderCaptainsGrid() {
       const grid = document.getElementById('captainsGrid');
       grid.innerHTML = allCaptains.filter(c => c.id !== user.id).map(c => {
         const roster = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
         const rosterHtml = roster.length
           ? roster.map(p => {
-              const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
+              const grpColor = p.group_name === '1' ? '#e05a2b'
+                             : p.group_name === '2' ? '#f0c040'
+                             : p.group_name === '3' ? '#3ecf8e'
+                             : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
               return '<div class="roster-player">'
                 + '<span class="roster-player-name">' + p.name
                 + ' <span style="font-size:10px;background:' + grpColor + '18;color:' + grpColor + ';padding:1px 6px;border-radius:4px;font-weight:600;">G' + p.group_name + '</span>'
@@ -493,7 +424,6 @@
                 + '</div>';
             }).join('')
           : '<div class="roster-empty">No players yet</div>';
-
         return '<div class="captain-card">'
           + '<div class="captain-card-header"><div style="width:100%;">'
           + '<div class="captain-name">' + displayCaptainName(c) + '</div>'
@@ -508,15 +438,15 @@
 
     // ── Squad / Auction complete banners ──
     function renderSquadBanners() {
-      const me          = allCaptains.find(c => c.id === user.id);
+      const me            = allCaptains.find(c => c.id === user.id);
       const auctionBanner = document.getElementById('auctionCompleteBanner');
       const squadBanner   = document.getElementById('squadCompleteBanner');
-      const unsold = allPlayers.filter(p => !p.is_sold).length;
+      const unsold        = allPlayers.filter(p => !p.is_sold).length;
       auctionBanner.style.display = (allPlayers.length > 0 && unsold === 0) ? 'block' : 'none';
       if (me) {
         const myRoster = allPlayers.filter(p => p.captain_id === me.id && p.is_sold);
         const needed   = groupsStillNeeded(me.captain_group, myRoster);
-        const full     = needed.length === 0 && myRoster.length >= 5; // 5 bids complete
+        const full     = needed.length === 0 && myRoster.length >= 5;
         squadBanner.style.display = full ? 'block' : 'none';
         if (full) document.getElementById('squadCompleteSubtext').textContent = 'All ' + myRoster.length + ' players signed. Good luck!';
       }
@@ -530,13 +460,12 @@
 
     const _cid = Math.random().toString(36).slice(2);
     db.channel('bpl-captain-' + _cid)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' },     loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' },      loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' },      loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' },       loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bidding_state' }, loadData)
       .subscribe();
 
     loadData();
   </script>
-
 </body>
 </html>
