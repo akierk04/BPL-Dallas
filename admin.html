@@ -386,6 +386,14 @@
           <button class="btn-primary" onclick="setBiddingPlayer()">Go Live</button>
           <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="clearBiddingPlayer()">Clear</button>
         </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;align-self:center;margin-right:4px;white-space:nowrap;">Random Pick:</div>
+          <button id="randG1" class="btn-sm" onclick="pickRandom('1')" style="width:auto;">🎲 G1</button>
+          <button id="randG2" class="btn-sm" onclick="pickRandom('2')" style="width:auto;">🎲 G2</button>
+          <button id="randG3" class="btn-sm" onclick="pickRandom('3')" style="width:auto;">🎲 G3</button>
+          <button id="randG4" class="btn-sm" onclick="pickRandom('4')" style="width:auto;">🎲 G4</button>
+          <button id="randG5" class="btn-sm" onclick="pickRandom('5')" style="width:auto;">🎲 G5</button>
+        </div>
         <p id="biddingMsg" class="text-muted mt-8"></p>
       </div>
 
@@ -1261,6 +1269,30 @@
         unsold.map(p => `
           <option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.name} · Group ${p.group_name} · ${p.base_price} pts${p.status === 'tentative' ? ' · Tentative' : ''}</option>`).join('');
       if (currentPlayerId) sel.value = currentPlayerId;
+      updateRandomButtons();
+    }
+
+    // ── Random player picker ──
+    function pickRandom(group) {
+      const unsoldInGroup = allPlayers.filter(p => !p.is_sold && String(p.group_name) === String(group));
+      if (!unsoldInGroup.length) return;
+      const pick = unsoldInGroup[Math.floor(Math.random() * unsoldInGroup.length)];
+      const sel  = document.getElementById('biddingPlayer');
+      sel.value  = pick.id;
+      const msg  = document.getElementById('biddingMsg');
+      msg.textContent = pick.name + ' (G' + group + ') selected — click Go Live to confirm.';
+      setTimeout(() => msg.textContent = '', 5000);
+    }
+
+    function updateRandomButtons() {
+      ['1','2','3','4','5'].forEach(g => {
+        const btn = document.getElementById('randG' + g);
+        if (!btn) return;
+        const available = allPlayers.filter(p => !p.is_sold && String(p.group_name) === g).length;
+        btn.disabled = available === 0;
+        btn.title    = available === 0 ? 'No G' + g + ' players left' : available + ' G' + g + ' player' + (available !== 1 ? 's' : '') + ' available';
+        btn.style.opacity = available === 0 ? '0.35' : '1';
+      });
     }
 
     async function setBiddingPlayer() {
