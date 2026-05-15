@@ -1049,6 +1049,22 @@
       if (!captain && !freshCap) return;
       const currentWallet = freshCap?.wallet ?? captain?.wallet ?? 0;
 
+      // ── BLOCK: captain cannot buy from their own group ──
+      if (player && String(player.group_name) === String(captain.captain_group)) {
+        msg.textContent = `❌ ${displayCaptainName(captain)} is a G${captain.captain_group} captain — cannot buy G${player.group_name} players. Sale blocked.`;
+        setTimeout(() => msg.textContent = '', 6000);
+        return;
+      }
+
+      // ── BLOCK: captain has no remaining slot for this group ──
+      const soldForWinner = allPlayers.filter(p => p.captain_id === currentBidderId && p.is_sold);
+      const neededForWinner = groupsStillNeeded(captain.captain_group, soldForWinner);
+      if (player && neededForWinner.indexOf(String(player.group_name)) === -1) {
+        msg.textContent = `❌ ${displayCaptainName(captain)} has no remaining G${player.group_name} slot. Sale blocked.`;
+        setTimeout(() => msg.textContent = '', 6000);
+        return;
+      }
+
       await db.from('players').update({
         captain_id: currentBidderId,
         sold_price: currentBid,
@@ -1260,7 +1276,10 @@
       }).eq('id', 1);
       msg.textContent = 'Player set live!';
       setTimeout(() => msg.textContent = '', 3000);
-      loadData();
+      await loadData();
+      // Pre-select the live player in Manual Override console
+      document.getElementById('consolePlayer').value = pid;
+      updateConsoleWarning();
     }
 
     async function clearBiddingPlayer() {
@@ -1277,14 +1296,17 @@
     }
 
     function populateConsoleDropdowns() {
-      const pSel = document.getElementById('consolePlayer'), cSel = document.getElementById('consoleCaptain');
-      const cur_p = pSel.value, cur_c = cSel.value;
+      const pSel  = document.getElementById('consolePlayer'), cSel = document.getElementById('consoleCaptain');
+      const cur_p = pSel.value || currentPlayerId || '';
+      const cur_c = cSel.value;
       pSel.innerHTML = '<option value="">Select player...</option>' +
-        allPlayers.filter(p => !p.is_sold).map(p => `
-          <option value="${p.id}" ${p.id === cur_p ? 'selected' : ''}>${p.name} · Group ${p.group_name}</option>`).join('');
+        allPlayers.filter(p => !p.is_sold).map(p =>
+          `<option value="${p.id}" ${p.id === cur_p ? 'selected' : ''}>${p.name} · Group ${p.group_name}${p.status === 'tentative' ? ' · Tentative' : ''}</option>`
+        ).join('');
       cSel.innerHTML = '<option value="">Select captain...</option>' +
-        allCaptains.map(c => `
-          <option value="${c.id}" ${c.id === cur_c ? 'selected' : ''}>${displayCaptainName(c)} · ${c.wallet.toLocaleString()} pts left</option>`).join('');
+        allCaptains.map(c =>
+          `<option value="${c.id}" ${c.id === cur_c ? 'selected' : ''}>${displayCaptainName(c)} · ${c.wallet.toLocaleString()} pts left</option>`
+        ).join('');
     }
 
     function quickAssign(playerId) {
@@ -1295,11 +1317,31 @@
     }
 
     function updateConsoleWarning() {
-      const captainId = document.getElementById('consoleCaptain').value, warn = document.getElementById('consoleWarning');
+      const captainId = document.getElementById('consoleCaptain').value;
+      const playerId  = document.getElementById('consolePlayer').value;
+      const warn      = document.getElementById('consoleWarning');
       if (!captainId) { warn.innerHTML = ''; return; }
-      const captain = allCaptains.find(c => c.id === captainId);
+      const captain    = allCaptains.find(c => c.id === captainId);
       const soldForCap = allPlayers.filter(p => p.captain_id === captainId && p.is_sold);
-      warn.innerHTML = warningBadgeHtml(captain.wallet, captain.captain_group, soldForCap);
+      let html = warningBadgeHtml(captain.wallet, captain.captain_group, soldForCap);
+
+      // Show eligibility warning when a player is also selected
+      if (playerId) {
+        const player = allPlayers.find(p => p.id === playerId);
+        if (player) {
+          if (String(player.group_name) === String(captain.captain_group)) {
+            html += `<div style="margin-top:6px;padding:7px 12px;border-radius:8px;background:rgba(224,90,43,0.1);border:1px solid rgba(224,90,43,0.4);font-size:13px;font-weight:500;color:var(--red);">❌ ${displayCaptainName(captain)} is a G${captain.captain_group} captain — cannot buy G${player.group_name} players.</div>`;
+          } else {
+            const needed = groupsStillNeeded(captain.captain_group, soldForCap);
+            if (needed.indexOf(String(player.group_name)) === -1) {
+              html += `<div style="margin-top:6px;padding:7px 12px;border-radius:8px;background:rgba(224,90,43,0.1);border:1px solid rgba(224,90,43,0.4);font-size:13px;font-weight:500;color:var(--red);">❌ No remaining G${player.group_name} slot for ${displayCaptainName(captain)}.</div>`;
+            } else {
+              html += `<div style="margin-top:6px;padding:7px 12px;border-radius:8px;background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.35);font-size:13px;font-weight:500;color:var(--green);">✓ ${displayCaptainName(captain)} can buy G${player.group_name} players.</div>`;
+            }
+          }
+        }
+      }
+      warn.innerHTML = html;
     }
 
     async function doAssign() {
@@ -1307,6 +1349,22 @@
       const price = parseInt(document.getElementById('consolePrice').value), msg = document.getElementById('consoleMsg');
       if (!playerId || !captainId || isNaN(price) || price < 0) { msg.textContent = 'Fill all fields.'; return; }
       const captain = allCaptains.find(c => c.id === captainId);
+      const player  = allPlayers.find(p => p.id === playerId);
+
+      // ── BLOCK: same group ──
+      if (player && String(player.group_name) === String(captain.captain_group)) {
+        msg.textContent = `❌ ${displayCaptainName(captain)} is a G${captain.captain_group} captain — cannot be assigned G${player.group_name} players.`;
+        return;
+      }
+
+      // ── BLOCK: slot already filled ──
+      const soldForCap = allPlayers.filter(p => p.captain_id === captainId && p.is_sold);
+      const needed     = groupsStillNeeded(captain.captain_group, soldForCap);
+      if (player && needed.indexOf(String(player.group_name)) === -1) {
+        msg.textContent = `❌ ${displayCaptainName(captain)} has no remaining G${player.group_name} slot.`;
+        return;
+      }
+
       if (price > captain.wallet) { msg.textContent = `${displayCaptainName(captain)} only has ${captain.wallet} pts left.`; return; }
 
       await db.from('players').update({
