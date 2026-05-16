@@ -87,8 +87,8 @@ function budgetWarning(wallet, captainGroup, soldPlayers, activeGroup) {
 }
 
 // HTML badge — does not pass activeGroup (used outside live bidding context)
-function warningBadgeHtml(wallet, captainGroup, soldPlayers) {
-  var w = budgetWarning(wallet, captainGroup, soldPlayers || []);
+function warningBadgeHtml(wallet, captainGroup, soldPlayers, activeGroup) {
+  var w = budgetWarning(wallet, captainGroup, soldPlayers || [], activeGroup);
   return '<div style="margin-top:8px;padding:7px 12px;border-radius:8px;background:' + w.color + '18;border:1px solid ' + w.color + '55;font-size:13px;font-weight:500;color:' + w.color + ';">' + w.msg + '</div>';
 }
 
