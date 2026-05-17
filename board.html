@@ -498,7 +498,7 @@
     <div class="board-phase" id="boardPhase">Auction phase live</div>
     <div class="header-actions">
       <button class="header-action-btn" onclick="showPoster()">Home</button>
-      <button class="header-action-btn" onclick="loadDataFull()">Refresh</button>
+      <button class="header-action-btn" onclick="loadData()">Refresh</button>
     </div>
   </div>
 
@@ -559,11 +559,24 @@
   </div>
   <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;" id="auctionGrid">
-    <div class="spotlight-card">
-      <div class="spotlight-title">Top Spender</div>
-      <div class="spotlight-name" id="topSpenderName">—</div>
-      <div class="spotlight-copy" id="topSpenderCopy">Waiting for the first big spend.</div>
+  <div class="auction-grid" id="auctionGrid">
+    <div class="story-stack">
+      <div class="story-card">
+        <div class="story-title">Live Storyline</div>
+        <div id="boardStory"></div>
+      </div>
+      <div class="spotlight-grid">
+        <div class="spotlight-card">
+          <div class="spotlight-title">Top Spender</div>
+          <div class="spotlight-name" id="topSpenderName">—</div>
+          <div class="spotlight-copy" id="topSpenderCopy">Waiting for the first big spend.</div>
+        </div>
+        <div class="spotlight-card">
+          <div class="spotlight-title">Pressure Watch</div>
+          <div class="spotlight-name" id="pressureWatchName">—</div>
+          <div class="spotlight-copy" id="pressureWatchCopy">Nobody is under purse pressure yet.</div>
+        </div>
+      </div>
     </div>
     <div class="recent-sales-card">
       <div class="recent-sales-title">Recent Sales</div>
@@ -756,50 +769,11 @@
       previousSoldState = new Map(nextPlayers.map(p => [p.id, { is_sold: p.is_sold, captain_id: p.captain_id, sold_price: p.sold_price, sold_at: p.sold_at }]));
     }
 
-    let _loadDebounceTimer = null;
-    let _slowLoadTimer = null;
-    let _isLoading = false;
-
-    function loadData() {
-      clearTimeout(_loadDebounceTimer);
-      _loadDebounceTimer = setTimeout(_doFastLoad, 300);
-    }
-
-    async function _doFastLoad() {
-      if (_isLoading) return;
-      _isLoading = true;
-      try {
-        const [capRes, playRes, bidRes] = await Promise.all([
-          db.from('captains').select('*').order('name'),
-          db.from('players').select('*').order('name'),
-          db.from('bidding_state').select('*').eq('id', 1).single()
-        ]);
-        allCaptains     = capRes.data  || [];
-        detectSoldTransition(playRes.data || []);
-        allPlayers      = playRes.data || [];
-        currentPlayerId = bidRes.data?.player_id || null;
-        bidState        = bidRes.data  || null;
-
-        renderSplash();
-        renderAuctionState();
-        handleAuctionDrama();
-        renderCurrentPlayer();
-        renderSoldBanner();
-        renderRecentSales();
-        renderStats_();
-        renderCaptains();
-        renderPool();
-        renderBoardPhase();
-        renderTopSpender();
-      } finally {
-        _isLoading = false;
-      }
-      clearTimeout(_slowLoadTimer);
-      _slowLoadTimer = setTimeout(_doSlowLoad, 2000);
-    }
-
-    async function _doSlowLoad() {
-      const [matchRes, goalRes, paymentsRes, summaryRes, topPayersRes, hofRes] = await Promise.all([
+    async function loadData() {
+      const [capRes,playRes,bidRes,matchRes,goalRes,paymentsRes,summaryRes,topPayersRes,hofRes]=await Promise.all([
+        db.from('captains').select('*').order('name'),
+        db.from('players').select('*').order('name'),
+        db.from('bidding_state').select('*').eq('id',1).single(),
         db.from('matches').select('*').order('created_at'),
         db.from('goals').select('*'),
         db.from('payments').select('*').order('created_at', { ascending: false }),
@@ -807,26 +781,37 @@
         db.from('top_payers').select('*').order('total_paid', { ascending: false }),
         db.from('hall_of_fame').select('*').order('season', { ascending: false })
       ]);
-      allMatches     = matchRes.data    || [];
-      allGoals       = goalRes.data     || [];
-      allPayments    = paymentsRes.data || [];
-      paymentSummary = summaryRes.data  || [];
-      topPayers      = topPayersRes.data|| [];
-      allHallOfFame  = hofRes.data      || [];
 
+      allCaptains=capRes.data||[];
+      detectSoldTransition(playRes.data||[]);
+      allPlayers=playRes.data||[];
+      allMatches=matchRes.data||[];
+      allGoals=goalRes.data||[];
+      allPayments=paymentsRes.data||[];
+      paymentSummary=summaryRes.data||[];
+      topPayers=topPayersRes.data||[];
+      allHallOfFame=hofRes.data||[];
+      currentPlayerId=bidRes.data?.player_id||null;
+      bidState=bidRes.data||null;
+
+      renderSplash();
+      renderAuctionState();
+      handleAuctionDrama();
+      renderCurrentPlayer();
+      renderSoldBanner();
+      renderStory();
+      renderRecentSales();
+      renderStats_();
+      renderCaptains();
+      renderPool();
+      renderBoardPhase();
+      renderSpotlights();
       renderBoardStandings();
       renderBoardStats();
       renderBoardSchedule();
       renderTeams();
       renderBoardDues();
       renderHallOfFame();
-    }
-
-    async function loadDataFull() {
-      clearTimeout(_loadDebounceTimer);
-      clearTimeout(_slowLoadTimer);
-      await _doFastLoad();
-      await _doSlowLoad();
     }
 
 
@@ -991,26 +976,65 @@
       banner.style.display = 'block';
     }
 
+    function renderStory() {
+      const wrap = document.getElementById('boardStory');
+      const sold = allPlayers.filter(p => p.is_sold);
+      const available = allPlayers.filter(p => !p.is_sold);
+      const sortedWallets = [...allCaptains].sort((a,b) => b.wallet - a.wallet);
+      const fullest = allCaptains.map(c => ({
+        captain: c,
+        count: allPlayers.filter(p => p.captain_id === c.id).length
+      })).sort((a,b)=>b.count-a.count || a.captain.wallet-b.captain.wallet);
+      const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
+      const lines = [];
 
-    function renderTopSpender() {
       if (isPreAuctionMode()) {
-        document.getElementById('topSpenderName').textContent = 'Auction begins soon';
-        document.getElementById('topSpenderCopy').textContent = 'Spending leaders will appear once bidding starts.';
+        wrap.innerHTML = '<div class="story-line"><span>Countdown to auction</span> is live. Wallet details are hidden until the first nomination.</div>';
         return;
       }
-      const sold = allPlayers.filter(p => p.is_sold);
-      const spendRows = allCaptains.map(c => {
-        const spent  = sold.filter(p => p.captain_id === c.id).reduce((sum, p) => sum + (p.sold_price || 0), 0);
-        const roster = sold.filter(p => p.captain_id === c.id).length;
-        return { captain: c, spent, roster };
-      }).sort((a, b) => b.spent - a.spent || b.roster - a.roster);
-      const top = spendRows[0];
-      document.getElementById('topSpenderName').textContent = top && top.spent > 0 ? displayCaptainName(top.captain) : 'No leader yet';
-      document.getElementById('topSpenderCopy').textContent = top && top.spent > 0
-        ? `${top.spent.toLocaleString()} pts spent across ${top.roster}/5 slots. Setting the pace.`
-        : 'The board is waiting for the first statement buy.';
-    }
 
+      if (currentPlayerId) {
+        const p = allPlayers.find(x => x.id === currentPlayerId);
+        if (p && !p.is_sold) {
+          const currentBid = bidState?.current_bid || 0;
+          const bidder = bidState?.current_bidder_id ? allCaptains.find(c=>c.id===bidState.current_bidder_id) : null;
+          if (currentBid > 0 && bidder) {
+            lines.push(`<span>${p.name}</span> is live at <span>${currentBid} pts</span>, led by <span>${displayCaptainName(bidder)}</span>.`);
+          } else {
+            lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${p.base_price} pts</span>.`);
+          }
+        }
+      } else {
+        // Show most recent sale from DB (works on refresh), prefer in-memory event if fresh
+        const recentSale = lastSoldEvent
+          ? lastSoldEvent
+          : (() => {
+              const p = [...allPlayers].filter(s => s.is_sold && s.captain_id)
+                .sort((a,b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))[0];
+              if (!p) return null;
+              const cap = allCaptains.find(c => c.id === p.captain_id);
+              return { player: p.name, captain: cap ? displayCaptainName(cap) : '—', price: p.sold_price || 0 };
+            })();
+        if (recentSale) {
+          lines.push(`<span>${recentSale.player}</span> just went to <span>${recentSale.captain}</span> for <span>${recentSale.price} pts</span>.`);
+        } else {
+          lines.push(`Auction is between nominations right now. <span>${available.length}</span> players are still available.`);
+        }
+      }
+
+      if (sortedWallets[0]) {
+        lines.push(`<span>${displayCaptainName(sortedWallets[0])}</span> has the biggest purse left at <span>${sortedWallets[0].wallet.toLocaleString()} pts</span>.`);
+      }
+      if (fullest[0]) {
+        lines.push(`<span>${displayCaptainName(fullest[0].captain)}</span> currently has the fullest squad with <span>${fullest[0].count}</span> player${fullest[0].count !== 1 ? 's' : ''} bought.`);
+      }
+      if (topSale) {
+        const cap = allCaptains.find(c=>c.id===topSale.captain_id);
+        lines.push(`Highest sale so far: <span>${topSale.name}</span> to <span>${cap ? displayCaptainName(cap) : '—'}</span> for <span>${topSale.sold_price || 0} pts</span>.`);
+      }
+
+      wrap.innerHTML = lines.slice(0,4).map(line => `<div class="story-line">${line}</div>`).join('');
+    }
 
     function renderBoardPhase() {
       const el = document.getElementById('boardPhase');
@@ -1594,13 +1618,13 @@ function renderRecentSales() {
     }
 
     db.channel('bpl-board-' + _cid)
-      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},     loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'players'},      loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData)
       .on('postgres_changes',{event:'*',schema:'public',table:'bidding_state'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'matches'},      ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
-      .on('postgres_changes',{event:'*',schema:'public',table:'goals'},        ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
-      .on('postgres_changes',{event:'*',schema:'public',table:'payments'},     ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
-      .on('postgres_changes',{event:'*',schema:'public',table:'hall_of_fame'},()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
+      .on('postgres_changes',{event:'*',schema:'public',table:'matches'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'goals'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'payments'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'hall_of_fame'},loadData)
       .subscribe();
 
     const presenceKey =
@@ -1624,7 +1648,75 @@ function renderRecentSales() {
 
     setInterval(updateCountdown, 1000);
     updateCountdown();
-    loadDataFull();
+    loadData();
+  </script>
+
+
+  <!-- ── Venmo Entry Fee Button ── -->
+  <div id="venmoBtn" style="position:fixed;bottom:24px;right:20px;z-index:500;">
+    <button onclick="openVenmoModal()"
+      style="display:flex;align-items:center;gap:8px;background:#008CFF;border:none;border-radius:999px;padding:13px 20px;cursor:pointer;box-shadow:0 4px 20px rgba(0,140,255,0.3);transition:transform 0.15s,box-shadow 0.15s;"
+      onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 28px rgba(0,140,255,0.4)'"
+      onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 20px rgba(0,140,255,0.3)'"
+      onmousedown="this.style.transform='scale(0.97)'"
+      onmouseup="this.style.transform='none'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M8 12l2.5 2.5L16 9"/></svg>
+      <span style="color:white;font-weight:700;font-size:13px;letter-spacing:0.04em;font-family:var(--font-body);">Pay Entry · $20</span>
+    </button>
+  </div>
+
+  <!-- ── Venmo Modal ── -->
+  <div id="venmoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-family:var(--font-display);font-size:1.4rem;letter-spacing:0.06em;color:#f0f0f0;">Pay Entry Fee</div>
+        <button onclick="closeVenmoModal()" style="background:transparent;border:1px solid #2a2a2a;border-radius:6px;color:#888;font-family:var(--font-body);font-size:12px;padding:5px 10px;width:auto;letter-spacing:0;cursor:pointer;">✕</button>
+      </div>
+      <div style="font-size:13px;color:#888;line-height:1.5;">
+        Enter your name — Venmo will open with <strong style="color:#f0f0f0;">$20</strong> and a pre-filled note so Akhil can track your payment.
+      </div>
+      <input id="venmoName" type="text" placeholder="Your name (e.g. Sanjith)"
+        style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:10px;color:#f0f0f0;font-family:var(--font-body);font-size:15px;padding:12px 14px;width:100%;outline:none;"
+        onkeydown="if(event.key==='Enter') goVenmo()" />
+      <p id="venmoError" style="color:#e05a2b;font-size:12px;min-height:16px;margin:0;"></p>
+      <button onclick="goVenmo()"
+        style="background:#008CFF;border:none;border-radius:10px;color:white;font-family:var(--font-display);font-size:1rem;letter-spacing:0.06em;padding:13px;width:100%;cursor:pointer;">
+        Open Venmo → $20
+      </button>
+      <div style="text-align:center;font-size:11px;color:#555;">
+        Paying: <strong style="color:#888;">Akhil-Radhakrishnan</strong> · BPL Dallas Season 2
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openVenmoModal() {
+      const modal = document.getElementById('venmoModal');
+      modal.style.display = 'flex';
+      setTimeout(() => document.getElementById('venmoName').focus(), 100);
+    }
+
+    function closeVenmoModal() {
+      document.getElementById('venmoModal').style.display = 'none';
+      document.getElementById('venmoName').value = '';
+      document.getElementById('venmoError').textContent = '';
+    }
+
+    function goVenmo() {
+      const name = document.getElementById('venmoName').value.trim();
+      const err  = document.getElementById('venmoError');
+      if (!name) { err.textContent = 'Please enter your name.'; return; }
+      err.textContent = '';
+      const note = encodeURIComponent('BPL Dallas S2 - ' + name);
+      const url  = 'https://venmo.com/u/Akhil-Radhakrishnan?txn=pay&amount=20&note=' + note;
+      window.open(url, '_blank');
+      closeVenmoModal();
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('venmoModal').addEventListener('click', function(e) {
+      if (e.target === this) closeVenmoModal();
+    });
   </script>
 
 </body>
