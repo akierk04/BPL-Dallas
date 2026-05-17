@@ -498,7 +498,7 @@
     <div class="board-phase" id="boardPhase">Auction phase live</div>
     <div class="header-actions">
       <button class="header-action-btn" onclick="showPoster()">Home</button>
-      <button class="header-action-btn" onclick="loadData()">Refresh</button>
+      <button class="header-action-btn" onclick="loadDataFull()">Refresh</button>
     </div>
   </div>
 
@@ -769,11 +769,57 @@
       previousSoldState = new Map(nextPlayers.map(p => [p.id, { is_sold: p.is_sold, captain_id: p.captain_id, sold_price: p.sold_price, sold_at: p.sold_at }]));
     }
 
-    async function loadData() {
-      const [capRes,playRes,bidRes,matchRes,goalRes,paymentsRes,summaryRes,topPayersRes,hofRes]=await Promise.all([
-        db.from('captains').select('*').order('name'),
-        db.from('players').select('*').order('name'),
-        db.from('bidding_state').select('*').eq('id',1).single(),
+    // ── Debounce: prevent cascade reloads during rapid bid updates ──
+    let _loadDebounceTimer = null;
+    let _slowLoadTimer = null;
+    let _isLoading = false;
+
+    function loadData() {
+      clearTimeout(_loadDebounceTimer);
+      _loadDebounceTimer = setTimeout(_doFastLoad, 300);
+    }
+
+    async function _doFastLoad() {
+      if (_isLoading) return;
+      _isLoading = true;
+      try {
+        // Fast path — only auction-critical tables (3 queries instead of 9)
+        const [capRes, playRes, bidRes] = await Promise.all([
+          db.from('captains').select('*').order('name'),
+          db.from('players').select('*').order('name'),
+          db.from('bidding_state').select('*').eq('id', 1).single()
+        ]);
+
+        allCaptains      = capRes.data  || [];
+        detectSoldTransition(playRes.data || []);
+        allPlayers       = playRes.data || [];
+        currentPlayerId  = bidRes.data?.player_id || null;
+        bidState         = bidRes.data  || null;
+
+        renderSplash();
+        renderAuctionState();
+        handleAuctionDrama();
+        renderCurrentPlayer();
+        renderSoldBanner();
+        renderStory();
+        renderRecentSales();
+        renderStats_();
+        renderCaptains();
+        renderPool();
+        renderBoardPhase();
+        renderSpotlights();
+      } finally {
+        _isLoading = false;
+      }
+
+      // Slow path — non-auction data, only if not already scheduled
+      clearTimeout(_slowLoadTimer);
+      _slowLoadTimer = setTimeout(_doSlowLoad, 2000);
+    }
+
+    async function _doSlowLoad() {
+      // Load match/standings/payments/HoF data — doesn't change during auction
+      const [matchRes, goalRes, paymentsRes, summaryRes, topPayersRes, hofRes] = await Promise.all([
         db.from('matches').select('*').order('created_at'),
         db.from('goals').select('*'),
         db.from('payments').select('*').order('created_at', { ascending: false }),
@@ -782,36 +828,27 @@
         db.from('hall_of_fame').select('*').order('season', { ascending: false })
       ]);
 
-      allCaptains=capRes.data||[];
-      detectSoldTransition(playRes.data||[]);
-      allPlayers=playRes.data||[];
-      allMatches=matchRes.data||[];
-      allGoals=goalRes.data||[];
-      allPayments=paymentsRes.data||[];
-      paymentSummary=summaryRes.data||[];
-      topPayers=topPayersRes.data||[];
-      allHallOfFame=hofRes.data||[];
-      currentPlayerId=bidRes.data?.player_id||null;
-      bidState=bidRes.data||null;
+      allMatches     = matchRes.data    || [];
+      allGoals       = goalRes.data     || [];
+      allPayments    = paymentsRes.data || [];
+      paymentSummary = summaryRes.data  || [];
+      topPayers      = topPayersRes.data|| [];
+      allHallOfFame  = hofRes.data      || [];
 
-      renderSplash();
-      renderAuctionState();
-      handleAuctionDrama();
-      renderCurrentPlayer();
-      renderSoldBanner();
-      renderStory();
-      renderRecentSales();
-      renderStats_();
-      renderCaptains();
-      renderPool();
-      renderBoardPhase();
-      renderSpotlights();
       renderBoardStandings();
       renderBoardStats();
       renderBoardSchedule();
       renderTeams();
       renderBoardDues();
       renderHallOfFame();
+    }
+
+    // Full reload — used by Refresh button and on first load
+    async function loadDataFull() {
+      clearTimeout(_loadDebounceTimer);
+      clearTimeout(_slowLoadTimer);
+      await _doFastLoad();
+      await _doSlowLoad();
     }
 
 
@@ -1618,13 +1655,15 @@ function renderRecentSales() {
     }
 
     db.channel('bpl-board-' + _cid)
-      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData)
+      // Fast path — auction tables trigger immediate debounced reload
+      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},    loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'players'},     loadData)
       .on('postgres_changes',{event:'*',schema:'public',table:'bidding_state'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'matches'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'goals'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'payments'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'hall_of_fame'},loadData)
+      // Slow path — non-auction tables trigger delayed reload only
+      .on('postgres_changes',{event:'*',schema:'public',table:'matches'},     ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
+      .on('postgres_changes',{event:'*',schema:'public',table:'goals'},       ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
+      .on('postgres_changes',{event:'*',schema:'public',table:'payments'},    ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
+      .on('postgres_changes',{event:'*',schema:'public',table:'hall_of_fame'},()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
       .subscribe();
 
     const presenceKey =
@@ -1648,7 +1687,7 @@ function renderRecentSales() {
 
     setInterval(updateCountdown, 1000);
     updateCountdown();
-    loadData();
+    loadDataFull();
   </script>
 
 </body>
