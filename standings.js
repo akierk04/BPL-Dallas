@@ -339,7 +339,7 @@ function matchScheduleHtml(matches, captains, players, standings) {
     allGroupMatches.forEach((m, i) => {
       const h = captains.find(c => c.id === m.home_captain_id);
       const a = captains.find(c => c.id === m.away_captain_id);
-      const grpBadge = `<span style="font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;background:rgba(240,192,64,0.12);color:var(--accent);">Grp ${m.round}</span>`;
+      const grpBadge = `<span style="font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;background:rgba(240,192,64,0.12);color:var(--accent);">Group ${m.round}</span>`;
       const label = `Match ${m.display_order || (i+1)}${grpBadge}`;
       html += m.played ? matchCard(m, label) : upcomingCard(h, a, label);
     });
