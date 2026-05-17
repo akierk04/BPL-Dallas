@@ -1498,7 +1498,7 @@
         groupMatches.forEach(function(m, i) {
           const h = allCaptains.find(function(c) { return c.id === m.home_captain_id; });
           const a = allCaptains.find(function(c) { return c.id === m.away_captain_id; });
-          const grpBadge = '<span style="font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;background:rgba(240,192,64,0.12);color:var(--accent);">Grp ' + m.round + '</span>';
+          const grpBadge = '<span style="font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;background:rgba(240,192,64,0.12);color:var(--accent);">Group ' + m.round + '</span>';
           const label = (m.display_order ? 'Match ' + m.display_order : 'Match ' + (i+1)) + grpBadge;
           const played = m.played;
           const borderColor = played ? 'rgba(62,207,142,0.3)' : 'var(--border)';
