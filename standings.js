@@ -2,7 +2,7 @@
 // Tournament format: 10 teams, 2 groups of 5, round-robin within group
 // Knockouts: Super 8 → Super 4 → Semis (H&A) → Final
 
-const LEAGUE_ROUNDS = ['1','2','3','4','5','6','7','8','9','10'];
+const LEAGUE_ROUNDS = ['A','B','1','2','3','4','5','6','7','8','9','10'];
 const S8_ROUNDS     = ['S8A','S8B','S8C','S8D'];
 const S4_ROUNDS     = ['S4A','S4B'];
 const SF_ROUNDS     = ['SF1_L1','SF1_L2','SF2_L1','SF2_L2'];
@@ -22,7 +22,7 @@ function computeGroupStandings(captains, matches, group) {
     table[c.id] = { captain: c, p:0, w:0, d:0, l:0, gf:0, ga:0, gd:0, pts:0, results:{} };
   });
 
-  matches.filter(m => m.played && isLeagueRound(m.round)).forEach(m => {
+  matches.filter(m => m.played && (isLeagueRound(m.round) || String(m.round) === group)).forEach(m => {
     const h = table[m.home_captain_id];
     const a = table[m.away_captain_id];
     if (!h || !a) return;
@@ -309,9 +309,7 @@ function matchScheduleHtml(matches, captains, players, standings) {
 
   function sortedGroup(group) {
     return matches
-      .filter(m => isLeagueRound(m.round) && (
-        captains.find(c => c.id === m.home_captain_id)?.group_name === group
-      ))
+      .filter(m => String(m.round) === String(group))
       .sort((a, b) => {
         const av = Number(a.display_order), bv = Number(b.display_order);
         const an = isNaN(av) ? 9999 : av, bn = isNaN(bv) ? 9999 : bv;
@@ -327,26 +325,22 @@ function matchScheduleHtml(matches, captains, players, standings) {
 
   let html = '';
 
-  // ── Group A matches ──
+  // ── Group Stage — interleaved A & B by display_order ──
   const gAMatches = sortedGroup('A');
-  if (gAMatches.length) {
-    html += sectionHeader('Group A');
-    gAMatches.forEach((m, i) => {
-      const h = captains.find(c => c.id === m.home_captain_id);
-      const a = captains.find(c => c.id === m.away_captain_id);
-      const label = `Match ${m.display_order || (i+1)}`;
-      html += m.played ? matchCard(m, label) : upcomingCard(h, a, label);
-    });
-  }
-
-  // ── Group B matches ──
   const gBMatches = sortedGroup('B');
-  if (gBMatches.length) {
-    html += sectionHeader('Group B');
-    gBMatches.forEach((m, i) => {
+  const allGroupMatches = [...gAMatches, ...gBMatches].sort((a, b) => {
+    const av = Number(a.display_order), bv = Number(b.display_order);
+    const an = isNaN(av) ? 9999 : av, bn = isNaN(bv) ? 9999 : bv;
+    return an !== bn ? an - bn : new Date(a.created_at||0) - new Date(b.created_at||0);
+  });
+
+  if (allGroupMatches.length) {
+    html += sectionHeader('Group Stage');
+    allGroupMatches.forEach((m, i) => {
       const h = captains.find(c => c.id === m.home_captain_id);
       const a = captains.find(c => c.id === m.away_captain_id);
-      const label = `Match ${m.display_order || (i+1)}`;
+      const grpBadge = `<span style="font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;background:rgba(240,192,64,0.12);color:var(--accent);">Grp ${m.round}</span>`;
+      const label = `Match ${m.display_order || (i+1)}${grpBadge}`;
       html += m.played ? matchCard(m, label) : upcomingCard(h, a, label);
     });
   }
