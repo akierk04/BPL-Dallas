@@ -1980,15 +1980,14 @@
       function playerBtn(pid, name, teamId, isCaptain) {
         const goals = pendingGoals.filter(g => g.player_id === pid && g.captain_id === teamId).length;
         const badge = goals > 0
-          ? '<span style="background:rgba(240,192,64,0.2);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:6px;">⚽ ' + goals + '</span>'
+          ? '<span style="background:rgba(240,192,64,0.2);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:6px;">&#x26BD; ' + goals + '</span>'
           : '';
-        return '<button onclick="addGoalDirect('' + pid + '','' + teamId + '',' + (isCaptain?'true':'false') + ')"'
+        const capLabel = isCaptain ? ' <span style="font-size:10px;color:#888;">(C)</span>' : '';
+        return '<button data-pid="' + pid + '" data-team="' + teamId + '" data-cap="' + (isCaptain ? '1' : '0') + '" onclick="addGoalDirect(this.dataset.pid,this.dataset.team,this.dataset.cap==='1')"'
           + ' style="width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:8px;'
           + 'padding:9px 12px;cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--text);'
-          + 'display:flex;align-items:center;justify-content:space-between;transition:border-color 0.15s;"'
-          + ' onmouseover="this.style.borderColor='var(--accent)'"'
-          + ' onmouseout="this.style.borderColor='var(--border)'">'
-          + '<span>' + name + (isCaptain ? ' <span style="font-size:10px;color:var(--muted);">(C)</span>' : '') + '</span>'
+          + 'display:flex;align-items:center;justify-content:space-between;transition:border-color 0.15s;">'
+          + '<span>' + name + capLabel + '</span>'
           + badge + '</button>';
       }
       let homeHtml = homeCap ? playerBtn(homeCap.id, homeCap.name, pendingHomeId, true) : '';
