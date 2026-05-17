@@ -1983,7 +1983,7 @@
           ? '<span style="background:rgba(240,192,64,0.2);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700;margin-left:6px;">&#x26BD; ' + goals + '</span>'
           : '';
         const capLabel = isCaptain ? ' <span style="font-size:10px;color:#888;">(C)</span>' : '';
-        return '<button data-pid="' + pid + '" data-team="' + teamId + '" data-cap="' + (isCaptain ? '1' : '0') + '" onclick="addGoalDirect(this.dataset.pid,this.dataset.team,this.dataset.cap==='1')"'
+        return '<button data-pid="' + pid + '" data-team="' + teamId + '" data-cap="' + (isCaptain ? '1' : '0') + '" onclick="addGoalDirect(this.dataset.pid,this.dataset.team,this.dataset.cap===&quot;1&quot;)"'
           + ' style="width:100%;text-align:left;background:var(--surface2);border:1px solid var(--border);border-radius:8px;'
           + 'padding:9px 12px;cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--text);'
           + 'display:flex;align-items:center;justify-content:space-between;transition:border-color 0.15s;">'
