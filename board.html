@@ -559,24 +559,11 @@
   </div>
   <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
 
-  <div class="auction-grid" id="auctionGrid">
-    <div class="story-stack">
-      <div class="story-card">
-        <div class="story-title">Live Storyline</div>
-        <div id="boardStory"></div>
-      </div>
-      <div class="spotlight-grid">
-        <div class="spotlight-card">
-          <div class="spotlight-title">Top Spender</div>
-          <div class="spotlight-name" id="topSpenderName">—</div>
-          <div class="spotlight-copy" id="topSpenderCopy">Waiting for the first big spend.</div>
-        </div>
-        <div class="spotlight-card">
-          <div class="spotlight-title">Pressure Watch</div>
-          <div class="spotlight-name" id="pressureWatchName">—</div>
-          <div class="spotlight-copy" id="pressureWatchCopy">Nobody is under purse pressure yet.</div>
-        </div>
-      </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;" id="auctionGrid">
+    <div class="spotlight-card">
+      <div class="spotlight-title">Top Spender</div>
+      <div class="spotlight-name" id="topSpenderName">—</div>
+      <div class="spotlight-copy" id="topSpenderCopy">Waiting for the first big spend.</div>
     </div>
     <div class="recent-sales-card">
       <div class="recent-sales-title">Recent Sales</div>
@@ -769,7 +756,6 @@
       previousSoldState = new Map(nextPlayers.map(p => [p.id, { is_sold: p.is_sold, captain_id: p.captain_id, sold_price: p.sold_price, sold_at: p.sold_at }]));
     }
 
-    // ── Debounce: prevent cascade reloads during rapid bid updates ──
     let _loadDebounceTimer = null;
     let _slowLoadTimer = null;
     let _isLoading = false;
@@ -783,42 +769,36 @@
       if (_isLoading) return;
       _isLoading = true;
       try {
-        // Fast path — only auction-critical tables (3 queries instead of 9)
         const [capRes, playRes, bidRes] = await Promise.all([
           db.from('captains').select('*').order('name'),
           db.from('players').select('*').order('name'),
           db.from('bidding_state').select('*').eq('id', 1).single()
         ]);
-
-        allCaptains      = capRes.data  || [];
+        allCaptains     = capRes.data  || [];
         detectSoldTransition(playRes.data || []);
-        allPlayers       = playRes.data || [];
-        currentPlayerId  = bidRes.data?.player_id || null;
-        bidState         = bidRes.data  || null;
+        allPlayers      = playRes.data || [];
+        currentPlayerId = bidRes.data?.player_id || null;
+        bidState        = bidRes.data  || null;
 
         renderSplash();
         renderAuctionState();
         handleAuctionDrama();
         renderCurrentPlayer();
         renderSoldBanner();
-        renderStory();
         renderRecentSales();
         renderStats_();
         renderCaptains();
         renderPool();
         renderBoardPhase();
-        renderSpotlights();
+        renderTopSpender();
       } finally {
         _isLoading = false;
       }
-
-      // Slow path — non-auction data, only if not already scheduled
       clearTimeout(_slowLoadTimer);
       _slowLoadTimer = setTimeout(_doSlowLoad, 2000);
     }
 
     async function _doSlowLoad() {
-      // Load match/standings/payments/HoF data — doesn't change during auction
       const [matchRes, goalRes, paymentsRes, summaryRes, topPayersRes, hofRes] = await Promise.all([
         db.from('matches').select('*').order('created_at'),
         db.from('goals').select('*'),
@@ -827,7 +807,6 @@
         db.from('top_payers').select('*').order('total_paid', { ascending: false }),
         db.from('hall_of_fame').select('*').order('season', { ascending: false })
       ]);
-
       allMatches     = matchRes.data    || [];
       allGoals       = goalRes.data     || [];
       allPayments    = paymentsRes.data || [];
@@ -843,7 +822,6 @@
       renderHallOfFame();
     }
 
-    // Full reload — used by Refresh button and on first load
     async function loadDataFull() {
       clearTimeout(_loadDebounceTimer);
       clearTimeout(_slowLoadTimer);
@@ -1013,65 +991,26 @@
       banner.style.display = 'block';
     }
 
-    function renderStory() {
-      const wrap = document.getElementById('boardStory');
-      const sold = allPlayers.filter(p => p.is_sold);
-      const available = allPlayers.filter(p => !p.is_sold);
-      const sortedWallets = [...allCaptains].sort((a,b) => b.wallet - a.wallet);
-      const fullest = allCaptains.map(c => ({
-        captain: c,
-        count: allPlayers.filter(p => p.captain_id === c.id).length
-      })).sort((a,b)=>b.count-a.count || a.captain.wallet-b.captain.wallet);
-      const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
-      const lines = [];
 
+    function renderTopSpender() {
       if (isPreAuctionMode()) {
-        wrap.innerHTML = '<div class="story-line"><span>Countdown to auction</span> is live. Wallet details are hidden until the first nomination.</div>';
+        document.getElementById('topSpenderName').textContent = 'Auction begins soon';
+        document.getElementById('topSpenderCopy').textContent = 'Spending leaders will appear once bidding starts.';
         return;
       }
-
-      if (currentPlayerId) {
-        const p = allPlayers.find(x => x.id === currentPlayerId);
-        if (p && !p.is_sold) {
-          const currentBid = bidState?.current_bid || 0;
-          const bidder = bidState?.current_bidder_id ? allCaptains.find(c=>c.id===bidState.current_bidder_id) : null;
-          if (currentBid > 0 && bidder) {
-            lines.push(`<span>${p.name}</span> is live at <span>${currentBid} pts</span>, led by <span>${displayCaptainName(bidder)}</span>.`);
-          } else {
-            lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${p.base_price} pts</span>.`);
-          }
-        }
-      } else {
-        // Show most recent sale from DB (works on refresh), prefer in-memory event if fresh
-        const recentSale = lastSoldEvent
-          ? lastSoldEvent
-          : (() => {
-              const p = [...allPlayers].filter(s => s.is_sold && s.captain_id)
-                .sort((a,b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))[0];
-              if (!p) return null;
-              const cap = allCaptains.find(c => c.id === p.captain_id);
-              return { player: p.name, captain: cap ? displayCaptainName(cap) : '—', price: p.sold_price || 0 };
-            })();
-        if (recentSale) {
-          lines.push(`<span>${recentSale.player}</span> just went to <span>${recentSale.captain}</span> for <span>${recentSale.price} pts</span>.`);
-        } else {
-          lines.push(`Auction is between nominations right now. <span>${available.length}</span> players are still available.`);
-        }
-      }
-
-      if (sortedWallets[0]) {
-        lines.push(`<span>${displayCaptainName(sortedWallets[0])}</span> has the biggest purse left at <span>${sortedWallets[0].wallet.toLocaleString()} pts</span>.`);
-      }
-      if (fullest[0]) {
-        lines.push(`<span>${displayCaptainName(fullest[0].captain)}</span> currently has the fullest squad with <span>${fullest[0].count}</span> player${fullest[0].count !== 1 ? 's' : ''} bought.`);
-      }
-      if (topSale) {
-        const cap = allCaptains.find(c=>c.id===topSale.captain_id);
-        lines.push(`Highest sale so far: <span>${topSale.name}</span> to <span>${cap ? displayCaptainName(cap) : '—'}</span> for <span>${topSale.sold_price || 0} pts</span>.`);
-      }
-
-      wrap.innerHTML = lines.slice(0,4).map(line => `<div class="story-line">${line}</div>`).join('');
+      const sold = allPlayers.filter(p => p.is_sold);
+      const spendRows = allCaptains.map(c => {
+        const spent  = sold.filter(p => p.captain_id === c.id).reduce((sum, p) => sum + (p.sold_price || 0), 0);
+        const roster = sold.filter(p => p.captain_id === c.id).length;
+        return { captain: c, spent, roster };
+      }).sort((a, b) => b.spent - a.spent || b.roster - a.roster);
+      const top = spendRows[0];
+      document.getElementById('topSpenderName').textContent = top && top.spent > 0 ? displayCaptainName(top.captain) : 'No leader yet';
+      document.getElementById('topSpenderCopy').textContent = top && top.spent > 0
+        ? `${top.spent.toLocaleString()} pts spent across ${top.roster}/5 slots. Setting the pace.`
+        : 'The board is waiting for the first statement buy.';
     }
+
 
     function renderBoardPhase() {
       const el = document.getElementById('boardPhase');
@@ -1655,14 +1594,12 @@ function renderRecentSales() {
     }
 
     db.channel('bpl-board-' + _cid)
-      // Fast path — auction tables trigger immediate debounced reload
-      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},    loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'players'},     loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},     loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'players'},      loadData)
       .on('postgres_changes',{event:'*',schema:'public',table:'bidding_state'},loadData)
-      // Slow path — non-auction tables trigger delayed reload only
-      .on('postgres_changes',{event:'*',schema:'public',table:'matches'},     ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
-      .on('postgres_changes',{event:'*',schema:'public',table:'goals'},       ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
-      .on('postgres_changes',{event:'*',schema:'public',table:'payments'},    ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
+      .on('postgres_changes',{event:'*',schema:'public',table:'matches'},      ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
+      .on('postgres_changes',{event:'*',schema:'public',table:'goals'},        ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
+      .on('postgres_changes',{event:'*',schema:'public',table:'payments'},     ()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
       .on('postgres_changes',{event:'*',schema:'public',table:'hall_of_fame'},()=>{ clearTimeout(_slowLoadTimer); _slowLoadTimer=setTimeout(_doSlowLoad,1000); })
       .subscribe();
 
