@@ -1,140 +1,119 @@
-# BPL Dallas – Season 1 Bidding App
+# BPL Dallas – Brownish Premier League
 
-A real-time PWA for managing the Brownish Premier League Dallas Season 1 player auction.
+A real-time PWA for managing the Brownish Premier League Dallas player auction, live board, match results, and standings.
 
----
-
-## Setup Instructions
-
-### 1. Supabase – Run the schema
-
-1. Go to [supabase.com](https://supabase.com) and open your project
-2. Navigate to **SQL Editor**
-3. Paste the contents of `supabase_schema.sql` and click **Run**
-4. Then paste and run `supabase_settings.sql` to create the `bidding_state` table
-5. This creates all tables and seeds all 6 captains and 28 players
-
-### 2. Deploy to GitHub Pages
-
-1. Push all files to your `BPL-Dallas` GitHub repo
-2. Go to **Settings → Pages**
-3. Set source to `main` branch, root folder `/`
-4. Your app will be live at `https://akierk04.github.io/BPL-Dallas/`
-
-> **Note:** PWA icons (`icon-192.png` and `icon-512.png`) are referenced in the manifest. Add your own 192×192 and 512×512 PNG icons to the repo root, or remove the `icons` field from `manifest.json` to skip PWA install support.
+**Live URL:** https://www.bpldallas.team  
+**GitHub repo:** https://github.com/akierk04/BPL-Dallas  
+**Supabase project:** https://mpwzvdydhyzukwwzhhba.supabase.co
 
 ---
 
-## URLs
+## Pages
 
 | Page | URL | Access |
 |------|-----|--------|
-| Login | https://akierk04.github.io/BPL-Dallas/ | All users |
-| Admin | https://akierk04.github.io/BPL-Dallas/admin.html | Admin only |
-| Live Board | https://akierk04.github.io/BPL-Dallas/board.html | Public — no login |
+| Login | https://www.bpldallas.team | All users |
+| Admin | https://www.bpldallas.team/admin.html | Admin only |
+| Captain | https://www.bpldallas.team/captain.html | Captains (login required) |
+| Live Board | https://www.bpldallas.team/board.html | Public — no login |
+
+**Admin credentials:** Username `Admin` / Password `bpladmin123`
 
 ---
 
-## Admin
+## Season 2 (Current) — June 2026
 
-- **Username:** `Admin`
-- **Password:** `bpladmin123`
+### Format
+- **10 teams**, 2 groups of 5 (Group A, Group B)
+- **Group stage:** Full round-robin within each group (10 matches per group)
+- **Super 8:** A2 vs B5, B2 vs A5, A3 vs B4, B3 vs A4
+- **Super 4:** W(S8A) vs W(S8D), W(S8B) vs W(S8C)
+- **Semi-Finals:** Home & Away legs — SF1: B1 vs W(S4B), SF2: A1 vs W(S4A)
+- **Final:** SF1 winner vs SF2 winner
+
+### Auction Rules
+- Squad: captain + 5 bid players = 6 total
+- 5 player groups: G1=500pts, G2=400pts, G3=300pts, G4=200pts, G5=100pts base
+- Each captain must fill one slot from each of the other 4 groups (cannot bid on own group)
+- Bid increment: 50pts
 
 ### Admin Tabs
-
 | Tab | Purpose |
 |-----|---------|
-| **Overview** | All 6 captains, remaining purse, spent, and current rosters. Unassign players if needed. |
-| **Players** | Add or delete players from the pool. Shows full list with available/sold status. |
-| **Bidding** | Select the player currently up for bid. Updates the Live Board in real time for all viewers. |
-| **Core Console** | Assign a sold player to a captain at a given price. Purse auto-deducted. Shows budget warning for selected captain. |
+| **Auction Control** | Set player live, close bidding, manual assign, undo sale |
+| **Overview** | All captains, purses, rosters, unassign players |
+| **Players** | Add/delete players, change group/status |
+| **Matches** | Generate fixtures, enter results, goal scorers, MVP |
+| **Standings** | Live group standings |
+| **Stats** | Top scorers, tournament MVP |
+| **Schedule** | Full fixture list + knockout bracket |
+| **Payments** | Weekly game dues tracking |
+| **Hall of Fame** | Season-by-season archive |
 
 ---
 
-## Captains
+## Season 1 — May 2026
 
-| Name    | Username | Password    | Group | Starting Purse |
-|---------|----------|-------------|-------|----------------|
-| Aashay  | Aashay   | Aashay123   | A     | 800 pts        |
-| Soham M | SohamM   | SohamM123   | A     | 800 pts        |
-| Nayen   | Nayen    | Nayen123    | B     | 1,000 pts      |
-| Vedant  | Vedant   | Vedant123   | B     | 1,000 pts      |
-| Aryan   | Aryan    | Aryan123    | C     | 1,200 pts      |
-| Tushar  | Tushar   | Tushar123   | C     | 1,200 pts      |
+### Format
+- **8 teams**, 2 groups of 4 (Group 1, Group 2)
+- **Group stage:** Round-robin within each group (6 matches per group)
+- **Knockouts:** QF1 (G1 2nd vs G2 3rd), QF2 (G2 2nd vs G1 3rd) → SF1, SF2 → Final
 
-Captains can see:
-- Their own remaining purse + budget warning
-- Their team roster
-- All other captains' purses, budget warnings, and rosters (live)
+### Auction Rules
+- Squad: captain + 4 bid players = 5 total
+- 3 player groups: A=200pts, B=100pts, C=50pts base
+- Bid increment: 50pts
 
----
-
-## Live Board (board.html)
-
-Public view — no login required. Share this URL with all players on the day.
-
-- **Now Bidding** banner — shows the current player up for bid in real time
-- **Stats bar** — players sold, available, total points spent
-- **Captains & Teams** — all 6 captains with purse, budget warning, and current roster
-- **Player Pool** — all 28 players with sold/available status. Filter by All / Available / Sold
+### Captains (Season 1)
+| Name | Group | Wallet |
+|------|-------|--------|
+| Abhay | B | 1,050 pts |
+| Vedant | B | 1,050 pts |
+| Nayen | B | 1,050 pts |
+| Soham M | A | 900 pts |
+| Aashay | A | 900 pts |
+| Aryan | C | 1,200 pts |
+| Tushar | C | 1,200 pts |
+| Swapnil | C | 1,200 pts |
 
 ---
 
-## Budget Warning System
+## File Structure
 
-Each captain must acquire exactly 4 players through bidding (team = captain + 4 players). The minimum cost per remaining slot is 50 points (Group C base price).
-
-**Formula:** `Safe to spend = Wallet − (50 × (remaining slots − 1))`
-
-The `-1` accounts for the fact that the captain is actively bidding on one of those slots right now.
-
-| Indicator | Condition | Message |
-|-----------|-----------|---------|
-| 🟢 Green | Safe to spend > 200 pts | "Safe to spend: X pts" |
-| 🟡 Yellow | Safe to spend 1–200 pts | "Caution: Only X pts safe to spend" |
-| 🔴 Red | Safe to spend ≤ 0 | "Warning: Over budget reserve!" |
-
-Shown on: Captain view, Live Board, Admin Core Console.
-
----
-
-## Group Base Prices (Admin only)
-
-| Group | Base Price |
-|-------|-----------|
-| A     | 200 pts   |
-| B     | 100 pts   |
-| C     | 50 pts    |
-
-Groups are visible to admin only — captains and the live board show player names only.
-
----
-
-## Player Pool (28 players)
-
-### Group A (200 pts base) — 9 players
-Akhil R, Sehjbir, Thomson, Thannir, Karthik, Oneil, DJ, Rachit, Subodh
-
-### Group B (100 pts base) — 10 players
-Kiran, Jose, Steve, Abhishek K, Zafi, Soham B, Anoop, Sharan, Sanjith, Abhay
-
-### Group C (50 pts base) — 9 players
-Nihaal, Chinmay, Akshai, Swapnil, Moksh, Rohit, Shrivatsa, Yash S, Pranav
+```
+/
+├── index.html              # Login page
+├── admin.html              # Admin panel shell (loads js/admin/ modules)
+├── captain.html            # Captain view
+├── board.html              # Public live board
+├── style.css               # Global dark theme
+├── auth.js                 # Login logic
+├── budget-warning.js       # Budget warning calculator (Season 2)
+├── standings.js            # Standings, schedule, bracket HTML generators
+├── supabase-config.js      # Supabase client (const db = ...)
+├── manifest.json           # PWA manifest
+├── css/
+│   └── admin.css           # Admin-only styles
+└── js/
+    └── admin/
+        ├── state.js        # Global state, switchTab, logout
+        ├── data.js         # loadData() — fetches all tables, calls all renders
+        ├── auction.js      # Bidding control, sale confirmation, undo
+        ├── overview.js     # Captain cards + roster display
+        ├── players.js      # Player pool, dropdowns, manual assign
+        ├── matches.js      # Fixtures, result entry, scorers, MVP, bracket
+        ├── stats_schedule.js # Standings, stats, schedule, bracket renders
+        ├── payments.js     # Game dues tracking
+        ├── halloffame.js   # Hall of Fame archive
+        ├── realtime.js     # Supabase realtime subscriptions (debounced)
+        └── init.js         # Boot: calls loadData()
+```
 
 ---
 
-## Files
+## Deploy
 
-| File | Purpose |
-|------|---------|
-| `index.html` | Login page |
-| `captain.html` | Captain view (login required) |
-| `admin.html` | Admin control panel (login required) |
-| `board.html` | Public live board (no login) |
-| `style.css` | Global styles |
-| `auth.js` | Login logic |
-| `budget-warning.js` | Shared budget warning calculator |
-| `supabase-config.js` | Supabase connection |
-| `supabase_schema.sql` | Database schema + captains + players seed |
-| `supabase_settings.sql` | Bidding state table setup |
-| `manifest.json` | PWA manifest |
+1. Push to `main` branch on GitHub
+2. GitHub Pages serves from root — live at https://www.bpldallas.team
+3. Custom domain configured via `CNAME` file + Namecheap DNS
+4. HTTPS provisioned automatically by GitHub Pages
