@@ -778,7 +778,7 @@
         db.from('goals').select('*'),
         db.from('payments').select('*').order('created_at', { ascending: false }),
         db.from('payment_summary').select('*'),
-        db.from('top_payers').select('*').order('total_paid', { ascending: false }),
+        db.from('top_payers').select('*'),
         db.from('hall_of_fame').select('*').order('season', { ascending: false })
       ]);
 
@@ -1597,6 +1597,12 @@ function renderRecentSales() {
 
     const _cid = Math.random().toString(36).slice(2);
 
+    let _boardReloadTimer = null;
+    function scheduleLoadData() {
+      clearTimeout(_boardReloadTimer);
+      _boardReloadTimer = setTimeout(loadData, 500);
+    }
+
     function enterBoard() {
       var splash = document.getElementById('splashScreen');
       if (splash) splash.style.display = 'none';
@@ -1618,13 +1624,13 @@ function renderRecentSales() {
     }
 
     db.channel('bpl-board-' + _cid)
-      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'players'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'bidding_state'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'matches'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'goals'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'payments'},loadData)
-      .on('postgres_changes',{event:'*',schema:'public',table:'hall_of_fame'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'captains'},scheduleLoadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'players'},scheduleLoadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'bidding_state'},scheduleLoadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'matches'},scheduleLoadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'goals'},scheduleLoadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'payments'},scheduleLoadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'hall_of_fame'},scheduleLoadData)
       .subscribe();
 
     const presenceKey =
