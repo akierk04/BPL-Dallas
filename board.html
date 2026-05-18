@@ -1639,12 +1639,16 @@ function renderRecentSales() {
         : ('id-' + Date.now() + '-' + Math.random().toString(36).slice(2));
 
     const presenceChannel = db.channel('bpl-presence', { config: { presence: { key: presenceKey } } });
+    let _presenceTimer = null;
     presenceChannel
       .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState();
-        const count = Object.keys(state).length;
-        const el = document.getElementById('viewerCount');
-        el.innerHTML = count === 1 ? '<span class="viewer-pill"><span class="live-dot"></span>1 watching live</span>' : '<span class="viewer-pill"><span class="live-dot"></span>' + count + ' watching live</span>';
+        clearTimeout(_presenceTimer);
+        _presenceTimer = setTimeout(() => {
+          const state = presenceChannel.presenceState();
+          const count = Object.keys(state).length;
+          const el = document.getElementById('viewerCount');
+          el.innerHTML = count === 1 ? '<span class="viewer-pill"><span class="live-dot"></span>1 watching live</span>' : '<span class="viewer-pill"><span class="live-dot"></span>' + count + ' watching live</span>';
+        }, 2000);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
