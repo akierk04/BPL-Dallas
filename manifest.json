@@ -1,7 +1,7 @@
 {
   "name": "Brownish Premier League",
   "short_name": "BPL Dallas",
-  "description": "BPL Season 1 – Live Auction & Match Board",
+  "description": "BPL Dallas – Live Match Board & Auction",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0a0a0a",
