@@ -1,53 +1,144 @@
-// Captain overview cards and roster display
+// Hall of Fame archive load, entry render, add/delete
 // Extracted from admin.html during Admin refactor.
 
-function renderOverview() {
-      const grid = document.getElementById('adminCaptainsGrid');
-      if (!allCaptains.length) { grid.innerHTML = '<div class="text-muted">No captains found.</div>'; return; }
-      grid.innerHTML = allCaptains.map(c => {
-        const roster = allPlayers.filter(p => p.captain_id === c.id);
-        const spent = roster.reduce((s, p) => s + (p.sold_price || 0), 0);
-        const rHtml = roster.length
-          ? roster.map(p => `
-              <div class="roster-player">
-                <span class="roster-player-name">${p.name}</span>
-                <div style="display:flex;align-items:center;gap:6px;">
-                  <span class="roster-player-price">${p.sold_price} pts</span>
-                  <button class="btn-danger" onclick="unassignPlayer('${p.id}','${c.id}',${p.sold_price})">✕</button>
-                </div>
-              </div>`).join('')
-          : '<div class="roster-empty">No players yet</div>';
-        return `
-          <div class="captain-card">
-            <div class="captain-card-header">
-              <div style="width:100%;">
-                <div style="display:flex;gap:20px;margin-bottom:10px;">
-                  <div><div class="captain-wallet-label">Purse left</div>
-                    <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.75rem;color:var(--muted)">pts</span></div></div>
-                  <div><div class="captain-wallet-label">Spent</div>
-                    <div class="captain-wallet" style="color:var(--muted)">${spent.toLocaleString()} <span style="font-size:0.75rem;">pts</span></div></div>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                  <div>
-                    <div class="captain-wallet-label" style="margin-bottom:3px;">Captain Name</div>
-                    <div style="display:flex;gap:6px;">
-                      <input type="text" value="${c.name || ''}" id="cname-${c.id}"
-                        style="flex:1;font-size:13px;padding:6px 10px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);" />
-                      <button class="btn-sm" onclick="saveCaptainField('${c.id}','name','cname-${c.id}')" style="width:auto;padding:6px 10px;">Save</button>
-                    </div>
-                  </div>
-                  <div>
-                    <div class="captain-wallet-label" style="margin-bottom:3px;">Team Name</div>
-                    <div style="display:flex;gap:6px;">
-                      <input type="text" value="${c.team_name || ''}" id="tname-${c.id}" placeholder="e.g. Lone Star United FC"
-                        style="flex:1;font-size:13px;padding:6px 10px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);" />
-                      <button class="btn-sm" onclick="saveCaptainField('${c.id}','team_name','tname-${c.id}')" style="width:auto;padding:6px 10px;">Save</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+async function loadHofArchiveCaptains() {
+      const season = parseInt(document.getElementById('hofSeason').value);
+      const msg    = document.getElementById('hofLoadMsg');
+      if (!season || season < 1) { msg.textContent = ''; return; }
+
+      msg.textContent = `Loading Season ${season} data...`;
+
+      const [capRes, playRes] = await Promise.all([
+        db.from('archive_captains').select('*').eq('season', season).order('name'),
+        db.from('archive_players').select('*').eq('season', season).order('name')
+      ]);
+
+      if (capRes.error || !capRes.data?.length) {
+        msg.textContent = `No archive data found for Season ${season}. Run the archive SQL first.`;
+        hofArchiveCaptains = []; hofArchivePlayers = [];
+        populateHofDropdowns();
+        return;
+      }
+
+      hofArchiveCaptains = capRes.data;
+      hofArchivePlayers  = playRes.data || [];
+      msg.textContent = `✓ Loaded ${hofArchiveCaptains.length} captains and ${hofArchivePlayers.length} players from Season ${season}.`;
+      populateHofDropdowns();
+    }
+
+    function populateHofDropdowns() {
+      const capOpt = '<option value="">Select...</option>' +
+        hofArchiveCaptains.map(c => `<option value="${c.id}" data-team="${c.team_name || c.name}" data-captain="${c.name}">${c.team_name || c.name} (${c.name})</option>`).join('');
+
+      // All scorers = players + captains
+      const playerOpts = '<option value="">Select...</option>' +
+        hofArchivePlayers.filter(p => p.is_sold).map(p => {
+          const cap = hofArchiveCaptains.find(c => c.id === p.captain_id);
+          return `<option value="${p.id}" data-name="${p.name}">${p.name}${cap ? ' (' + (cap.team_name || cap.name) + ')' : ''}</option>`;
+        }).join('') +
+        hofArchiveCaptains.map(c => `<option value="${c.id}" data-name="${c.name} (C)">${c.name} (C) — ${c.team_name || c.name}</option>`).join('');
+
+      document.getElementById('hofChampionId').innerHTML  = capOpt;
+      document.getElementById('hofRunnerUpId').innerHTML  = capOpt;
+      document.getElementById('hofTopScorerId').innerHTML = playerOpts;
+      document.getElementById('hofMvpId').innerHTML       = playerOpts;
+    }
+
+    function hofSyncName(selectId, teamField, captainField) {
+      const sel = document.getElementById(selectId);
+      const opt = sel.options[sel.selectedIndex];
+      document.getElementById(teamField).value    = opt?.dataset?.team    || '';
+      document.getElementById(captainField).value = opt?.dataset?.captain || '';
+    }
+
+    function hofSyncPlayerName(selectId, nameField) {
+      const sel = document.getElementById(selectId);
+      const opt = sel.options[sel.selectedIndex];
+      document.getElementById(nameField).value = opt?.dataset?.name || '';
+    }
+    function renderHallOfFame() {
+      const wrap = document.getElementById('hofList');
+      if (!wrap) return;
+      if (!hofEntries.length) {
+        wrap.innerHTML = '<div class="text-muted">No seasons recorded yet.</div>';
+        return;
+      }
+      wrap.innerHTML = hofEntries.map(e => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;position:relative;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="font-family:var(--font-display);font-size:2rem;color:var(--accent);">S${e.season}</div>
+              <div style="font-size:13px;color:var(--muted);">${e.year}</div>
             </div>
-            <div class="team-roster">${rHtml}</div>
-          </div>`;
-      }).join('');
+            <button class="btn-danger" style="width:auto;padding:5px 10px;" onclick="deleteHofEntry(${e.id})">✕</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+            <div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);margin-bottom:4px;">🏆 Champions</div>
+              <div style="font-weight:700;color:var(--text);font-size:15px;">${e.champion}</div>
+              <div style="font-size:12px;color:var(--muted);">${e.captain}</div>
+            </div>
+            ${e.runner_up ? `<div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">🥈 Runner-Up</div>
+              <div style="font-weight:600;color:var(--text);font-size:14px;">${e.runner_up}</div>
+              <div style="font-size:12px;color:var(--muted);">${e.runner_up_captain || ''}</div>
+            </div>` : ''}
+            ${e.top_scorer ? `<div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">⚽ Top Scorer</div>
+              <div style="font-weight:600;color:var(--text);font-size:14px;">${e.top_scorer}</div>
+              <div style="font-size:12px;color:var(--muted);">${e.top_scorer_goals ? e.top_scorer_goals + ' goals' : ''}</div>
+            </div>` : ''}
+            ${e.mvp ? `<div>
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px;">⭐ Tournament MVP</div>
+              <div style="font-weight:600;color:var(--text);font-size:14px;">${e.mvp}</div>
+            </div>` : ''}
+
+          </div>
+          ${e.notes ? `<div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--border);font-size:12px;color:var(--muted);">${e.notes}</div>` : ''}
+        </div>`).join('');
+    }
+
+    async function addHallOfFameEntry() {
+      const msg = document.getElementById('hofMsg');
+      const season    = parseInt(document.getElementById('hofSeason').value);
+      const year      = parseInt(document.getElementById('hofYear').value);
+      const champion  = document.getElementById('hofChampion').value.trim();
+      const captain   = document.getElementById('hofCaptain').value.trim();
+      const runner_up = document.getElementById('hofRunnerUp').value.trim() || null;
+      const runner_up_captain = document.getElementById('hofRunnerUpCaptain').value.trim() || null;
+      const top_scorer = document.getElementById('hofTopScorer').value.trim() || null;
+      const top_scorer_goals = parseInt(document.getElementById('hofTopScorerGoals').value) || null;
+      const mvp        = document.getElementById('hofMvp').value.trim() || null;
+      const total_goals = parseInt(document.getElementById('hofTotalGoals').value) || null;
+      const notes      = document.getElementById('hofNotes').value.trim() || null;
+
+      if (!season || !year || !champion || !captain) {
+        msg.textContent = 'Season #, Year, Champion and Captain are required.';
+        return;
+      }
+
+      const { error } = await db.from('hall_of_fame').insert({
+        season, year, champion, captain,
+        runner_up, runner_up_captain,
+        top_scorer, top_scorer_goals,
+        mvp, total_goals, notes
+      });
+
+      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+
+      // Clear form
+      ['hofSeason','hofYear','hofChampion','hofCaptain','hofRunnerUp',
+       'hofRunnerUpCaptain','hofTopScorer','hofTopScorerGoals','hofMvp',
+       'hofTotalGoals','hofNotes'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      msg.textContent = 'Season added!';
+      setTimeout(() => msg.textContent = '', 2500);
+      await loadData();
+    }
+
+    async function deleteHofEntry(id) {
+      if (!confirm('Remove this season from the Hall of Fame?')) return;
+      await db.from('hall_of_fame').delete().eq('id', id);
+      await loadData();
     }

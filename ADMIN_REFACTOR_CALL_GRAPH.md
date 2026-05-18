@@ -1,41 +1,100 @@
--- Add tournament_group column to captains
-alter table captains add column if not exists tournament_group text check (tournament_group in ('1','2'));
+# Admin Refactor Call Graph
 
--- Assign groups based on random draw
-update captains set tournament_group = '1' where name in ('Abhay','Vedant','Nayen','Soham M');
-update captains set tournament_group = '2' where name in ('Aryan','Tushar','Aashay','Swapnil');
+## Load order
+1. `supabase-config.js`, `budget-warning.js`, `standings.js`
+2. `js/admin/state.js`
+3. `js/admin/data.js`
+4. `js/admin/auction.js`
+5. `js/admin/overview.js`
+6. `js/admin/players.js`
+7. `js/admin/matches.js`
+8. `js/admin/stats_schedule.js`
+9. `js/admin/payments.js`
+10. `js/admin/halloffame.js`
+11. `js/admin/realtime.js`
+12. `js/admin/init.js`
 
--- Clear existing unplayed league fixtures (if any from previous seed)
-delete from matches where played = false and is_knockout = false;
+## Central call graph
 
--- Seed Group 1 fixtures
-insert into matches (home_captain_id, away_captain_id, home_score, away_score, played, is_knockout, knockout_label)
-select h.id, a.id, 0, 0, false, false, null
-from
-  (values
-    ('Abhay','Vedant'),('Abhay','Nayen'),('Abhay','Soham M'),
-    ('Vedant','Nayen'),('Vedant','Soham M'),('Nayen','Soham M')
-  ) as f(h,a)
-join captains h on h.name = f.h
-join captains a on a.name = f.a;
+`init.js`
+- calls `loadData()`
 
--- Seed Group 2 fixtures
-insert into matches (home_captain_id, away_captain_id, home_score, away_score, played, is_knockout, knockout_label)
-select h.id, a.id, 0, 0, false, false, null
-from
-  (values
-    ('Aryan','Tushar'),('Aryan','Aashay'),('Aryan','Swapnil'),
-    ('Tushar','Aashay'),('Tushar','Swapnil'),('Aashay','Swapnil')
-  ) as f(h,a)
-join captains h on h.name = f.h
-join captains a on a.name = f.a;
+`data.js`
+- fetches: `captains`, `players`, `bidding_state`, `matches`, `goals`, `payments`, `payment_summary`, `top_payers`, `hall_of_fame`
+- then calls:
+  - `renderAuctionControl()`
+  - `renderOverview()`
+  - `renderPlayersList()`
+  - `populateConsoleDropdowns()`
+  - `populateBiddingDropdown()`
+  - `populateMatchDropdowns()`
+  - `renderMatchDayBanner()`
+  - `renderFixtures()`
+  - `renderMatchesList()`
+  - `renderStandings()`
+  - `renderStats()`
+  - `renderSchedule()`
+  - `renderPaymentsTab()`
+  - `renderHallOfFame()`
 
--- Update passwords
-update captains set password = 'AashayA'  where username = 'Aashay';
-update captains set password = 'SohamMA'  where username = 'SohamM';
-update captains set password = 'NayenB'   where username = 'Nayen';
-update captains set password = 'VedantB'  where username = 'Vedant';
-update captains set password = 'AbhayB'   where username = 'Abhay';
-update captains set password = 'AryanC'   where username = 'Aryan';
-update captains set password = 'TusharC'  where username = 'Tushar';
-update captains set password = 'SwapnilC' where username = 'Swapnil';
+`realtime.js`
+- subscribes to live tables
+- calls `scheduleLoadData()` instead of direct `loadData()`
+- `scheduleLoadData()` debounces reloads by 500ms
+
+## Feature dependencies
+
+### Auction
+- File: `auction.js`
+- Uses globals: `allCaptains`, `allPlayers`, `currentPlayerId`, `bidState`, `lastSale`, `undoTimer`
+- Calls helpers from `state.js` and `budget-warning.js`: `displayCaptainName()`, `warningBadgeHtml()`, `groupsStillNeeded()`
+- Writes to Supabase tables: `players`, `captains`, `bidding_state`
+
+### Overview
+- File: `overview.js`
+- Uses globals: `allCaptains`, `allPlayers`
+- Calls `displayCaptainName()`
+- Uses `saveCaptainField()` from `matches.js`
+
+### Players / Manual Assign
+- File: `players.js`
+- Uses globals: `allCaptains`, `allPlayers`, `currentPlayerId`, `lastSale`
+- Calls `displayCaptainName()`, `warningBadgeHtml()`, `groupsStillNeeded()`, `showUndoBar()`, `switchTab()`
+- Writes to Supabase tables: `players`, `captains`, `bidding_state`
+
+### Matches / Fixtures
+- File: `matches.js`
+- Uses globals: `allCaptains`, `allPlayers`, `allMatches`, `allGoals`, `pendingGoals`, `pendingMatchId`, `selectedFixtureId`
+- Calls standings helpers from `standings.js`: `computeStandings()`, `computeSfAggregate()`
+- Writes to Supabase tables: `matches`, `goals`
+
+### Stats / Schedule / Bracket
+- File: `stats_schedule.js`
+- Uses globals: `allCaptains`, `allPlayers`, `allMatches`, `allGoals`
+- Calls helpers from `standings.js`: `standingsTableHtml()`, `computeTopScorers()`, `topScorersHtml()`, `computeMvpLeaderboard()`, `mvpLeaderboardHtml()`, `matchScheduleHtml()`, `computeStandings()`, `computeSfAggregate()`
+
+### Payments
+- File: `payments.js`
+- Uses globals: `allPayments`, `paymentSummary`, `paymentLoadError`
+- Writes to Supabase table: `payments`
+
+### Hall of Fame
+- File: `halloffame.js`
+- Uses globals: `hofEntries`, `hofArchiveCaptains`, `hofArchivePlayers`
+- Reads archive tables: `archive_captains`, `archive_players`
+- Writes to Supabase table: `hall_of_fame`
+
+## Important refactor note
+The generated scorer button quote bug was corrected during this split:
+
+```js
+this.dataset.cap==='1'
+```
+
+became:
+
+```js
+this.dataset.cap===&quot;1&quot;
+```
+
+This avoids the previous `Unexpected number '1'` syntax error that prevented `switchTab()` from loading.

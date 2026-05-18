@@ -1,257 +1,145 @@
-// Auction control, live bidding, sale confirmation, undo
+// Payments and dues admin UI
 // Extracted from admin.html during Admin refactor.
 
-function renderAuctionControl() {
-      renderLiveAuctionCard();
-      renderCaptainStatus();
-      renderRecentSales();
+function renderPaymentsTab() {
+      renderAdminPaymentSummary();
+      renderAdminPaymentsList();
     }
 
-    function renderLiveAuctionCard() {
-      const live = document.getElementById('liveBidStatus');
-      const empty = document.getElementById('liveBidEmpty');
-      const player = allPlayers.find(p => p.id === currentPlayerId);
-
-      if (!player || player.is_sold) {
-        live.style.display = 'none';
-        empty.style.display = 'block';
+    function renderAdminPaymentSummary() {
+      const wrap = document.getElementById('adminPaymentSummary');
+      if (!wrap) return;
+      if (paymentLoadError) {
+        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Error: ${paymentLoadError}</div>`;
         return;
       }
-
-      live.style.display = 'block';
-      empty.style.display = 'none';
-
-      const currentBid = bidState?.current_bid || player.base_price;
-      const currentBidder = bidState?.current_bidder_id
-        ? allCaptains.find(c => c.id === bidState.current_bidder_id)
-        : null;
-
-      document.getElementById('liveBidPlayerName').textContent = player.name;
-      document.getElementById('liveBidMeta').textContent = 'Group ' + player.group_name + ' · Base ' + player.base_price + ' pts';
-      document.getElementById('liveBidAmount').textContent = currentBid.toLocaleString();
-      document.getElementById('liveBidder').textContent = currentBidder ? displayCaptainName(currentBidder) : 'No bids yet';
-
-      const afterEl = document.getElementById('liveBidWalletAfter');
-      if (currentBidder) {
-        const afterWallet = Math.max(0, (currentBidder.wallet || 0) - currentBid);
-        afterEl.textContent = `Wallet after sale: ${afterWallet.toLocaleString()} pts`;
-      } else {
-        afterEl.textContent = '';
+      if (!paymentSummary.length) {
+        wrap.innerHTML = '<div class="text-muted">No entries yet.</div>';
+        return;
       }
-
-      const pill = document.getElementById('auctionStatusPill');
-      pill.className = 'auction-status-pill';
-      if (!bidState?.current_bidder_id) {
-        pill.textContent = 'Live';
-        pill.classList.add('live');
-      } else if (bidState?.bid_locked) {
-        pill.textContent = 'Locked';
-        pill.classList.add('locked');
-      } else {
-        pill.textContent = 'Ready to close';
-        pill.classList.add('ready');
-      }
+      const totalCollected   = paymentSummary.reduce((s, r) => s + Number(r.total_paid || 0), 0);
+      const totalOutstanding = paymentSummary.reduce((s, r) => s + Number(r.outstanding || 0), 0);
+      const totalPending     = paymentSummary.filter(r => r.status === 'Pending').length;
+      wrap.innerHTML = `
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--border);">
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Collected</div>
+            <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--green);">$${totalCollected}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Outstanding</div>
+            <div style="font-family:var(--font-display);font-size:1.6rem;color:${totalOutstanding > 0 ? 'var(--red)' : 'var(--green)'};">$${totalOutstanding}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Still Owing</div>
+            <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--muted);">${totalPending} player${totalPending !== 1 ? 's' : ''}</div></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);text-align:left;">
+                <th style="padding:8px 10px;color:var(--muted);font-weight:500;">Player</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Games</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Due</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Paid</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;text-align:center;">Owes</th>
+                <th style="padding:8px 8px;color:var(--muted);font-weight:500;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${paymentSummary.map(row => `
+                <tr style="border-bottom:0.5px solid var(--border);">
+                  <td style="padding:10px 10px;color:var(--text);font-weight:600;">${row.player_name}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--muted);">${row.games_played}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--muted);">$${Number(row.total_due || 0)}</td>
+                  <td style="padding:10px 8px;text-align:center;color:var(--green);">$${Number(row.total_paid || 0)}</td>
+                  <td style="padding:10px 8px;text-align:center;color:${Number(row.outstanding || 0) > 0 ? 'var(--red)' : 'var(--green)'};">
+                    ${Number(row.outstanding || 0) > 0 ? `$${Number(row.outstanding)}` : '✓'}
+                  </td>
+                  <td style="padding:10px 8px;">
+                    <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;
+                      border:1px solid ${row.status === 'Paid' ? 'rgba(62,207,142,0.35)' : 'rgba(224,90,43,0.35)'};
+                      background:${row.status === 'Paid' ? 'rgba(62,207,142,0.08)' : 'rgba(224,90,43,0.08)'};
+                      color:${row.status === 'Paid' ? 'var(--green)' : 'var(--red)'};">
+                      ${row.status}
+                    </span>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
     }
 
-    function renderCaptainStatus() {
-      const wrap = document.getElementById('captainStatusList');
-      if (!allCaptains.length) {
-        wrap.innerHTML = '<div class="text-muted">No captains found.</div>';
+    function renderAdminPaymentsList() {
+      const wrap = document.getElementById('adminPaymentsList');
+      if (!wrap) return;
+      if (paymentLoadError) {
+        wrap.innerHTML = `<div class="text-muted" style="color:var(--red);">Error: ${paymentLoadError}</div>`;
         return;
       }
-
-      wrap.innerHTML = allCaptains.map(c => {
-        const bought = allPlayers.filter(p => p.captain_id === c.id && p.is_sold).length;
+      if (!allPayments.length) {
+        wrap.innerHTML = '<div class="text-muted">No entries yet.</div>';
+        return;
+      }
+      wrap.innerHTML = allPayments.map(row => {
+        const isPaid = row.payment_status === 'received';
         return `
-          <div class="captain-status-row">
-            <div class="captain-status-top">
-              <div class="captain-status-name">${displayCaptainName(c)}</div>
-              <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.75rem;color:var(--muted)">pts</span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--border);">
+          <div style="flex:1;">
+            <div style="font-weight:600;color:var(--text);font-size:14px;">${row.player_name}
+              <span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;margin-left:6px;
+                border:1px solid ${isPaid ? 'rgba(62,207,142,0.35)' : 'rgba(224,90,43,0.35)'};
+                background:${isPaid ? 'rgba(62,207,142,0.08)' : 'rgba(224,90,43,0.08)'};
+                color:${isPaid ? 'var(--green)' : 'var(--red)'};">
+                ${isPaid ? 'Received' : 'Pending'}
+              </span>
             </div>
-            <div class="captain-status-meta">${bought}/5 players bought</div>
-            ${warningBadgeHtml(c.wallet, c.captain_group, allPlayers.filter(p => p.captain_id === c.id && p.is_sold))}
-          </div>`;
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+              $${row.amount || 3} · ${row.game_date || '—'}${row.notes ? ' · ' + row.notes : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn-sm" style="width:auto;padding:6px 10px;" onclick="togglePaymentStatus(${row.id},'${row.payment_status}')">
+              ${isPaid ? 'Mark Pending' : '✓ Mark Received'}
+            </button>
+            <button class="btn-danger" style="width:auto;padding:6px 10px;" onclick="deletePaymentEntry(${row.id})">✕</button>
+          </div>
+        </div>`;
       }).join('');
     }
 
-    function renderRecentSales() {
-      const wrap = document.getElementById('recentSalesList');
-      const sold = allPlayers.filter(p => p.is_sold);
-
-      const sessionSale = lastSale
-        ? [{
-            id: `session-${lastSale.playerId}`,
-            name: lastSale.playerName,
-            captain_id: lastSale.captainId,
-            sold_price: lastSale.soldPrice,
-            created_at: new Date().toISOString()
-          }]
-        : [];
-
-      const rows = [...sessionSale, ...sold]
-        .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
-        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-        .slice(0, 5);
-
-      if (!rows.length) {
-        wrap.innerHTML = '<div class="text-muted">No completed sales yet.</div>';
-        return;
-      }
-
-      wrap.innerHTML = rows.map(p => {
-        const cap = allCaptains.find(c => c.id === p.captain_id);
-        return `
-          <div class="recent-sale-row">
-            <div style="font-weight:600;color:var(--text);">${p.name}</div>
-            <div class="captain-status-meta">${cap ? displayCaptainName(cap) : '—'} · ${p.sold_price || 0} pts</div>
-          </div>`;
-      }).join('');
+    async function togglePaymentStatus(id, currentStatus) {
+      const newStatus = currentStatus === 'received' ? 'pending' : 'received';
+      const { error } = await db.from('payments').update({ payment_status: newStatus }).eq('id', id);
+      if (error) { document.getElementById('paymentMsg').textContent = 'Error: ' + error.message; return; }
+      await loadData();
     }
 
-    function hideSaleConfirm() {
-      document.getElementById('saleConfirmModal').style.display = 'none';
+    async function deletePaymentEntry(id) {
+      if (!id || !confirm('Delete this entry?')) return;
+      const msg = document.getElementById('paymentMsg');
+      const { error } = await db.from('payments').delete().eq('id', id);
+      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+      msg.textContent = 'Entry deleted.';
+      setTimeout(() => msg.textContent = '', 2000);
+      await loadData();
     }
 
-    function confirmCloseBidding() {
-      if (!currentPlayerId) return;
-
-      const player = allPlayers.find(p => p.id === currentPlayerId);
-      if (!player) return;
-
-      const currentBid = bidState?.current_bid || 0;
-      const currentBidderId = bidState?.current_bidder_id;
-      const text = document.getElementById('saleConfirmText');
-
-      if (!currentBidderId || currentBid === 0) {
-        text.innerHTML = `No bids were placed for <strong>${player.name}</strong>. Return player to pool?`;
-        document.getElementById('saleConfirmModal').style.display = 'flex';
-        return;
-      }
-
-      const captain = allCaptains.find(c => c.id === currentBidderId);
-      const isTentative = player?.status === 'tentative';
-      const walletCost = isTentative ? 0 : currentBid;
-      const afterWallet = Math.max(0, (captain?.wallet || 0) - walletCost);
-      text.innerHTML = '<div><strong>Player:</strong> ' + player.name + ' (Group ' + (player.group_name||'?') + ')</div>'
-        + '<div class="mt-8"><strong>Winner:</strong> ' + (captain ? displayCaptainName(captain) : '—') + '</div>'
-        + '<div class="mt-8"><strong>Sold Price:</strong> ' + currentBid + ' pts</div>'
-        + (isTentative ? '<div class="mt-8" style="color:var(--green);">Tentative — full refund if no-show</div>' : '')
-        + '<div class="mt-8"><strong>Wallet After Sale:</strong> ' + afterWallet + ' pts</div>';
-
-      document.getElementById('saleConfirmModal').style.display = 'flex';
+    async function addPaymentEntry() {
+      const player_name    = document.getElementById('paymentPlayer').value.trim();
+      const game_date      = document.getElementById('paymentDate').value || null;
+      const amount         = parseInt(document.getElementById('paymentAmount').value) || 3;
+      const payment_status = document.getElementById('paymentStatus').value;
+      const notes          = document.getElementById('paymentNotes').value.trim() || null;
+      const msg            = document.getElementById('paymentMsg');
+      if (!player_name || !game_date) { msg.textContent = 'Enter player name and game date.'; return; }
+      const { error } = await db.from('payments').insert({ player_name, game_date, amount, payment_status, notes });
+      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+      document.getElementById('paymentPlayer').value  = '';
+      document.getElementById('paymentDate').value    = '';
+      document.getElementById('paymentNotes').value   = '';
+      document.getElementById('paymentAmount').value  = '3';
+      document.getElementById('paymentStatus').value  = 'received';
+      msg.textContent = 'Entry saved!';
+      setTimeout(() => msg.textContent = '', 2000);
+      await loadData();
     }
 
-    async function finalizeCloseBidding() {
-      if (!currentPlayerId) return;
-
-      const msg = document.getElementById('closeMsg');
-      const currentBid = bidState?.current_bid || 0;
-      const currentBidderId = bidState?.current_bidder_id;
-      const player = allPlayers.find(p => p.id === currentPlayerId);
-
-      hideSaleConfirm();
-
-      if (!currentBidderId || currentBid === 0) {
-        await db.from('bidding_state').update({
-          player_id: null,
-          current_bid: 0,
-          current_bidder_id: null,
-          bid_locked: false,
-          updated_at: new Date().toISOString()
-        }).eq('id', 1);
-
-        msg.textContent = 'No bids — player returned to pool.';
-        setTimeout(() => msg.textContent = '', 3000);
-        loadData();
-        return;
-      }
-
-      const { data: freshCap } = await db.from('captains').select('wallet').eq('id', currentBidderId).single();
-      const captain = allCaptains.find(c => c.id === currentBidderId);
-      if (!captain && !freshCap) return;
-      const currentWallet = freshCap?.wallet ?? captain?.wallet ?? 0;
-
-      // ── BLOCK: captain cannot buy from their own group ──
-      if (player && String(player.group_name) === String(captain.captain_group)) {
-        msg.textContent = `❌ ${displayCaptainName(captain)} is a G${captain.captain_group} captain — cannot buy G${player.group_name} players. Sale blocked.`;
-        setTimeout(() => msg.textContent = '', 6000);
-        return;
-      }
-
-      // ── BLOCK: captain has no remaining slot for this group ──
-      const soldForWinner = allPlayers.filter(p => p.captain_id === currentBidderId && p.is_sold);
-      const neededForWinner = groupsStillNeeded(captain.captain_group, soldForWinner);
-      if (player && neededForWinner.indexOf(String(player.group_name)) === -1) {
-        msg.textContent = `❌ ${displayCaptainName(captain)} has no remaining G${player.group_name} slot. Sale blocked.`;
-        setTimeout(() => msg.textContent = '', 6000);
-        return;
-      }
-
-      await db.from('players').update({
-        captain_id: currentBidderId,
-        sold_price: currentBid,
-        is_sold: true,
-        sold_at: new Date().toISOString()
-      }).eq('id', currentPlayerId);
-
-      const tentativeBonus = player?.status === 'tentative' ? currentBid : 0;
-      await db.from('captains').update({ wallet: currentWallet - currentBid + tentativeBonus }).eq('id', currentBidderId);
-      await db.from('bidding_state').update({
-        player_id: null,
-        current_bid: 0,
-        current_bidder_id: null,
-        bid_locked: false,
-        updated_at: new Date().toISOString()
-      }).eq('id', 1);
-
-      lastSale = {
-        playerId: player.id,
-        playerName: player.name,
-        captainId: currentBidderId,
-        captainName: displayCaptainName(captain),
-        soldPrice: currentBid,
-        wasTentative: player?.status === 'tentative'
-      };
-
-      showUndoBar();
-
-      msg.textContent = `✓ ${displayCaptainName(captain)} wins for ${currentBid} pts!`;
-      setTimeout(() => msg.textContent = '', 4000);
-      loadData();
-    }
-
-    function showUndoBar() {
-      if (!lastSale) return;
-      const bar = document.getElementById('undoBar');
-      const text = document.getElementById('undoBarText');
-      text.textContent = `Sold: ${lastSale.playerName} → ${lastSale.captainName} for ${lastSale.soldPrice} pts`;
-      bar.style.display = 'flex';
-      if (undoTimer) clearTimeout(undoTimer);
-      undoTimer = setTimeout(() => {
-        bar.style.display = 'none';
-        lastSale = null;
-      }, 10000);
-    }
-
-    async function undoLastSale() {
-      if (!lastSale) return;
-
-      const { data: fresh } = await db.from('captains').select('wallet').eq('id', lastSale.captainId).single();
-      const currentWallet = fresh?.wallet ?? allCaptains.find(c => c.id === lastSale.captainId)?.wallet ?? 0;
-
-      await db.from('players').update({
-        captain_id: null,
-        sold_price: null,
-        is_sold: false,
-        sold_at: null
-      }).eq('id', lastSale.playerId);
-
-      await db.from('captains').update({
-        wallet: currentWallet + lastSale.soldPrice - (lastSale.wasTentative ? lastSale.soldPrice : 0)
-      }).eq('id', lastSale.captainId);
-
-      document.getElementById('undoBar').style.display = 'none';
-      if (undoTimer) clearTimeout(undoTimer);
-      lastSale = null;
-      loadData();
-    }
+    // ── Hall of Fame ──
+    let hofArchiveCaptains = [];
+    let hofArchivePlayers  = [];

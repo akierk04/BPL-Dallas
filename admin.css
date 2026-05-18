@@ -1,100 +1,339 @@
-# Admin Refactor Call Graph
+/* Admin-only styles extracted from admin.html */
+    .auction-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
 
-## Load order
-1. `supabase-config.js`, `budget-warning.js`, `standings.js`
-2. `js/admin/state.js`
-3. `js/admin/data.js`
-4. `js/admin/auction.js`
-5. `js/admin/overview.js`
-6. `js/admin/players.js`
-7. `js/admin/matches.js`
-8. `js/admin/stats_schedule.js`
-9. `js/admin/payments.js`
-10. `js/admin/halloffame.js`
-11. `js/admin/realtime.js`
-12. `js/admin/init.js`
+.auction-live-card {
+  background: linear-gradient(135deg, rgba(240,192,64,0.12), rgba(240,192,64,0.04));
+  border: 1px solid rgba(240,192,64,0.45);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+}
 
-## Central call graph
+.auction-live-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
 
-`init.js`
-- calls `loadData()`
+.auction-live-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
 
-`data.js`
-- fetches: `captains`, `players`, `bidding_state`, `matches`, `goals`, `payments`, `payment_summary`, `top_payers`, `hall_of_fame`
-- then calls:
-  - `renderAuctionControl()`
-  - `renderOverview()`
-  - `renderPlayersList()`
-  - `populateConsoleDropdowns()`
-  - `populateBiddingDropdown()`
-  - `populateMatchDropdowns()`
-  - `renderMatchDayBanner()`
-  - `renderFixtures()`
-  - `renderMatchesList()`
-  - `renderStandings()`
-  - `renderStats()`
-  - `renderSchedule()`
-  - `renderPaymentsTab()`
-  - `renderHallOfFame()`
+.auction-live-player {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
 
-`realtime.js`
-- subscribes to live tables
-- calls `scheduleLoadData()` instead of direct `loadData()`
-- `scheduleLoadData()` debounces reloads by 500ms
+.auction-live-meta {
+  font-size: 13px;
+  color: var(--muted);
+}
 
-## Feature dependencies
+.auction-status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
 
-### Auction
-- File: `auction.js`
-- Uses globals: `allCaptains`, `allPlayers`, `currentPlayerId`, `bidState`, `lastSale`, `undoTimer`
-- Calls helpers from `state.js` and `budget-warning.js`: `displayCaptainName()`, `warningBadgeHtml()`, `groupsStillNeeded()`
-- Writes to Supabase tables: `players`, `captains`, `bidding_state`
+.auction-status-pill.live {
+  color: var(--accent);
+  border-color: rgba(240,192,64,0.35);
+  background: rgba(240,192,64,0.08);
+}
 
-### Overview
-- File: `overview.js`
-- Uses globals: `allCaptains`, `allPlayers`
-- Calls `displayCaptainName()`
-- Uses `saveCaptainField()` from `matches.js`
+.auction-status-pill.locked {
+  color: var(--red);
+  border-color: rgba(224,90,43,0.35);
+  background: rgba(224,90,43,0.08);
+}
 
-### Players / Manual Assign
-- File: `players.js`
-- Uses globals: `allCaptains`, `allPlayers`, `currentPlayerId`, `lastSale`
-- Calls `displayCaptainName()`, `warningBadgeHtml()`, `groupsStillNeeded()`, `showUndoBar()`, `switchTab()`
-- Writes to Supabase tables: `players`, `captains`, `bidding_state`
+.auction-status-pill.ready {
+  color: var(--green);
+  border-color: rgba(62,207,142,0.35);
+  background: rgba(62,207,142,0.08);
+}
 
-### Matches / Fixtures
-- File: `matches.js`
-- Uses globals: `allCaptains`, `allPlayers`, `allMatches`, `allGoals`, `pendingGoals`, `pendingMatchId`, `selectedFixtureId`
-- Calls standings helpers from `standings.js`: `computeStandings()`, `computeSfAggregate()`
-- Writes to Supabase tables: `matches`, `goals`
+.auction-live-body {
+  display: flex;
+  gap: 20px;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
 
-### Stats / Schedule / Bracket
-- File: `stats_schedule.js`
-- Uses globals: `allCaptains`, `allPlayers`, `allMatches`, `allGoals`
-- Calls helpers from `standings.js`: `standingsTableHtml()`, `computeTopScorers()`, `topScorersHtml()`, `computeMvpLeaderboard()`, `mvpLeaderboardHtml()`, `matchScheduleHtml()`, `computeStandings()`, `computeSfAggregate()`
+.auction-live-amount {
+  font-family: var(--font-display);
+  font-size: 3.4rem;
+  line-height: 1;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
 
-### Payments
-- File: `payments.js`
-- Uses globals: `allPayments`, `paymentSummary`, `paymentLoadError`
-- Writes to Supabase table: `payments`
+.auction-live-amount-label,
+.auction-live-bidder-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
 
-### Hall of Fame
-- File: `halloffame.js`
-- Uses globals: `hofEntries`, `hofArchiveCaptains`, `hofArchivePlayers`
-- Reads archive tables: `archive_captains`, `archive_players`
-- Writes to Supabase table: `hall_of_fame`
+.auction-live-bidder {
+  font-size: 1rem;
+  color: var(--text);
+  font-weight: 600;
+  margin-top: 4px;
+}
 
-## Important refactor note
-The generated scorer button quote bug was corrected during this split:
+.auction-live-after {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
 
-```js
-this.dataset.cap==='1'
-```
+.auction-live-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
-became:
+.captain-status-row,
+.recent-sale-row {
+  padding: 10px 0;
+  border-bottom: 0.5px solid var(--border);
+}
 
-```js
-this.dataset.cap===&quot;1&quot;
-```
+.captain-status-row:last-child,
+.recent-sale-row:last-child {
+  border-bottom: none;
+}
 
-This avoids the previous `Unexpected number '1'` syntax error that prevented `switchTab()` from loading.
+.captain-status-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.captain-status-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.captain-status-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.undo-bar {
+  position: fixed;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  z-index: 300;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+@media (max-width: 900px) {
+  .auction-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.fixture-tip {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.fixture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.fixture-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.fixture-card:hover {
+  border-color: var(--accent);
+  background: rgba(240,192,64,0.06);
+}
+.fixture-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.fixture-teamline {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.fixture-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.schedule-admin-section {
+  margin-bottom: 18px;
+}
+
+.schedule-admin-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.schedule-dropzone {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-drag: element;
+  transition: border-color 0.15s, transform 0.1s, opacity 0.15s;
+}
+
+.schedule-card:hover {
+  border-color: var(--accent);
+}
+
+.schedule-card.dragging {
+  opacity: 0.45;
+  transform: scale(0.99);
+}
+
+.schedule-card.drop-target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(240,192,64,0.15) inset;
+}
+
+.schedule-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.schedule-card-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.schedule-card-order {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--accent);
+  line-height: 1;
+  min-width: 34px;
+  text-align: right;
+}
+
+.schedule-card-teams {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.schedule-card-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.schedule-admin-tip {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+
+/* ── Knockout Bracket ── */
+.bracket-wrap { display:flex; gap:0; align-items:stretch; overflow-x:auto; padding-bottom:8px; }
+.bracket-round { display:flex; flex-direction:column; justify-content:space-around; min-width:160px; }
+.bracket-round-title { font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); text-align:center; margin-bottom:12px; font-weight:500; }
+.bracket-match {
+  background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius);
+  padding:10px 12px; margin:6px 0; position:relative;
+}
+.bracket-match.winner { border-color:rgba(62,207,142,0.4); background:rgba(62,207,142,0.05); }
+.bracket-match.live   { border-color:rgba(240,192,64,0.5); background:rgba(240,192,64,0.06); }
+.bracket-team { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:3px 0; }
+.bracket-team.won { font-weight:700; color:var(--text); }
+.bracket-team.lost { color:var(--muted); }
+.bracket-team.tbd  { color:var(--muted); font-style:italic; }
+.bracket-score { font-family:var(--font-display); font-size:1rem; color:var(--accent); min-width:18px; text-align:right; }
+.bracket-connector { display:flex; align-items:center; padding:0 8px; }
+.bracket-connector-line { width:24px; border-top:1px solid var(--border); }
+
+/* tiebreaker tooltip */
+.tb-tooltip-wrap { position: relative; display: inline-block; }
+.tb-tooltip {
+  display: none;
+  position: absolute;
+  left: 0; top: 100%;
+  z-index: 50;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  margin-top: 4px;
+}
+.tb-tooltip-wrap:hover .tb-tooltip { display: block; }
+.tb-row { color: var(--accent); font-size: 11px; }
+
+@media (max-width: 600px) {
+  #matchDayBanner > div { grid-template-columns: 1fr; }
+}
