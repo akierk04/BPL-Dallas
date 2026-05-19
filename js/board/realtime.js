@@ -7,10 +7,10 @@ function scheduleLoadData() {
 }
 
 // Match-day Board optimization:
-// Auction is complete/static, so no bidding_state realtime subscription here.
-// Payments and Hall of Fame are lazy-loaded on tab open, so they are not realtime either.
+// Captains are static on match day (rosters locked after auction).
+// Auction is complete/static, so no bidding_state subscription.
+// Payments and Hall of Fame are lazy-loaded on tab open, so not realtime either.
 db.channel('bpl-board-' + _cid)
-  .on('postgres_changes',{event:'*',schema:'public',table:'captains'},scheduleLoadData)
   .on('postgres_changes',{event:'*',schema:'public',table:'players'},scheduleLoadData)
   .on('postgres_changes',{event:'*',schema:'public',table:'matches'},scheduleLoadData)
   .on('postgres_changes',{event:'*',schema:'public',table:'goals'},scheduleLoadData)
