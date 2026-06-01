@@ -789,9 +789,14 @@ function populateMatchDropdowns() {
     }
 
     async function deleteMatch(id) {
-      if (!confirm('Delete this match result?')) return;
+      if (!confirm('Clear this result? The fixture will remain but scores and goals will be reset.')) return;
       await db.from('goals').delete().eq('match_id', id);
-      await db.from('matches').delete().eq('id', id);
+      await db.from('matches').update({
+        played: false,
+        home_score: 0,
+        away_score: 0,
+        mvp_player_id: null
+      }).eq('id', id);
       loadData();
     }
 
