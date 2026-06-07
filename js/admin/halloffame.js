@@ -25,14 +25,15 @@ async function archiveCurrentSeason() {
   if (capRes.error) { msg.textContent = 'Error fetching captains: ' + capRes.error.message; return; }
   if (playRes.error) { msg.textContent = 'Error fetching players: ' + playRes.error.message; return; }
 
-  // Insert captains into archive
+  // Insert captains — id is preserved from live table (matches archive PK)
   const captainsToArchive = capRes.data.map(c => ({
     season,
-    original_id: c.id,
-    name:        c.name,
-    team_name:   c.team_name,
-    group_name:  c.group_name,
-    wallet:      c.wallet,
+    id:         c.id,
+    name:       c.name,
+    username:   c.username,
+    team_name:  c.team_name,
+    wallet:     c.wallet,
+    created_at: c.created_at,
   }));
 
   const { data: archivedCaps, error: capErr } = await db
@@ -42,20 +43,16 @@ async function archiveCurrentSeason() {
 
   if (capErr) { msg.textContent = 'Error archiving captains: ' + capErr.message; return; }
 
-  // Map original captain ID -> archive captain ID for player FK
-  const capIdMap = {};
-  archivedCaps.forEach(ac => { capIdMap[ac.original_id] = ac.id; });
-
-  // Insert players into archive
+  // Captain IDs are preserved as-is so no remapping needed for players
   const playersToArchive = playRes.data.map(p => ({
     season,
-    original_id: p.id,
-    name:        p.name,
-    group_name:  p.group_name,
-    base_price:  p.base_price,
-    sold_price:  p.sold_price,
-    is_sold:     p.is_sold,
-    captain_id:  capIdMap[p.captain_id] || null,
+    id:         p.id,
+    name:       p.name,
+    group_name: p.group_name,
+    base_price: p.base_price,
+    sold_price: p.sold_price,
+    is_sold:    p.is_sold,
+    captain_id: p.captain_id || null,
   }));
 
   const { error: playErr } = await db
@@ -93,7 +90,7 @@ async function loadHofArchiveCaptains() {
 
   hofArchiveCaptains = capRes.data;
   hofArchivePlayers  = playRes.data || [];
-  msg.textContent = `Loaded ${hofArchiveCaptains.length} captains and ${hofArchivePlayers.length} players from Season ${season}.`;
+  msg.textContent = `✓ Loaded ${hofArchiveCaptains.length} captains and ${hofArchivePlayers.length} players from Season ${season}.`;
   populateHofDropdowns();
 }
 
