@@ -1,7 +1,9 @@
 const _cid = Math.random().toString(36).slice(2);
 
-// ── LIGHT path: players/captains changed (bidding, assignment) ──
-// Skips matches/goals fetch and skips schedule/standings/match-stats renders.
+// ── FALLBACK path ──
+// Only used if a realtime payload comes back malformed. Re-fetches
+// captains + players + bidding_state the old way so one bad event
+// can't leave the board stuck or showing wrong data.
 let _lightReloadTimer = null;
 function scheduleLightReload() {
   clearTimeout(_lightReloadTimer);
@@ -10,6 +12,7 @@ function scheduleLightReload() {
 
 // ── HEAVY path: matches/goals changed (results, scoring) ──
 // Full reload — schedule/standings/bracket genuinely need to recompute.
+// Rare during bidding, so no need to optimize this one.
 let _heavyReloadTimer = null;
 function scheduleHeavyReload() {
   clearTimeout(_heavyReloadTimer);
@@ -17,11 +20,16 @@ function scheduleHeavyReload() {
 }
 
 // Match-day Board optimization:
-// Captains are static on match day (rosters locked after auction).
-// Payments and Hall of Fame are lazy-loaded on tab open, so not realtime either.
+// Payments and Hall of Fame are lazy-loaded on tab open, so not realtime.
+//
+// players / captains / bidding_state route through the patch-from-payload
+// handlers in data.js — no database query on the client at all, just the
+// row Postgres already broadcasts. This is what lets the board handle
+// many simultaneous viewers without hammering Supabase on every sale.
 db.channel('bpl-board-' + _cid)
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'players' },       scheduleLightReload)
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'bidding_state' }, scheduleLightReload)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'players' },       handlePlayersEvent)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' },      handleCaptainsEvent)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'bidding_state' }, handleBiddingStateEvent)
   .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' },       scheduleHeavyReload)
   .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' },         scheduleHeavyReload)
   .subscribe();
