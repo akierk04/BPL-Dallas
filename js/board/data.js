@@ -91,3 +91,35 @@ async function loadHallOfFameData() {
   hallOfFameLoaded = true;
   renderHallOfFame();
 }
+// ── Light reload path for bidding/assignment ──
+// Fires on 'players' and 'bidding_state' changes (Go Live, Clear, sale/assign).
+// Skips matches/goals fetch entirely and skips every schedule/standings/bracket
+// render — those don't change during bidding, so there's no reason to rebuild
+// them on every "Go Live" click or every sale.
+async function loadBiddingData() {
+  const [capRes, playRes, bidRes] = await Promise.all([
+    db.from('captains').select('*').order('name'),
+    db.from('players').select('*').order('name'),
+    db.from('bidding_state').select('*').eq('id', 1).single()
+  ]);
+
+  allCaptains = capRes.data || [];
+  detectSoldTransition(playRes.data || []);
+  allPlayers = playRes.data || [];
+  currentPlayerId = bidRes.data?.player_id || null;
+  bidState = bidRes.data || null;
+
+  renderAuctionState();
+  handleAuctionDrama();
+  renderCurrentPlayer();
+  renderSoldBanner();
+  renderStory();
+  renderStoryline();
+  renderBoardPhase();
+  renderSpotlights();
+  renderRecentSales();
+  renderStats_();
+  renderCaptains();
+  renderPool();
+  renderTeams();
+}
