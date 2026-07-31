@@ -370,14 +370,13 @@ function renderRecentSales() {
       const grid=document.getElementById('boardCaptains');
       if (!allCaptains.length) { grid.innerHTML='<div class="text-muted">Loading...</div>'; return; }
 
-      const sorted = [...allCaptains].sort((a,b) => (a.group_name||'').localeCompare(b.group_name||'') || a.name.localeCompare(b.name));
+      const sorted = [...allCaptains].sort((a,b) => a.name.localeCompare(b.name));
 
       grid.innerHTML=sorted.map(c=>{
         const roster = allPlayers.filter(p=>p.captain_id===c.id && p.is_sold);
         const slotsUsed    = roster.length;
         const totalSlots   = 5; // 5 bids per captain (6 total including captain)
         const teamName     = c.team_name ? displayTeamName(c.team_name) : null;
-        const groupColor   = c.group_name === 'A' ? 'var(--groupX)' : 'var(--green)';
 
         const rHtml = roster.length
           ? roster.map(p=>`
@@ -401,7 +400,6 @@ function renderRecentSales() {
                   : `<div class="board-captain-name">${c.name}</div>`
                 }
                 <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
-                  <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:${groupColor}18;border:1px solid ${groupColor}55;color:${groupColor};">Group ${c.group_name||'?'}</span>
                   <span style="font-size:11px;color:var(--muted);">${slotsUsed}/${totalSlots} players</span>
                 </div>
               </div>
