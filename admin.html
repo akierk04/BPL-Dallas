@@ -176,10 +176,9 @@
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
     <div class="section-title" style="margin-bottom:0;">Round Fixtures</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn-sm" onclick="generateGroupMatches()" style="width:auto;">Generate Group Matches</button>
-      <button class="btn-sm" onclick="generateSuper8()" style="width:auto;">⚡ Generate Super 8</button>
-      <button class="btn-sm" onclick="generateSuper4()" style="width:auto;">Generate Super 4</button>
-      <button class="btn-sm" onclick="generateSemis()" style="width:auto;">Generate Semis</button>
+      <button class="btn-sm" onclick="generateLeagueMatches()" style="width:auto;">Generate League Matches</button>
+      <button class="btn-sm" onclick="generateQuarterfinals()" style="width:auto;">⚡ Generate Quarterfinals</button>
+      <button class="btn-sm" onclick="generateSemifinals()" style="width:auto;">Generate Semifinals</button>
       <button class="btn-sm" onclick="generateFinal()" style="width:auto;">Generate Final</button>
     </div>
   </div>
@@ -203,25 +202,18 @@
   <div class="form-card">
     <div class="form-row" style="margin-bottom:10px;">
       <select id="matchType" onchange="toggleMatchType()" style="flex:1;">
-        <optgroup label="Group Stage">
-          <option value="A">Group A Match</option>
-          <option value="B">Group B Match</option>
+        <optgroup label="League Stage">
+          <option value="League">League Match</option>
         </optgroup>
-        <optgroup label="Super 8">
-          <option value="S8A">S8A · A2 vs B5</option>
-          <option value="S8B">S8B · B2 vs A5</option>
-          <option value="S8C">S8C · A3 vs B4</option>
-          <option value="S8D">S8D · B3 vs A4</option>
+        <optgroup label="Quarterfinals">
+          <option value="QF1">QF1 · 1st vs 8th</option>
+          <option value="QF2">QF2 · 2nd vs 7th</option>
+          <option value="QF3">QF3 · 3rd vs 6th</option>
+          <option value="QF4">QF4 · 4th vs 5th</option>
         </optgroup>
-        <optgroup label="Super 4">
-          <option value="S4A">S4A · W(S8A) vs W(S8D)</option>
-          <option value="S4B">S4B · W(S8B) vs W(S8C)</option>
-        </optgroup>
-        <optgroup label="Semi-Finals">
-          <option value="SF1_L1">SF1 · Leg 1 (B1 vs W(S4B))</option>
-          <option value="SF1_L2">SF1 · Leg 2 (W(S4B) vs B1)</option>
-          <option value="SF2_L1">SF2 · Leg 1 (A1 vs W(S4A))</option>
-          <option value="SF2_L2">SF2 · Leg 2 (W(S4A) vs A1)</option>
+        <optgroup label="Semifinals">
+          <option value="SF1">SF1 · W(QF1) vs W(QF4)</option>
+          <option value="SF2">SF2 · W(QF2) vs W(QF3)</option>
         </optgroup>
         <optgroup label="Final">
           <option value="Final">🏆 Final</option>
