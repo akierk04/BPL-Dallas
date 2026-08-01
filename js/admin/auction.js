@@ -162,7 +162,9 @@ function renderAuctionControl() {
 
         msg.textContent = 'No bids — player returned to pool.';
         setTimeout(() => msg.textContent = '', 3000);
-        loadData();
+        await loadData();
+        const sel0 = document.getElementById('biddingPlayer');
+        if (sel0) sel0.value = '';
         return;
       }
 
@@ -217,7 +219,9 @@ function renderAuctionControl() {
 
       msg.textContent = `✓ ${displayCaptainName(captain)} wins for ${currentBid} pts!`;
       setTimeout(() => msg.textContent = '', 4000);
-      loadData();
+      await loadData();
+      const sel1 = document.getElementById('biddingPlayer');
+      if (sel1) sel1.value = '';
     }
 
     function showUndoBar() {
