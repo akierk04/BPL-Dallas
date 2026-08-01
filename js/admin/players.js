@@ -18,6 +18,7 @@ function renderPlayersList() {
               <option value="3" ${p.group_name === '3' ? 'selected' : ''}>Group 3</option>
               <option value="4" ${p.group_name === '4' ? 'selected' : ''}>Group 4</option>
               <option value="5" ${p.group_name === '5' ? 'selected' : ''}>Group 5</option>
+              <option value="6" ${p.group_name === '6' ? 'selected' : ''}>Group 6</option>
             </select>
             <select onchange="updatePlayerStatus('${p.id}', this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid ${isTentative ? 'rgba(240,192,64,0.5)' : 'var(--border)'};color:${isTentative ? 'var(--accent)' : 'var(--text)'};font-family:var(--font-body);width:auto;">
               <option value="confirmed" ${!isTentative ? 'selected' : ''}>Confirmed</option>
@@ -38,7 +39,7 @@ function renderPlayersList() {
       const status = document.getElementById('playerStatus').value;
       const msg = document.getElementById('playerMsg');
       if (!name) { msg.textContent = 'Enter a player name.'; return; }
-      const basePrice = group === '1' ? 500 : group === '2' ? 400 : group === '3' ? 300 : group === '4' ? 200 : 100;
+      const basePrice = GROUP_BASE[group] || 0;
       const { error } = await db.from('players').insert({ name, group_name: group, base_price: basePrice, status });
       if (error) { msg.textContent = 'Error: ' + error.message; return; }
       document.getElementById('playerName').value = '';
@@ -54,7 +55,7 @@ function renderPlayersList() {
     }
 
     async function updatePlayerGroup(id, newGroup) {
-      const basePrice = newGroup === '1' ? 500 : newGroup === '2' ? 400 : newGroup === '3' ? 300 : newGroup === '4' ? 200 : 100;
+      const basePrice = GROUP_BASE[newGroup] || 0;
       await db.from('players').update({ group_name: newGroup, base_price: basePrice }).eq('id', id);
       loadData();
     }
