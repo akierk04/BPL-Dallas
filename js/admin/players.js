@@ -93,7 +93,7 @@ function renderPlayersList() {
     }
 
     function updateRandomButtons() {
-      ['1','2','3','4','5'].forEach(g => {
+      ['1','2','3','4','5','6'].forEach(g => {
         const btn = document.getElementById('randG' + g);
         if (!btn) return;
         const available = allPlayers.filter(p => !p.is_sold && String(p.group_name) === g).length;
