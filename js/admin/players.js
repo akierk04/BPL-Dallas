@@ -133,7 +133,12 @@ function renderPlayersList() {
       }).eq('id', 1);
       document.getElementById('biddingMsg').textContent = 'Cleared.';
       setTimeout(() => document.getElementById('biddingMsg').textContent = '', 2000);
-      loadData();
+      await loadData();
+      // populateBiddingDropdown() preserves whatever the dropdown was showing
+      // before the rebuild -- which is Sushrut's stale selection, not the
+      // cleared state -- so force it back to the placeholder explicitly.
+      const sel = document.getElementById('biddingPlayer');
+      if (sel) sel.value = '';
     }
 
     function populateConsoleDropdowns() {
@@ -242,7 +247,12 @@ function renderPlayersList() {
       document.getElementById('consolePrice').value = '';
       msg.textContent = 'Player assigned!';
       setTimeout(() => msg.textContent = '', 3000);
-      loadData();
+      const wasLivePlayer = playerId === currentPlayerId;
+      await loadData();
+      if (wasLivePlayer) {
+        const sel = document.getElementById('biddingPlayer');
+        if (sel) sel.value = '';
+      }
     }
 
     async function unassignPlayer(playerId, captainId, soldPrice) {
