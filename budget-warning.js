@@ -71,10 +71,14 @@ function budgetWarning(wallet, captainGroup, soldPlayers, activeGroup) {
   return { color: 'var(--green)', msg: 'Safe to spend: ' + safe + ' pts', safe: safe, reserve: reserve, needed: needed };
 }
 
-// HTML badge
+// HTML badge -- always shows both Reserve and Safe to Spend explicitly,
+// so the number never has to imply "right now" when nothing's live.
 function warningBadgeHtml(wallet, captainGroup, soldPlayers, activeGroup) {
   var w = budgetWarning(wallet, captainGroup, soldPlayers || [], activeGroup);
-  return '<div style="margin-top:8px;padding:7px 12px;border-radius:8px;background:' + w.color + '18;border:1px solid ' + w.color + '55;font-size:13px;font-weight:500;color:' + w.color + ';">' + w.msg + '</div>';
+  var body = w.needed.length === 0
+    ? 'Squad complete -- no more bids needed'
+    : 'Reserve: ' + w.reserve + ' pts &middot; Safe to spend: ' + w.safe + ' pts';
+  return '<div style="margin-top:8px;padding:7px 12px;border-radius:8px;background:' + w.color + '18;border:1px solid ' + w.color + '55;font-size:13px;font-weight:500;color:' + w.color + ';">' + body + '</div>';
 }
 
 // Bid eligibility check -- returns { allowed: bool, reason: string }
