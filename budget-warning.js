@@ -59,26 +59,35 @@ function budgetWarning(wallet, captainGroup, soldPlayers, activeGroup) {
   var reserve = reserveGroups.reduce(function(s, g) { return s + (GROUP_BASE[g] || 0); }, 0);
   var safe = wallet - reserve;
 
+  // Reserve badge color -- independent of the Safe-to-Spend color below.
+  // Per explicit instruction: green -> yellow -> red as reserve DECREASES.
+  // Thresholds picked against the realistic range (max ~3000 for a G1
+  // captain with 0 bought, down to 0 at a complete squad).
+  var reserveColor = reserve <= 300 ? 'var(--red)' : reserve <= 1000 ? 'var(--groupB)' : 'var(--green)';
+
   if (needed.length === 0) {
-    return { color: 'var(--green)', msg: 'Squad complete -- no more bids needed', safe: 0, reserve: 0, needed: [] };
+    return { color: 'var(--green)', reserveColor: 'var(--green)', msg: 'Squad complete -- no more bids needed', safe: 0, reserve: 0, needed: [] };
   }
   if (safe <= 0) {
-    return { color: 'var(--red)', msg: 'Warning: Over budget reserve!', safe: safe, reserve: reserve, needed: needed };
+    return { color: 'var(--red)', reserveColor: reserveColor, msg: 'Warning: Over budget reserve!', safe: safe, reserve: reserve, needed: needed };
   }
   if (safe <= 200) {
-    return { color: 'var(--groupB)', msg: 'Caution: Only ' + safe + ' pts safe to spend', safe: safe, reserve: reserve, needed: needed };
+    return { color: 'var(--groupB)', reserveColor: reserveColor, msg: 'Caution: Only ' + safe + ' pts safe to spend', safe: safe, reserve: reserve, needed: needed };
   }
-  return { color: 'var(--green)', msg: 'Safe to spend: ' + safe + ' pts', safe: safe, reserve: reserve, needed: needed };
+  return { color: 'var(--green)', reserveColor: reserveColor, msg: 'Safe to spend: ' + safe + ' pts', safe: safe, reserve: reserve, needed: needed };
 }
 
-// HTML badge -- always shows both Reserve and Safe to Spend explicitly,
-// so the number never has to imply "right now" when nothing's live.
+// HTML badge -- Reserve and Safe to Spend on separate lines, each with
+// their own independent color.
 function warningBadgeHtml(wallet, captainGroup, soldPlayers, activeGroup) {
   var w = budgetWarning(wallet, captainGroup, soldPlayers || [], activeGroup);
-  var body = w.needed.length === 0
-    ? 'Squad complete -- no more bids needed'
-    : 'Reserve: ' + w.reserve + ' pts &middot; Safe to spend: ' + w.safe + ' pts';
-  return '<div style="margin-top:8px;padding:7px 12px;border-radius:8px;background:' + w.color + '18;border:1px solid ' + w.color + '55;font-size:13px;font-weight:500;color:' + w.color + ';">' + body + '</div>';
+  if (w.needed.length === 0) {
+    return '<div style="margin-top:8px;padding:7px 12px;border-radius:8px;background:' + w.color + '18;border:1px solid ' + w.color + '55;font-size:13px;font-weight:500;color:' + w.color + ';">' + w.msg + '</div>';
+  }
+  return '<div style="margin-top:8px;padding:7px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-size:13px;font-weight:500;">'
+    + '<div style="color:' + w.reserveColor + ';">Reserve: ' + w.reserve + ' pts</div>'
+    + '<div style="color:' + w.color + ';margin-top:3px;">Safe to Spend: ' + w.safe + ' pts</div>'
+    + '</div>';
 }
 
 // Bid eligibility check -- returns { allowed: bool, reason: string }
