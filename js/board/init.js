@@ -18,13 +18,10 @@ function renderSplash() {
   splash.style.display = userEntered ? 'none' : 'flex';
 }
 
-// Manual "Refresh" button in the header. Routed through loadBiddingData()
-// -- the same lightweight players+captains+bidding_state fetch the
-// automatic light path already uses -- since during the auction the only
-// thing an admin ever changes is player assignment + price (which also
-// updates the captain's wallet). This does NOT refresh matches/goals; if
-// this button needs to double as a match-day recovery tool later, switch
-// this back to loadData().
+// Manual "Refresh" button in the header. Routed through loadMatchData()
+// -- the match-day lightweight fetch (captains+players+matches+goals,
+// skipping bidding_state since the auction is over). This replaces the
+// auction-phase loadBiddingData() this button used to call.
 var _manualRefreshCooldown = false;
 function manualRefresh() {
   if (_manualRefreshCooldown) return;
@@ -33,7 +30,7 @@ function manualRefresh() {
   var btn = document.getElementById('refreshBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Refreshing...'; }
 
-  Promise.resolve(loadBiddingData()).finally(function() {
+  Promise.resolve(loadMatchData()).finally(function() {
     var remaining = 8;
     (function tick() {
       if (remaining <= 0) {
