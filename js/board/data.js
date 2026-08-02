@@ -199,3 +199,71 @@ function renderBiddingUpdate() {
   renderPool();
   renderTeams();
 }
+
+// -- MATCH DAY: lightweight fallback fetch --
+// Used by the manual Refresh button and as the fallback if a realtime
+// payload comes back malformed. Skips bidding_state entirely (auction is
+// over, that table is no longer relevant) and skips dues/hall-of-fame
+// (already lazy-loaded on tab open, not needed here).
+async function loadMatchData() {
+  const [capRes, playRes, matchRes, goalRes] = await Promise.all([
+    db.from('captains').select('*').order('name'),
+    db.from('players').select('*').order('name'),
+    db.from('matches').select('*'),
+    db.from('goals').select('*')
+  ]);
+
+  allCaptains = capRes.data || [];
+  allPlayers  = playRes.data || [];
+  allMatches  = matchRes.data || [];
+  allGoals    = goalRes.data || [];
+
+  renderBoardStandings();
+  renderBoardSchedule();
+  renderBoardStats();
+  renderTeams();
+}
+
+// -- MATCH DAY: patch-from-payload handlers --
+// Same zero-extra-query discipline as the auction-day handlers above:
+// patch the in-memory array directly from the broadcast row instead of
+// re-querying, so one goal or one match result doesn't cost a database
+// round trip per viewer.
+let _matchRenderTimer = null;
+function scheduleMatchRender() {
+  clearTimeout(_matchRenderTimer);
+  _matchRenderTimer = setTimeout(renderMatchUpdate, 300);
+}
+
+function handleMatchesEvent(payload) {
+  if (payload.eventType === 'DELETE') {
+    if (!payload.old || !payload.old.id) { scheduleLightReload(); return; }
+    allMatches = removeById(allMatches, payload.old);
+  } else {
+    if (!payload.new || !payload.new.id) { scheduleLightReload(); return; }
+    allMatches = upsertById(allMatches, payload.new);
+  }
+  scheduleMatchRender();
+}
+
+function handleGoalsEvent(payload) {
+  if (payload.eventType === 'DELETE') {
+    if (!payload.old || !payload.old.id) { scheduleLightReload(); return; }
+    allGoals = removeById(allGoals, payload.old);
+  } else {
+    if (!payload.new || !payload.new.id) { scheduleLightReload(); return; }
+    allGoals = upsertById(allGoals, payload.new);
+  }
+  scheduleMatchRender();
+}
+
+function renderMatchUpdate() {
+  // A single match completion typically fires a burst of goal INSERTs
+  // followed by one matches UPDATE (played=true) -- the shared debounce
+  // above coalesces that whole burst into one render pass here, covering
+  // standings/schedule/bracket (driven by matches) and stats (driven by
+  // both matches.mvp_player_id and goals).
+  renderBoardStandings();
+  renderBoardSchedule();
+  renderBoardStats();
+}
