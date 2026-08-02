@@ -18,8 +18,9 @@ function scheduleLightReload() {
 // auction -- no reason to drop that discipline just because the phase
 // changed. Payments and Hall of Fame stay lazy-loaded on tab open.
 db.channel('bpl-board-' + _cid)
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, handleMatchesEvent)
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' },   handleGoalsEvent)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' },          handleMatchesEvent)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' },            handleGoalsEvent)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'tiebreak_results' }, handleTiebreakEvent)
   .subscribe();
 
 const presenceKey =
