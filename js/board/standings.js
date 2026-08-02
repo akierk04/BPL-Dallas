@@ -1,6 +1,6 @@
 function renderBoardStandings() {
       renderBoardMatchDayBanner();
-      document.getElementById('boardStandings').innerHTML = standingsTableHtml(allCaptains, allMatches);
+      document.getElementById('boardStandings').innerHTML = standingsTableHtml(allCaptains, allMatches, allTiebreaks);
     }
 
     function renderBoardMatchDayBanner() {
@@ -39,7 +39,7 @@ function renderBoardStandings() {
     }
 
     function renderBoardSchedule() {
-      const standings = computeStandings(allCaptains, allMatches);
+      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
       document.getElementById('boardSchedule').innerHTML = matchScheduleHtml(allMatches, allCaptains, allPlayers, standings);
       renderBoardBracket();
     }
@@ -54,7 +54,7 @@ function renderBoardStandings() {
       if (!ko.length) { if (card) card.style.display = 'none'; return; }
       if (card) card.style.display = 'block';
 
-      const standings = computeStandings(allCaptains, allMatches);
+      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
       function seed(i) { return standings[i]?.captain || null; }
       function getMatch(r) { return ko.find(m => m.round === r) || null; }
       function getWinner(m) {
