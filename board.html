@@ -291,6 +291,273 @@
   <script src="standings.js?v=2"></script>
 
   <script src="js/board/state.js?v=2"></script>
+  <script src="js/board/data.js?v=3"></script>
+  <script src="js/board/auction.js?v=2"></script>
+  <script src="js/board/standings.js?v=2"></script>
+  <script src="js/board/teams.js?v=2"></script>
+  <script src="js/board/dues.js?v=2"></script>
+  <script src="js/board/halloffame.js?v=2"></script>
+  <script src="js/board/realtime.js?v=3"></script>
+  <script src="js/board/init.js?v=3"></script>
+
+</body>
+</html>        <div class="sp-meta">
+          <div class="sp-meta-row">
+            <span class="sp-meta-label">Date</span>
+            <span class="sp-meta-value">TBD</span>
+          </div>
+          <div class="sp-meta-row">
+            <span class="sp-meta-label">Doors open</span>
+            <span class="sp-meta-value">TBD</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sp-divider-v"></div>
+
+      <div class="sp-right">
+        <div>
+          <div class="sp-section-label">Venue</div>
+          <div class="sp-venue">
+            <div class="sp-venue-name">Crossbar Denton</div>
+            <div class="sp-venue-sub">
+              <span>Denton, Texas</span>
+              <span style="color:#333;">&middot;</span>
+              <a class="sp-venue-link" href="https://crossbardallas.com/" target="_blank">crossbardallas.com</a>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="sp-section-label">Tournament</div>
+          <div class="sp-stat-grid">
+            <div class="sp-stat"><div class="sp-stat-val">9</div><div class="sp-stat-sub">Teams</div></div>
+            <div class="sp-stat"><div class="sp-stat-val">5v5</div><div class="sp-stat-sub">Format</div></div>
+            <div class="sp-stat"><div class="sp-stat-val">Top 8</div><div class="sp-stat-sub">Qualify</div></div>
+            <div class="sp-stat"><div class="sp-stat-val">Live</div><div class="sp-stat-sub">Auction</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="sp-section-label">Format</div>
+          <div class="sp-format">
+            <div class="sp-fmt-item"><div class="sp-fmt-dot"></div><span><strong>League Stage</strong> &middot; Round-robin</span></div>
+            <div class="sp-fmt-item"><div class="sp-fmt-dot"></div><span><strong>Quarterfinals</strong> &middot; Top 8</span></div>
+            <div class="sp-fmt-item"><div class="sp-fmt-dot"></div><span><strong>Semifinals</strong></span></div>
+            <div class="sp-fmt-item"><div class="sp-fmt-dot"></div><span><strong>Final</strong> &middot; TGT</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sp-bottom">
+      <div class="sp-bottom-l">Brown Munde &nbsp;&middot;&nbsp; <strong>Dallas, TX</strong></div>
+      <div class="sp-bottom-r">
+        <button class="sp-enter-btn" onclick="enterBoard()">Enter Live Board</button>
+        <div style="width:1px;height:12px;background:#222;"></div>
+        <a href="https://crossbardallas.com/" style="font-size:11px;color:#f0c040;font-weight:600;letter-spacing:0.06em;text-decoration:none;text-transform:uppercase;" target="_blank">crossbardallas.com</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="board-header">
+    <div class="board-title">Brownish Premier League</div>
+    <div class="board-sub"><span class="live-dot"></span>Live · Season 2 · Dallas</div>
+    <div class="board-viewers" id="viewerCount"></div>
+    <div class="board-phase" id="boardPhase">Auction phase live</div>
+    <div class="header-actions">
+      <button class="header-action-btn" onclick="showPoster()">Home</button>
+      <button class="header-action-btn" id="refreshBtn" onclick="manualRefresh()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="page">
+  <!-- #10 Tournament Mode Banner (shown when auction is done) -->
+  <div id="tournamentModeBanner" class="tournament-mode-banner" style="display:none;">
+    <div class="tournament-mode-icon">🏆</div>
+    <div class="tournament-mode-title">Tournament Mode</div>
+    <div class="tournament-mode-sub">The auction is complete. Let the games begin!</div>
+  </div>
+
+<div class="tabs" style="flex-wrap:wrap;margin-bottom:20px;">
+  <button class="tab active" onclick="switchBoardTab('auction')">Auction</button>
+  <button class="tab" onclick="switchBoardTab('standings')">Standings</button>
+  <button class="tab" onclick="switchBoardTab('stats')">Stats</button>
+  <button class="tab" onclick="switchBoardTab('schedule')">Schedule</button>
+  <button class="tab" onclick="switchBoardTab('teams')">Teams</button>
+  <button class="tab" onclick="switchBoardTab('dues')">Dues</button>
+  <button class="tab" onclick="switchBoardTab('hall')">Hall of Fame</button>
+</div>
+
+<!-- Auction tab -->
+<div id="btab-auction">
+  <div class="event-banner" id="auctionEventBanner">
+    <div class="event-banner-title" id="auctionEventTitle">Auction Begins Soon</div>
+  </div>
+
+  <div id="preAuctionPanel" class="pre-auction-panel" style="display:none;">
+    <div class="pre-auction-kicker">Pre-Auction Mode</div>
+    <div class="pre-auction-title">Countdown to Auction</div>
+    <div class="pre-auction-copy">The board is live, but bidding has not started yet.</div>
+    <div class="countdown-grid">
+      <div class="countdown-box"><div class="countdown-val" id="cdDays">--</div><div class="countdown-label">Days</div></div>
+      <div class="countdown-box"><div class="countdown-val" id="cdHours">--</div><div class="countdown-label">Hours</div></div>
+      <div class="countdown-box"><div class="countdown-val" id="cdMinutes">--</div><div class="countdown-label">Minutes</div></div>
+      <div class="countdown-box"><div class="countdown-val" id="cdSeconds">--</div><div class="countdown-label">Seconds</div></div>
+    </div>
+</div>
+
+  <div id="soldBanner" class="sold-banner" style="display:none;">
+    <div class="sold-banner-label">Just Sold</div>
+    <div class="sold-banner-main" id="soldBannerMain">SOLD</div>
+    <div class="sold-banner-sub" id="soldBannerSub">—</div>
+  </div>
+
+  <div id="nowBidding" class="now-bidding" style="display:none;">
+    <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
+    <div class="now-bidding-name" id="nowBiddingName">—</div>
+    <div id="nowBiddingBase" style="font-size:13px;color:var(--muted);margin-top:6px;letter-spacing:0.04em;"></div>
+    <div id="boardAuctionStatus" class="now-bidding-status live">Live Auction</div>
+    <div id="nowBiddingLive" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(240,192,64,0.2);display:none;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Current Bid</div>
+      <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <div style="font-family:var(--font-display);font-size:2.5rem;color:var(--accent);" id="boardBidAmount">0</div>
+        <div style="font-size:14px;font-weight:500;color:var(--text);" id="boardBidder">—</div>
+      </div>
+    </div>
+  </div>
+  <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
+
+  <div class="auction-grid" id="auctionGrid">
+    <div class="story-stack">
+      <div class="story-card">
+        <div class="story-title">Live Storyline</div>
+        <div id="boardStory"></div>
+      </div>
+      <div class="spotlight-grid">
+        <div class="spotlight-card">
+          <div class="spotlight-title">Top Spender</div>
+          <div class="spotlight-name" id="topSpenderName">—</div>
+          <div class="spotlight-copy" id="topSpenderCopy">Waiting for the first big spend.</div>
+        </div>
+        <div class="spotlight-card">
+          <div class="spotlight-title">Pressure Watch</div>
+          <div class="spotlight-name" id="pressureWatchName">—</div>
+          <div class="spotlight-copy" id="pressureWatchCopy">Nobody is under purse pressure yet.</div>
+        </div>
+      </div>
+    </div>
+    <div class="recent-sales-card">
+      <div class="recent-sales-title">Recent Sales</div>
+      <div id="recentSales"></div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="auctionStatsBar">
+    <div class="stat-item"><div class="stat-val" id="statSold">—</div><div class="stat-label">Players Sold</div></div>
+    <div class="stat-div"></div>
+    <div class="stat-item"><div class="stat-val" id="statAvail">—</div><div class="stat-label">Available</div></div>
+    <div class="stat-div"></div>
+    <div class="stat-item"><div class="stat-val" id="statSpent">—</div><div class="stat-label">Total Pts Spent</div></div>
+    <div class="stat-div"></div>
+    <div class="stat-item"><div class="stat-val" id="statTopSale">—</div><div class="stat-label">Highest Sale</div></div>
+  </div>
+  <div class="section-title" id="captainsSectionTitle">Captains & Teams</div>
+  <div class="board-grid" id="boardCaptains"></div>
+  <div class="section-title" id="playerPoolSectionTitle" style="margin-top:8px;">Player Pool</div>
+  <div class="pool-filters" id="poolFilters">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('available',this)">Available</button>
+    <button class="filter-btn" onclick="setFilter('sold',this)">Sold</button>
+  </div>
+  <div class="pool-grid" id="boardPool"></div>
+</div>
+
+<!-- Standings tab -->
+<div id="btab-standings" style="display:none;">
+  <div id="boardMatchDayBanner" style="display:none;margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.5);border-radius:var(--radius-lg);padding:16px 20px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">⚡ Now Playing</div>
+        <div id="boardNowPlayingTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+        <div id="boardNowPlayingMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;">Up Next</div>
+        <div id="boardUpNextTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+        <div id="boardUpNextMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="section-title">Team Standings</div>
+  <div class="form-card" style="padding:0 0.5rem;">
+    <div id="boardStandings"></div>
+  </div>
+</div>
+
+<!-- Stats tab -->
+<div id="btab-stats" style="display:none;">
+  <div class="section-title">Top Scorers</div>
+  <div class="form-card">
+    <div id="boardTopScorers"></div>
+  </div>
+  <div class="section-title" style="margin-top:16px;">Tournament MVP</div>
+  <div class="form-card">
+    <div id="boardMvp"></div>
+  </div>
+</div>
+
+<!-- Schedule tab -->
+<div id="btab-schedule" style="display:none;">
+  <div id="boardBracketCard" style="display:none;margin-bottom:20px;">
+    <div class="section-title">Knockout Bracket</div>
+    <div class="form-card">
+      <div id="boardBracket"></div>
+    </div>
+  </div>
+  <div class="section-title">Match Schedule</div>
+  <div class="form-card">
+    <div id="boardSchedule"></div>
+  </div>
+</div>
+
+<!-- Teams tab -->
+<div id="btab-teams" style="display:none;">
+  <div class="section-title">Teams</div>
+  <div id="boardTeamsGrid" class="board-grid"></div>
+</div>
+
+<!-- Dues tab -->
+<div id="btab-dues" style="display:none;">
+  <div id="duesKpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:20px;"></div>
+
+  <div class="section-title">Top Payers</div>
+  <div class="form-card">
+    <div id="boardTopPayers"></div>
+  </div>
+
+  <div class="section-title" style="margin-top:16px;">Dues Tracker</div>
+  <div class="form-card">
+    <div id="boardDuesTable"></div>
+  </div>
+</div>
+
+<!-- Hall of Fame tab -->
+<div id="btab-hall" style="display:none;">
+  <div class="section-title">Hall of Fame</div>
+  <div class="form-card">
+    <div id="boardHallOfFame"></div>
+  </div>
+</div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="supabase-config.js"></script>
+
+  <script src="budget-warning.js?v=6"></script>
+
+  <script src="standings.js?v=2"></script>
+
+  <script src="js/board/state.js?v=2"></script>
   <script src="js/board/data.js?v=2"></script>
   <script src="js/board/auction.js?v=2"></script>
   <script src="js/board/standings.js?v=2"></script>
