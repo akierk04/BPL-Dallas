@@ -13,7 +13,8 @@ function isQfRound(round)     { return QF_ROUNDS.includes(String(round)); }
 function isSfRound(round)     { return SF_ROUNDS.includes(String(round)); }
 
 // ── Compute standings (single flat table, all captains) ──
-function computeStandings(captains, matches) {
+function computeStandings(captains, matches, tiebreakResults) {
+  tiebreakResults = tiebreakResults || [];
   const table = {};
   captains.forEach(c => {
     table[c.id] = { captain: c, p: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0, results: {} };
@@ -44,6 +45,13 @@ function computeStandings(captains, matches) {
     a.results[h.captain.id].gf += as_; a.results[h.captain.id].ga += hs;
   });
 
+  function tiebreakWinner(idA, idB) {
+    const rec = tiebreakResults.find(t =>
+      (t.team_a === idA && t.team_b === idB) || (t.team_a === idB && t.team_b === idA)
+    );
+    return rec ? rec.winner : null;
+  }
+
   return Object.values(table).sort((a, b) => {
     if (b.pts !== a.pts) return b.pts - a.pts;
     if (b.gd  !== a.gd)  return b.gd  - a.gd;
@@ -52,8 +60,38 @@ function computeStandings(captains, matches) {
     const h2h_a = a.results[b.captain.id];
     const h2h_b = b.results[a.captain.id];
     if (h2h_a && h2h_b && h2h_b.pts !== h2h_a.pts) return h2h_b.pts - h2h_a.pts;
+    // No head-to-head distinction -- either they never played each other
+    // (only 4 of 8 possible opponents each), or they drew. Check for a
+    // recorded penalty shootout result before falling through to "tied".
+    const winner = tiebreakWinner(a.captain.id, b.captain.id);
+    if (winner) return winner === a.captain.id ? -1 : 1;
     return 0;
   });
+}
+
+// Scans the sorted standings for adjacent teams that are still completely
+// tied after every tiebreaker (Pts/GD/GF/GA/H2H) with no recorded shootout
+// result -- a genuine deadlock per the rules doc, not just "close."
+// A 3-way tie shows up as two adjacent pairs sharing the middle team,
+// which is an accurate, simple representation rather than something that
+// needs special-case handling.
+function detectDeadlocks(rows, tiebreakResults) {
+  tiebreakResults = tiebreakResults || [];
+  const deadlocks = [];
+  for (let i = 0; i < rows.length - 1; i++) {
+    const a = rows[i], b = rows[i + 1];
+    if (a.pts !== b.pts || a.gd !== b.gd || a.gf !== b.gf || a.ga !== b.ga) continue;
+    const h2h_a = a.results[b.captain.id];
+    const h2h_b = b.results[a.captain.id];
+    if (h2h_a && h2h_b && h2h_a.pts !== h2h_b.pts) continue; // h2h already resolved it
+    const hasResult = tiebreakResults.some(t =>
+      (t.team_a === a.captain.id && t.team_b === b.captain.id) ||
+      (t.team_a === b.captain.id && t.team_b === a.captain.id)
+    );
+    if (hasResult) continue; // already resolved
+    deadlocks.push({ teamA: a.captain, teamB: b.captain, position: i + 1 });
+  }
+  return deadlocks;
 }
 
 // ── Tiebreaker badge ──
@@ -71,9 +109,17 @@ function _tiebreakLabel(r, i, rows) {
 }
 
 // ── Standings table HTML (single flat table) ──
-function standingsTableHtml(captains, matches) {
-  const rows = computeStandings(captains, matches);
+function standingsTableHtml(captains, matches, tiebreakResults) {
+  tiebreakResults = tiebreakResults || [];
+  const rows = computeStandings(captains, matches, tiebreakResults);
   if (!rows.length) return '<div class="text-muted">No matches played yet.</div>';
+
+  const deadlocks = detectDeadlocks(rows, tiebreakResults);
+  function deadlockPartner(captainId) {
+    const d = deadlocks.find(x => x.teamA.id === captainId || x.teamB.id === captainId);
+    if (!d) return null;
+    return d.teamA.id === captainId ? d.teamB : d.teamA;
+  }
 
   // Qualification: top 8 advance to Quarterfinals. Anyone below that is out.
   // Works regardless of exact team count -- only position matters.
@@ -89,11 +135,15 @@ function standingsTableHtml(captains, matches) {
     const tbBadge = tb
       ? `<span style="font-size:10px;background:rgba(224,90,43,0.15);color:var(--red);padding:2px 5px;border-radius:4px;margin-left:5px;font-weight:600;" title="Separated by ${tb}">↑${tb}</span>`
       : '';
+    const partner = deadlockPartner(r.captain.id);
+    const deadlockBadge = partner
+      ? `<span style="font-size:10px;background:rgba(240,192,64,0.15);color:var(--accent);padding:2px 6px;border-radius:4px;margin-left:6px;" title="Tied with ${partner.team_name || partner.name} on every tiebreaker -- needs a shootout">⚠ Shootout Pending</span>`
+      : '';
     const rowBg = i < 8 ? 'background:rgba(62,207,142,0.04);' : 'background:rgba(224,90,43,0.03);';
     return `
       <tr style="border-bottom:0.5px solid var(--border);${rowBg}">
         <td style="padding:10px 10px;color:var(--muted);">${i+1}</td>
-        <td style="padding:10px 10px;font-weight:500;color:var(--text);">${r.captain.team_name || r.captain.name}${qualBadge(i)}${tbBadge}</td>
+        <td style="padding:10px 10px;font-weight:500;color:var(--text);">${r.captain.team_name || r.captain.name}${qualBadge(i)}${tbBadge}${deadlockBadge}</td>
         <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.p}</td>
         <td style="padding:10px 6px;text-align:center;color:var(--green);">${r.w}</td>
         <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.d}</td>
@@ -128,6 +178,7 @@ function standingsTableHtml(captains, matches) {
     <div style="font-size:11px;color:var(--muted);margin-top:4px;padding:0 4px;">
       <span style="color:var(--green);">●</span> Top 8 → Quarterfinals &nbsp;
       <span style="color:var(--red);">●</span> 9th place eliminated
+      ${deadlocks.length ? '&nbsp; <span style="color:var(--accent);">●</span> ' + deadlocks.length + ' shootout' + (deadlocks.length > 1 ? 's' : '') + ' pending' : ''}
     </div>`;
 }
 
