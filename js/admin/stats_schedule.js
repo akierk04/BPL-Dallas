@@ -2,7 +2,33 @@
 // Extracted from admin.html during Admin refactor.
 
 function renderStandings() {
-      document.getElementById('standingsTable').innerHTML = standingsTableHtml(allCaptains, allMatches);
+      document.getElementById('standingsTable').innerHTML = standingsTableHtml(allCaptains, allMatches, allTiebreaks);
+      renderTiebreakBanner();
+    }
+
+    function renderTiebreakBanner() {
+      const el = document.getElementById('tiebreakBanner');
+      if (!el) return;
+      const rows = computeStandings(allCaptains, allMatches, allTiebreaks);
+      const deadlocks = detectDeadlocks(rows, allTiebreaks);
+      if (!deadlocks.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+      el.style.display = 'block';
+      el.innerHTML = deadlocks.map(d => `
+        <div style="background:rgba(240,192,64,0.1);border:1px solid rgba(240,192,64,0.4);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
+          <div style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:8px;">
+            ⚠ Teams tied on every tiebreaker: ${displayCaptainName(d.teamA)} vs ${displayCaptainName(d.teamB)} — record shootout result
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-sm" onclick="resolveTiebreak('${d.teamA.id}','${d.teamB.id}','${d.teamA.id}')" style="width:auto;">${displayCaptainName(d.teamA)} wins</button>
+            <button class="btn-sm" onclick="resolveTiebreak('${d.teamA.id}','${d.teamB.id}','${d.teamB.id}')" style="width:auto;">${displayCaptainName(d.teamB)} wins</button>
+          </div>
+        </div>`).join('');
+    }
+
+    async function resolveTiebreak(teamAId, teamBId, winnerId) {
+      const { error } = await db.from('tiebreak_results').insert({ team_a: teamAId, team_b: teamBId, winner: winnerId });
+      if (error) { alert('Error recording shootout result: ' + error.message); return; }
+      await loadData();
     }
 
     function renderStats() {
@@ -15,7 +41,7 @@ function renderStandings() {
     }
 
     function renderSchedule() {
-      const standings = computeStandings(allCaptains, allMatches);
+      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
       document.getElementById('adminSchedule').innerHTML = matchScheduleHtml(allMatches, allCaptains, allPlayers, standings);
       renderKnockoutBracket('adminBracket', 'bracketCard');
     }
@@ -30,7 +56,7 @@ function renderStandings() {
       if (!ko.length) { if (card) card.style.display = 'none'; return; }
       if (card) card.style.display = 'block';
 
-      const standings = computeStandings(allCaptains, allMatches);
+      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
       function seed(i) { return standings[i]?.captain || null; }
       function getMatch(r) { return ko.find(m => m.round === r) || null; }
       function getWinner(m) {
