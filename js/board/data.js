@@ -7,7 +7,8 @@ async function loadData(options = {}) {
     db.from('players').select('*').order('name'),
     db.from('bidding_state').select('*').eq('id',1).single(),
     db.from('matches').select('*').order('created_at'),
-    db.from('goals').select('*')
+    db.from('goals').select('*'),
+    db.from('tiebreak_results').select('*')
   ];
 
   if (includeDues) {
@@ -22,17 +23,18 @@ async function loadData(options = {}) {
 
   const results = await Promise.all(requests);
 
-  const [capRes, playRes, bidRes, matchRes, goalRes] = results;
+  const [capRes, playRes, bidRes, matchRes, goalRes, tiebreakRes] = results;
 
   allCaptains = capRes.data || [];
   detectSoldTransition(playRes.data || []);
   allPlayers = playRes.data || [];
   allMatches = matchRes.data || [];
   allGoals = goalRes.data || [];
+  allTiebreaks = tiebreakRes.data || [];
   currentPlayerId = bidRes.data?.player_id || null;
   bidState = bidRes.data || null;
 
-  let idx = 5;
+  let idx = 6;
   if (includeDues) {
     const paymentsRes = results[idx++];
     const summaryRes = results[idx++];
@@ -206,17 +208,19 @@ function renderBiddingUpdate() {
 // over, that table is no longer relevant) and skips dues/hall-of-fame
 // (already lazy-loaded on tab open, not needed here).
 async function loadMatchData() {
-  const [capRes, playRes, matchRes, goalRes] = await Promise.all([
+  const [capRes, playRes, matchRes, goalRes, tiebreakRes] = await Promise.all([
     db.from('captains').select('*').order('name'),
     db.from('players').select('*').order('name'),
     db.from('matches').select('*'),
-    db.from('goals').select('*')
+    db.from('goals').select('*'),
+    db.from('tiebreak_results').select('*')
   ]);
 
   allCaptains = capRes.data || [];
   allPlayers  = playRes.data || [];
   allMatches  = matchRes.data || [];
   allGoals    = goalRes.data || [];
+  allTiebreaks = tiebreakRes.data || [];
 
   renderBoardStandings();
   renderBoardSchedule();
@@ -253,6 +257,19 @@ function handleGoalsEvent(payload) {
   } else {
     if (!payload.new || !payload.new.id) { scheduleLightReload(); return; }
     allGoals = upsertById(allGoals, payload.new);
+  }
+  scheduleMatchRender();
+}
+
+// tiebreak_results is effectively append-only (a shootout result is
+// recorded once, never edited) but handled generically anyway for safety.
+function handleTiebreakEvent(payload) {
+  if (payload.eventType === 'DELETE') {
+    if (!payload.old || !payload.old.id) { scheduleLightReload(); return; }
+    allTiebreaks = removeById(allTiebreaks, payload.old);
+  } else {
+    if (!payload.new || !payload.new.id) { scheduleLightReload(); return; }
+    allTiebreaks = upsertById(allTiebreaks, payload.new);
   }
   scheduleMatchRender();
 }
