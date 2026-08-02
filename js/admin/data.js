@@ -2,7 +2,7 @@
 // Extracted from admin.html during Admin refactor.
 
 async function loadData() {
-      const [capRes, playRes, bidRes, matchRes, goalRes, paymentsRes, summaryRes, topPayersRes, hofRes] = await Promise.all([
+      const [capRes, playRes, bidRes, matchRes, goalRes, paymentsRes, summaryRes, topPayersRes, hofRes, tiebreakRes] = await Promise.all([
         db.from('captains').select('*').order('name'),
         db.from('players').select('*').order('name'),
         db.from('bidding_state').select('*').eq('id', 1).single(),
@@ -11,7 +11,8 @@ async function loadData() {
         db.from('payments').select('*').order('created_at', { ascending: false }),
         db.from('payment_summary').select('*'),
         db.from('top_payers').select('*'),
-        db.from('hall_of_fame').select('*').order('season', { ascending: false })
+        db.from('hall_of_fame').select('*').order('season', { ascending: false }),
+        db.from('tiebreak_results').select('*')
       ]);
 
       if (capRes.error) {
@@ -32,6 +33,7 @@ async function loadData() {
       paymentSummary = summaryRes.data || [];
       topPayers = topPayersRes.data || [];
       hofEntries = hofRes?.data || [];
+      allTiebreaks = tiebreakRes?.data || [];
       currentPlayerId = bidRes.data?.player_id || null;
       bidState = bidRes.data || null;
 
