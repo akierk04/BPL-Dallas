@@ -4,7 +4,7 @@
 if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
 
-    let allCaptains = [], allPlayers = [], allMatches = [], allGoals = [], allPayments = [], paymentSummary = [], topPayers = [], hofEntries = [], currentPlayerId = null, bidState = null;
+    let allCaptains = [], allPlayers = [], allMatches = [], allGoals = [], allPayments = [], paymentSummary = [], topPayers = [], hofEntries = [], currentPlayerId = null, bidState = null, allTiebreaks = [];
     let paymentLoadError = '';
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
     let pendingMatchId = null;
