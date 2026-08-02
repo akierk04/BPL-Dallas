@@ -274,10 +274,16 @@ function populateMatchDropdowns() {
     // ── Generate Quarterfinals: 1v8, 2v7, 3v6, 4v5 from final league table ──
     async function generateQuarterfinals() {
       const msg = document.getElementById('generateMsg');
-      const standings = computeStandings(allCaptains, allMatches);
+      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
       if (standings.length < 8) {
         msg.textContent = 'Need at least 8 captains and league matches played to generate Quarterfinals.';
         setTimeout(() => msg.textContent = '', 4000);
+        return;
+      }
+      const deadlocks = detectDeadlocks(standings, allTiebreaks);
+      if (deadlocks.length) {
+        msg.textContent = deadlocks.length + ' team(s) still tied on every tiebreaker -- resolve the shootout(s) on the Standings tab before generating Quarterfinals.';
+        setTimeout(() => msg.textContent = '', 6000);
         return;
       }
       const existing = allMatches.filter(m => isQfRound(m.round));
@@ -395,7 +401,7 @@ function populateMatchDropdowns() {
         return;
       }
       // KO rounds — prefill from standings/results
-      const standings = computeStandings(allCaptains, allMatches);
+      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
       function koWinnerId(round) {
         const m = allMatches.find(x => x.round === round && x.played);
         if (!m) return null;
