@@ -15,6 +15,7 @@ async function loadData(options = {}) {
     requests.push(db.from('payments').select('*').order('created_at', { ascending: false }));
     requests.push(db.from('payment_summary').select('*'));
     requests.push(db.from('top_payers').select('*'));
+    requests.push(db.from('dues_settings').select('*').eq('id',1).single());
   }
 
   if (includeHall) {
@@ -39,9 +40,11 @@ async function loadData(options = {}) {
     const paymentsRes = results[idx++];
     const summaryRes = results[idx++];
     const topPayersRes = results[idx++];
+    const duesSettingsRes = results[idx++];
     allPayments = paymentsRes.data || [];
     paymentSummary = summaryRes.data || [];
     topPayers = topPayersRes.data || [];
+    duesSpent = Number(duesSettingsRes?.data?.spent || 0);
     duesLoaded = true;
   }
 
@@ -74,14 +77,16 @@ async function loadData(options = {}) {
 
 async function loadDuesData() {
   if (duesLoaded) { renderBoardDues(); return; }
-  const [paymentsRes, summaryRes, topPayersRes] = await Promise.all([
+  const [paymentsRes, summaryRes, topPayersRes, duesSettingsRes] = await Promise.all([
     db.from('payments').select('*').order('created_at', { ascending: false }),
     db.from('payment_summary').select('*'),
-    db.from('top_payers').select('*')
+    db.from('top_payers').select('*'),
+    db.from('dues_settings').select('*').eq('id',1).single()
   ]);
   allPayments = paymentsRes.data || [];
   paymentSummary = summaryRes.data || [];
   topPayers = topPayersRes.data || [];
+  duesSpent = Number(duesSettingsRes?.data?.spent || 0);
   duesLoaded = true;
   renderBoardDues();
 }
