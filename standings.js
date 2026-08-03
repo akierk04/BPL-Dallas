@@ -75,8 +75,16 @@ function computeStandings(captains, matches, tiebreakResults) {
 // A 3-way tie shows up as two adjacent pairs sharing the middle team,
 // which is an accurate, simple representation rather than something that
 // needs special-case handling.
-function detectDeadlocks(rows, tiebreakResults) {
+function detectDeadlocks(rows, matches, tiebreakResults) {
   tiebreakResults = tiebreakResults || [];
+  // Only meaningful once the league stage has actually finished. Before
+  // that, teams sharing an identical 0-0-0-0 line (or any other
+  // still-evolving line) are just mid-season -- not a genuine
+  // unresolvable tie that needs a shootout.
+  const leagueMatches = matches.filter(m => isLeagueRound(m.round));
+  const leagueComplete = leagueMatches.length > 0 && leagueMatches.every(m => m.played);
+  if (!leagueComplete) return [];
+
   const deadlocks = [];
   for (let i = 0; i < rows.length - 1; i++) {
     const a = rows[i], b = rows[i + 1];
@@ -114,7 +122,7 @@ function standingsTableHtml(captains, matches, tiebreakResults) {
   const rows = computeStandings(captains, matches, tiebreakResults);
   if (!rows.length) return '<div class="text-muted">No matches played yet.</div>';
 
-  const deadlocks = detectDeadlocks(rows, tiebreakResults);
+  const deadlocks = detectDeadlocks(rows, matches, tiebreakResults);
   function deadlockPartner(captainId) {
     const d = deadlocks.find(x => x.teamA.id === captainId || x.teamB.id === captainId);
     if (!d) return null;
