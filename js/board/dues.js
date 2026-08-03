@@ -33,6 +33,8 @@ function renderBoardDues() {
         }
       });
 
+      var reserve = totalPaid - duesSpent;
+
       wrap.innerHTML = `
         <div class="spotlight-card">
           <div class="spotlight-title">Total Collected</div>
@@ -44,6 +46,18 @@ function renderBoardDues() {
           <div class="spotlight-title">Outstanding Dues</div>
           <div class="spotlight-name">$${outstanding.toLocaleString()}</div>
           <div class="spotlight-copy">Remaining unpaid balance.</div>
+        </div>
+
+        <div class="spotlight-card">
+          <div class="spotlight-title">Dues Spent</div>
+          <div class="spotlight-name">$${duesSpent.toLocaleString()}</div>
+          <div class="spotlight-copy">Spent so far on league expenses.</div>
+        </div>
+
+        <div class="spotlight-card">
+          <div class="spotlight-title">Reserve</div>
+          <div class="spotlight-name" style="color:${reserve >= 0 ? '' : 'var(--red)'};">$${reserve.toLocaleString()}</div>
+          <div class="spotlight-copy">Collected minus spent.</div>
         </div>
 
         <div class="spotlight-card">
