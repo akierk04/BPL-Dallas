@@ -1,4 +1,4 @@
-let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], paymentSummary=[], topPayers=[], allHallOfFame=[], currentFilter='all', currentPlayerId=null, bidState=null, allTiebreaks=[];
+let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], paymentSummary=[], topPayers=[], allHallOfFame=[], currentFilter='all', currentPlayerId=null, bidState=null, allTiebreaks=[], duesSpent=0;
     let activeBoardTab='auction';
     let duesLoaded=false, hallOfFameLoaded=false;
 
