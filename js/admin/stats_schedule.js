@@ -10,7 +10,7 @@ function renderStandings() {
       const el = document.getElementById('tiebreakBanner');
       if (!el) return;
       const rows = computeStandings(allCaptains, allMatches, allTiebreaks);
-      const deadlocks = detectDeadlocks(rows, allTiebreaks);
+      const deadlocks = detectDeadlocks(rows, allMatches, allTiebreaks);
       if (!deadlocks.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
       el.style.display = 'block';
       el.innerHTML = deadlocks.map(d => `
