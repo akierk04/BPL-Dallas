@@ -20,6 +20,7 @@ function renderPaymentsTab() {
       const totalCollected   = paymentSummary.reduce((s, r) => s + Number(r.total_paid || 0), 0);
       const totalOutstanding = paymentSummary.reduce((s, r) => s + Number(r.outstanding || 0), 0);
       const totalPending     = paymentSummary.filter(r => r.status === 'Pending').length;
+      const reserve          = totalCollected - duesSpent;
       wrap.innerHTML = `
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:0.5px solid var(--border);">
           <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Collected</div>
@@ -28,6 +29,14 @@ function renderPaymentsTab() {
             <div style="font-family:var(--font-display);font-size:1.6rem;color:${totalOutstanding > 0 ? 'var(--red)' : 'var(--green)'};">$${totalOutstanding}</div></div>
           <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Still Owing</div>
             <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--muted);">${totalPending} player${totalPending !== 1 ? 's' : ''}</div></div>
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Dues Spent</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-family:var(--font-display);font-size:1.6rem;color:var(--accent);">$</span>
+              <input id="duesSpentInput" type="number" min="0" value="${duesSpent}" style="width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-family:var(--font-display);font-size:1.2rem;">
+              <button class="btn-sm" style="width:auto;padding:6px 10px;" onclick="saveDuesSpent()">Save</button>
+            </div></div>
+          <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Reserve</div>
+            <div style="font-family:var(--font-display);font-size:1.6rem;color:${reserve >= 0 ? 'var(--green)' : 'var(--red)'};">$${reserve}</div></div>
         </div>
         <div style="overflow-x:auto;">
           <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -63,6 +72,18 @@ function renderPaymentsTab() {
             </tbody>
           </table>
         </div>`;
+    }
+
+    async function saveDuesSpent() {
+      const input = document.getElementById('duesSpentInput');
+      const msg = document.getElementById('paymentMsg');
+      const value = Number(input.value);
+      if (isNaN(value) || value < 0) { msg.textContent = 'Enter a valid amount.'; return; }
+      const { error } = await db.from('dues_settings').update({ spent: value, updated_at: new Date().toISOString() }).eq('id', 1);
+      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+      msg.textContent = 'Dues Spent updated!';
+      setTimeout(() => msg.textContent = '', 2000);
+      await loadData();
     }
 
     function renderAdminPaymentsList() {
