@@ -280,7 +280,7 @@ function populateMatchDropdowns() {
         setTimeout(() => msg.textContent = '', 4000);
         return;
       }
-      const deadlocks = detectDeadlocks(standings, allTiebreaks);
+      const deadlocks = detectDeadlocks(standings, allMatches, allTiebreaks);
       if (deadlocks.length) {
         msg.textContent = deadlocks.length + ' team(s) still tied on every tiebreaker -- resolve the shootout(s) on the Standings tab before generating Quarterfinals.';
         setTimeout(() => msg.textContent = '', 6000);
