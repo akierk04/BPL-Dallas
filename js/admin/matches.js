@@ -35,6 +35,7 @@ function populateMatchDropdowns() {
 
     // ── Round fixture cards with ↑↓ reorder ──
     function renderFixtures() {
+      updateGenerateButtons();
       const wrap = document.getElementById('roundFixturesWrap');
       if (!wrap) return;
       let html = '';
@@ -271,27 +272,71 @@ function populateMatchDropdowns() {
       await loadData();
     }
 
+    // ── Readiness checks -- single source of truth, used both to disable
+    // the buttons proactively and to validate before actually generating.
+    function qfReadiness() {
+      const leagueMatches = allMatches.filter(m => isLeagueRound(m.round));
+      if (!leagueMatches.length) return { ready: false, reason: 'Generate League Matches first.' };
+      const unplayed = leagueMatches.filter(m => !m.played).length;
+      if (unplayed) return { ready: false, reason: unplayed + ' league match(es) still need results entered.' };
+      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
+      if (standings.length < 8) return { ready: false, reason: 'Need at least 8 captains.' };
+      const deadlocks = detectDeadlocks(standings, allMatches, allTiebreaks);
+      if (deadlocks.length) return { ready: false, reason: deadlocks.length + ' shootout(s) unresolved -- see Standings tab.' };
+      if (allMatches.some(m => isQfRound(m.round))) return { ready: false, reason: 'Quarterfinals already generated.' };
+      return { ready: true, reason: '' };
+    }
+
+    function sfReadiness() {
+      const qfMatches = allMatches.filter(m => isQfRound(m.round));
+      if (qfMatches.length < 4) return { ready: false, reason: 'Generate Quarterfinals first.' };
+      const unplayed = qfMatches.filter(m => !m.played).length;
+      if (unplayed) return { ready: false, reason: unplayed + ' Quarterfinal result(s) still need to be entered.' };
+      if (allMatches.some(m => isSfRound(m.round))) return { ready: false, reason: 'Semifinals already generated.' };
+      return { ready: true, reason: '' };
+    }
+
+    function finalReadiness() {
+      const sfMatches = allMatches.filter(m => isSfRound(m.round));
+      if (sfMatches.length < 2) return { ready: false, reason: 'Generate Semifinals first.' };
+      const unplayed = sfMatches.filter(m => !m.played).length;
+      if (unplayed) return { ready: false, reason: unplayed + ' Semifinal result(s) still need to be entered.' };
+      if (allMatches.find(m => m.round === 'Final')) return { ready: false, reason: 'Final already generated.' };
+      return { ready: true, reason: '' };
+    }
+
+    // Visually disables each Generate button until its real prerequisites
+    // are met -- not just reactive on click, so it's not possible to miss
+    // that a round isn't ready yet.
+    function updateGenerateButtons() {
+      const leagueBtn = document.getElementById('btnGenLeague');
+      if (leagueBtn) {
+        const leagueExists = allMatches.some(m => isLeagueRound(m.round));
+        leagueBtn.disabled = leagueExists;
+        leagueBtn.title = leagueExists ? 'League fixtures already exist.' : '';
+        leagueBtn.style.opacity = leagueExists ? '0.5' : '1';
+        leagueBtn.style.cursor = leagueExists ? 'not-allowed' : 'pointer';
+      }
+      [['btnGenQF', qfReadiness()], ['btnGenSF', sfReadiness()], ['btnGenFinal', finalReadiness()]].forEach(([id, r]) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.disabled = !r.ready;
+        btn.title = r.reason;
+        btn.style.opacity = r.ready ? '1' : '0.5';
+        btn.style.cursor = r.ready ? 'pointer' : 'not-allowed';
+      });
+    }
+
     // ── Generate Quarterfinals: 1v8, 2v7, 3v6, 4v5 from final league table ──
     async function generateQuarterfinals() {
       const msg = document.getElementById('generateMsg');
+      const r = qfReadiness();
+      if (!r.ready) {
+        msg.textContent = r.reason;
+        setTimeout(() => msg.textContent = '', 5000);
+        return;
+      }
       const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
-      if (standings.length < 8) {
-        msg.textContent = 'Need at least 8 captains and league matches played to generate Quarterfinals.';
-        setTimeout(() => msg.textContent = '', 4000);
-        return;
-      }
-      const deadlocks = detectDeadlocks(standings, allMatches, allTiebreaks);
-      if (deadlocks.length) {
-        msg.textContent = deadlocks.length + ' team(s) still tied on every tiebreaker -- resolve the shootout(s) on the Standings tab before generating Quarterfinals.';
-        setTimeout(() => msg.textContent = '', 6000);
-        return;
-      }
-      const existing = allMatches.filter(m => isQfRound(m.round));
-      if (existing.length) {
-        msg.textContent = 'Quarterfinal fixtures already exist.';
-        setTimeout(() => msg.textContent = '', 3000);
-        return;
-      }
       const fixtures = [
         { round: 'QF1', home: standings[0]?.captain?.id, away: standings[7]?.captain?.id },
         { round: 'QF2', home: standings[1]?.captain?.id, away: standings[6]?.captain?.id },
@@ -314,10 +359,10 @@ function populateMatchDropdowns() {
     // ── Generate Semifinals: SF1 = W(QF1) vs W(QF4), SF2 = W(QF2) vs W(QF3) ──
     async function generateSemifinals() {
       const msg = document.getElementById('generateMsg');
-      const existing = allMatches.filter(m => isSfRound(m.round));
-      if (existing.length) {
-        msg.textContent = 'Semifinal fixtures already exist.';
-        setTimeout(() => msg.textContent = '', 3000);
+      const r = sfReadiness();
+      if (!r.ready) {
+        msg.textContent = r.reason;
+        setTimeout(() => msg.textContent = '', 5000);
         return;
       }
       function koWinnerId(round) {
@@ -345,10 +390,10 @@ function populateMatchDropdowns() {
     // ── Generate Final: W(SF1) vs W(SF2) ──
     async function generateFinal() {
       const msg = document.getElementById('generateMsg');
-      const existing = allMatches.find(m => m.round === 'Final');
-      if (existing) {
-        msg.textContent = 'Final fixture already exists.';
-        setTimeout(() => msg.textContent = '', 3000);
+      const r = finalReadiness();
+      if (!r.ready) {
+        msg.textContent = r.reason;
+        setTimeout(() => msg.textContent = '', 5000);
         return;
       }
       function koWinnerId(round) {
