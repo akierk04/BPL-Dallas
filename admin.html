@@ -9,8 +9,8 @@
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="css/admin.css?v=7" />
+  <link rel="stylesheet" href="style.css?v=2" />
+  <link rel="stylesheet" href="css/admin.css?v=8" />
 </head>
 <body>
   <nav class="nav">
@@ -174,9 +174,7 @@
     <div class="section-title" style="margin-bottom:0;">Round Fixtures</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button id="btnGenLeague" class="btn-sm" onclick="generateLeagueMatches()" style="width:auto;">Generate League Matches</button>
-      <button id="btnGenQF" class="btn-sm" onclick="generateQuarterfinals()" style="width:auto;">⚡ Generate Quarterfinals</button>
-      <button id="btnGenSF" class="btn-sm" onclick="generateSemifinals()" style="width:auto;">Generate Semifinals</button>
-      <button id="btnGenFinal" class="btn-sm" onclick="generateFinal()" style="width:auto;">Generate Final</button>
+      <button id="btnGenPlayoffs" class="btn-sm" onclick="generatePlayoffRound()" style="width:auto;">⚡ Generate Next Playoff Round</button>
     </div>
   </div>
   <p id="generateMsg" class="text-muted" style="margin-bottom:14px;"></p>
@@ -202,18 +200,24 @@
         <optgroup label="League Stage">
           <option value="League">League Match</option>
         </optgroup>
-        <optgroup label="Quarterfinals">
-          <option value="QF1">QF1 · 1st vs 8th</option>
-          <option value="QF2">QF2 · 2nd vs 7th</option>
-          <option value="QF3">QF3 · 3rd vs 6th</option>
-          <option value="QF4">QF4 · 4th vs 5th</option>
+        <optgroup label="Winners Bracket">
+          <option value="W1A">Winners R1 · #2 vs #7 (12 min)</option>
+          <option value="W1B">Winners R1 · #3 vs #6 (12 min)</option>
+          <option value="W1C">Winners R1 · #4 vs #5 (12 min)</option>
+          <option value="W2A">Winners R2 · Match A (12 min)</option>
+          <option value="W2B">Winners R2 · Match B (12 min)</option>
+          <option value="WF">Winners Final (15 min)</option>
         </optgroup>
-        <optgroup label="Semifinals">
-          <option value="SF1">SF1 · W(QF1) vs W(QF4)</option>
-          <option value="SF2">SF2 · W(QF2) vs W(QF3)</option>
+        <optgroup label="Losers Bracket">
+          <option value="L1">Losers R1 (12 min)</option>
+          <option value="L2A">Losers R2 · Match A (12 min)</option>
+          <option value="L2B">Losers R2 · Match B (12 min)</option>
+          <option value="L3">Losers R3 (12 min)</option>
+          <option value="LF">Losers Final (15 min)</option>
         </optgroup>
-        <optgroup label="Final">
-          <option value="Final">🏆 Final</option>
+        <optgroup label="Grand Final">
+          <option value="GF">Grand Final (20 min)</option>
+          <option value="RF">Reset Final (20 min)</option>
         </optgroup>
       </select>
       <button class="btn-sm" onclick="resetMatchForm()" style="width:auto;">Clear Form</button>
@@ -485,7 +489,8 @@
 
   <script src="budget-warning.js?v=7"></script>
 
-  <script src="standings.js?v=5"></script>
+  <script src="standings.js?v=6"></script>
+  <script src="bracket.js?v=1"></script>
 
   <script src="js/admin/state.js?v=5"></script>
   <script src="js/admin/data.js?v=5"></script>
