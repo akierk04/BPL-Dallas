@@ -28,6 +28,7 @@ A real-time PWA for managing the Brownish Premier League Dallas player auction, 
 - Base price $5M, minimum raise $1M, no player groups
 - **Max bid rule:** `max bid = remaining budget - (roster spots left after this purchase x $5M)`. Enforced when a sale is closed or assigned in Admin, and shown on the captain page and the board.
 - **Draw order:** Admin uses **Draw Next Player**. Players never offered are drawn at random. A player who goes unsold (Close Bidding with no bids) goes to the back of the queue and returns only after every fresh player has been offered, oldest-unsold first.
+- **Tournament format (proposed):** 7 teams, 5v5, no goalkeepers, one field. Prelims: every team plays 4 games (14 total, 10 min), seeds #1-#7 from standings. Playoffs: all 7 qualify, double elimination (#1 gets a first-round bye; #4v#5, #3v#6, #2v#7). First loss drops a team to the Losers Bracket, ranked by goal difference of the game lost, then by cumulative Losers Bracket GD. Second loss eliminates. Winners Bracket champion vs Losers Bracket champion, with a reset final if the Losers Bracket champion wins. Match lengths: prelims 10, early playoffs 12, WB/LB finals 15, Grand Final 20. The app's schedule and bracket tooling is still the Season 3 top-8 single-elimination design and has not been changed for this.
 - Run `S4_migration.sql` once in Supabase (adds `players.unsold_at`).
 - Purses are stored in whole $M (`captains.wallet = 60`). `players.group_name` is a legacy column; new players are written with `'1'`.
 
