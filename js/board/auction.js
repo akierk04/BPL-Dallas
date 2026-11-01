@@ -60,6 +60,8 @@ function isPreAuctionMode() {
       if (statsBar) statsBar.style.display = preAuction ? 'none' : 'flex';
       if (waiting) waiting.style.display = preAuction ? 'none' : waiting.style.display;
       if (poolFilters) poolFilters.style.display = preAuction ? 'none' : 'flex';
+      var poolSearchEl = document.getElementById('poolSearch');
+      if (poolSearchEl) poolSearchEl.style.display = preAuction ? 'none' : 'block';
       if (playerPoolTitle) playerPoolTitle.style.display = preAuction ? 'none' : 'block';
 
       if (title) title.textContent = preAuction ? 'Auction Begins Soon' : 'Live Auction In Progress';
@@ -168,6 +170,7 @@ function isPreAuctionMode() {
         if ((a.left === 0) !== (b.left === 0)) return a.left === 0 ? 1 : -1;
         return b.max - a.max || String(displayCaptainName(a.c)).localeCompare(String(displayCaptainName(b.c)));
       });
+      rows = pinFirst(rows, function(r) { return r.c.id; });
       var html = '<div class="bb-title">Team Budgets</div>'
         + '<div class="bb-row bb-head"><span>Team</span><span>Spots</span><span>Purse</span><span>Max bid</span></div>'
         + rows.map(function(r) {
@@ -175,8 +178,9 @@ function isPreAuctionMode() {
             for (var i = 0; i < S4_SLOTS; i++) pips += '<i class="bb-pip' + (i < r.bought ? ' on' : '') + '"></i>';
             var full = r.left === 0;
             var cls = full ? 'full' : r.max <= S4_BASE ? 'low' : r.max <= 15 ? 'mid' : 'ok';
-            return '<div class="bb-row' + (full ? ' bb-full' : '') + '">'
-              + '<span class="bb-name">' + displayCaptainName(r.c) + '</span>'
+            var pinned = r.c.id === pinnedCaptainId;
+            return '<div class="bb-row' + (full ? ' bb-full' : '') + (pinned ? ' bb-pinned' : '') + '">'
+              + '<span class="bb-name"><button type="button" class="pin-btn' + (pinned ? ' on' : '') + '" onclick="togglePin(\'' + r.c.id + '\')" aria-label="' + (pinned ? 'Unpin' : 'Pin') + ' ' + displayCaptainName(r.c) + '">' + (pinned ? '\u2605' : '\u2606') + '</button>' + displayCaptainName(r.c) + '</span>'
               + '<span class="bb-pips" title="' + r.bought + ' of ' + S4_SLOTS + ' bought">' + pips + '</span>'
               + '<span class="bb-purse">' + fmtM(r.c.wallet) + '</span>'
               + '<span class="bb-max ' + cls + '">' + (full ? 'Full' : fmtM(r.max)) + '</span>'
@@ -308,13 +312,23 @@ function renderRecentSales() {
       document.getElementById('statAvail').textContent=allPlayers.filter(p=>!p.is_sold).length;
       document.getElementById('statSpent').textContent=fmtM(spent);
       document.getElementById('statTopSale').textContent=topSale ? fmtM(topSale.sold_price) : '—';
+      var prog = document.getElementById('auctionProgress');
+      if (prog) {
+        var total = allPlayers.length, backlog = allPlayers.filter(p=>!p.is_sold && p.unsold_at).length;
+        if (isPreAuctionMode() || !total) { prog.style.display = 'none'; }
+        else {
+          document.getElementById('apText').textContent = sold.length + ' of ' + total + ' sold' + (backlog ? ' · ' + backlog + ' unsold, back in queue' : '');
+          document.getElementById('apFill').style.width = Math.round(sold.length / total * 100) + '%';
+          prog.style.display = 'block';
+        }
+      }
     }
 
     function renderCaptains() {
       const grid=document.getElementById('boardCaptains');
       if (!allCaptains.length) { grid.innerHTML='<div class="text-muted">Loading...</div>'; return; }
 
-      const sorted = [...allCaptains].sort((a,b) => a.name.localeCompare(b.name));
+      const sorted = pinFirst([...allCaptains].sort((a,b) => a.name.localeCompare(b.name)), c => c.id);
 
       grid.innerHTML=sorted.map(c=>{
         const roster = allPlayers.filter(p=>p.captain_id===c.id && p.is_sold);
@@ -333,8 +347,9 @@ function renderRecentSales() {
               </div>`).join('')
           : '<div class="board-empty">No players yet</div>';
 
+        const isPinned = c.id === pinnedCaptainId;
         return `
-          <div class="board-captain-card">
+          <div class="board-captain-card${isPinned ? ' pinned' : ''}">
             <div class="board-captain-header">
               <div style="flex:1;min-width:0;">
                 ${teamName
@@ -343,6 +358,7 @@ function renderRecentSales() {
                   : `<div class="board-captain-name">${c.name}</div>`
                 }
                 <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+                  <button type="button" class="pin-btn${isPinned ? ' on' : ''}" onclick="togglePin('${c.id}')" aria-label="${isPinned ? 'Unpin' : 'Pin'} ${c.name}">${isPinned ? '\u2605 My team' : '\u2606 Pin'}</button>
                   <span style="font-size:11px;color:var(--muted);">${slotsUsed}/${totalSlots} players</span>
                 </div>
               </div>
@@ -363,6 +379,8 @@ function renderRecentSales() {
       let filtered=allPlayers;
       if (currentFilter==='available') filtered=allPlayers.filter(p=>!p.is_sold);
       else if (currentFilter==='sold') filtered=allPlayers.filter(p=>p.is_sold);
+      else if (currentFilter==='unsold') filtered=allPlayers.filter(p=>!p.is_sold && p.unsold_at);
+      if (poolSearch) filtered=filtered.filter(p=>String(p.name||'').toLowerCase().includes(poolSearch));
       if (!filtered.length) { grid.innerHTML='<div class="text-muted">No players match this filter.</div>'; return; }
       grid.innerHTML=filtered.map(p=>{
         const cap=allCaptains.find(c=>c.id===p.captain_id), isCurrent=p.id===currentPlayerId&&!p.is_sold;

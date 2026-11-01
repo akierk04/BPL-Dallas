@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="css/board.css?v=5" />
+  <link rel="stylesheet" href="css/board.css?v=7" />
 </head>
 <body>
 
@@ -141,6 +141,11 @@
     </div>
 </div>
 
+  <div id="auctionProgress" class="auction-progress" style="display:none;">
+    <div class="ap-text" id="apText"></div>
+    <div class="ap-bar"><div class="ap-fill" id="apFill"></div></div>
+  </div>
+
   <div id="nowBidding" class="now-bidding" style="display:none;">
     <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
     <div class="now-bidding-name" id="nowBiddingName">—</div>
@@ -195,8 +200,10 @@
   <div class="pool-filters" id="poolFilters">
     <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
     <button class="filter-btn" onclick="setFilter('available',this)">Available</button>
+    <button class="filter-btn" onclick="setFilter('unsold',this)">Unsold</button>
     <button class="filter-btn" onclick="setFilter('sold',this)">Sold</button>
   </div>
+  <input type="search" id="poolSearch" class="pool-search" placeholder="Search players" autocomplete="off" oninput="setPoolSearch(this.value)" />
   <div class="pool-grid" id="boardPool"></div>
 </div>
 
@@ -287,9 +294,9 @@
 
   <script src="standings.js?v=5"></script>
 
-  <script src="js/board/state.js?v=5"></script>
+  <script src="js/board/state.js?v=6"></script>
   <script src="js/board/data.js?v=8"></script>
-  <script src="js/board/auction.js?v=6"></script>
+  <script src="js/board/auction.js?v=7"></script>
   <script src="js/board/standings.js?v=5"></script>
   <script src="js/board/teams.js?v=2"></script>
   <script src="js/board/dues.js?v=3"></script>

@@ -51,6 +51,26 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
       if (tab === 'hall') loadHallOfFameData();
     }
 
+    // Per-phone view preferences. Nothing here is sent to the server.
+    var poolSearch = '';
+    var pinnedCaptainId = null;
+    try { pinnedCaptainId = localStorage.getItem('bplPinnedCaptain') || null; } catch (e) {}
+    function togglePin(id) {
+      pinnedCaptainId = pinnedCaptainId === id ? null : id;
+      try {
+        if (pinnedCaptainId) localStorage.setItem('bplPinnedCaptain', pinnedCaptainId);
+        else localStorage.removeItem('bplPinnedCaptain');
+      } catch (e) {}
+      renderBudgetBoard();
+      renderCaptains();
+    }
+    function pinFirst(rows, idOf) {
+      if (!pinnedCaptainId) return rows;
+      return rows.filter(function(r) { return idOf(r) === pinnedCaptainId; })
+        .concat(rows.filter(function(r) { return idOf(r) !== pinnedCaptainId; }));
+    }
+    function setPoolSearch(v) { poolSearch = String(v || '').trim().toLowerCase(); renderPool(); }
+
     function setFilter(f,btn) {
       currentFilter=f;
       document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
