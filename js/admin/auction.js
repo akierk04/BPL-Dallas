@@ -21,20 +21,20 @@ function renderAuctionControl() {
       live.style.display = 'block';
       empty.style.display = 'none';
 
-      const currentBid = bidState?.current_bid || player.base_price;
+      const currentBid = bidState?.current_bid || S4_BASE;
       const currentBidder = bidState?.current_bidder_id
         ? allCaptains.find(c => c.id === bidState.current_bidder_id)
         : null;
 
       document.getElementById('liveBidPlayerName').textContent = player.name;
-      document.getElementById('liveBidMeta').textContent = 'Group ' + player.group_name + ' · Base ' + player.base_price + ' pts';
-      document.getElementById('liveBidAmount').textContent = currentBid.toLocaleString();
+      document.getElementById('liveBidMeta').textContent = 'Base ' + fmtM(S4_BASE) + (player.unsold_at ? ' · Back from unsold' : '');
+      document.getElementById('liveBidAmount').textContent = fmtM(currentBid);
       document.getElementById('liveBidder').textContent = currentBidder ? displayCaptainName(currentBidder) : 'No bids yet';
 
       const afterEl = document.getElementById('liveBidWalletAfter');
       if (currentBidder) {
         const afterWallet = Math.max(0, (currentBidder.wallet || 0) - currentBid);
-        afterEl.textContent = `Wallet after sale: ${afterWallet.toLocaleString()} pts`;
+        afterEl.textContent = `Wallet after sale: ${fmtM(afterWallet)}`;
       } else {
         afterEl.textContent = '';
       }
@@ -66,9 +66,9 @@ function renderAuctionControl() {
           <div class="captain-status-row">
             <div class="captain-status-top">
               <div class="captain-status-name">${displayCaptainName(c)}</div>
-              <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.75rem;color:var(--muted)">pts</span></div>
+              <div class="captain-wallet">${fmtM(c.wallet)}</div>
             </div>
-            <div class="captain-status-meta">${bought}/5 players bought</div>
+            <div class="captain-status-meta">${bought}/${S4_SLOTS} players bought</div>
             ${warningBadgeHtml(c.wallet, c.captain_group, allPlayers.filter(p => p.captain_id === c.id && p.is_sold))}
           </div>`;
       }).join('');
@@ -103,7 +103,7 @@ function renderAuctionControl() {
         return `
           <div class="recent-sale-row">
             <div style="font-weight:600;color:var(--text);">${p.name}</div>
-            <div class="captain-status-meta">${cap ? displayCaptainName(cap) : '—'} · ${p.sold_price || 0} pts</div>
+            <div class="captain-status-meta">${cap ? displayCaptainName(cap) : '—'} · ${fmtM(p.sold_price || 0)}</div>
           </div>`;
       }).join('');
     }
@@ -123,7 +123,7 @@ function renderAuctionControl() {
       const text = document.getElementById('saleConfirmText');
 
       if (!currentBidderId || currentBid === 0) {
-        text.innerHTML = `No bids were placed for <strong>${player.name}</strong>. Return player to pool?`;
+        text.innerHTML = `No bids were placed for <strong>${player.name}</strong>. Mark unsold and send to the back of the queue?`;
         document.getElementById('saleConfirmModal').style.display = 'flex';
         return;
       }
@@ -132,11 +132,11 @@ function renderAuctionControl() {
       const isTentative = player?.status === 'tentative';
       const walletCost = isTentative ? 0 : currentBid;
       const afterWallet = Math.max(0, (captain?.wallet || 0) - walletCost);
-      text.innerHTML = '<div><strong>Player:</strong> ' + player.name + ' (Group ' + (player.group_name||'?') + ')</div>'
+      text.innerHTML = '<div><strong>Player:</strong> ' + player.name + '</div>'
         + '<div class="mt-8"><strong>Winner:</strong> ' + (captain ? displayCaptainName(captain) : '—') + '</div>'
-        + '<div class="mt-8"><strong>Sold Price:</strong> ' + currentBid + ' pts</div>'
+        + '<div class="mt-8"><strong>Sold Price:</strong> ' + fmtM(currentBid) + '</div>'
         + (isTentative ? '<div class="mt-8" style="color:var(--green);">Tentative — full refund if no-show</div>' : '')
-        + '<div class="mt-8"><strong>Wallet After Sale:</strong> ' + afterWallet + ' pts</div>';
+        + '<div class="mt-8"><strong>Wallet After Sale:</strong> ' + fmtM(afterWallet) + '</div>';
 
       document.getElementById('saleConfirmModal').style.display = 'flex';
     }
@@ -152,6 +152,15 @@ function renderAuctionControl() {
       hideSaleConfirm();
 
       if (!currentBidderId || currentBid === 0) {
+        // S4: an unsold player goes to the back of the queue. unsold_at is the
+        // queue marker: players never offered come up first (random order),
+        // then unsold players oldest-first. See nextFromQueue() in players.js.
+        let unsoldErr = null;
+        if (player) {
+          const res = await db.from('players').update({ unsold_at: new Date().toISOString() }).eq('id', currentPlayerId);
+          unsoldErr = res.error;
+        }
+
         await db.from('bidding_state').update({
           player_id: null,
           current_bid: 0,
@@ -160,8 +169,13 @@ function renderAuctionControl() {
           updated_at: new Date().toISOString()
         }).eq('id', 1);
 
-        msg.textContent = 'No bids — player returned to pool.';
-        setTimeout(() => msg.textContent = '', 3000);
+        if (unsoldErr) {
+          msg.textContent = '⚠️ Could not mark ' + (player ? player.name : 'player') + ' unsold (' + unsoldErr.message + '). Run S4_migration.sql in Supabase, then re-queue them manually.';
+          setTimeout(() => msg.textContent = '', 12000);
+        } else {
+          msg.textContent = 'No bids — ' + (player ? player.name : 'player') + ' goes to the back of the queue.';
+          setTimeout(() => msg.textContent = '', 4000);
+        }
         await loadData();
         const sel0 = document.getElementById('biddingPlayer');
         if (sel0) sel0.value = '';
@@ -173,19 +187,12 @@ function renderAuctionControl() {
       if (!captain && !freshCap) return;
       const currentWallet = freshCap?.wallet ?? captain?.wallet ?? 0;
 
-      // ── BLOCK: captain cannot buy from their own group ──
-      if (player && String(player.group_name) === String(captain.captain_group)) {
-        msg.textContent = `❌ ${displayCaptainName(captain)} is a G${captain.captain_group} captain — cannot buy G${player.group_name} players. Sale blocked.`;
-        setTimeout(() => msg.textContent = '', 6000);
-        return;
-      }
-
-      // ── BLOCK: captain has no remaining slot for this group ──
+      // ── BLOCK: max bid rule (also blocks a full roster and sub-base prices) ──
       const soldForWinner = allPlayers.filter(p => p.captain_id === currentBidderId && p.is_sold);
-      const neededForWinner = groupsStillNeeded(captain.captain_group, soldForWinner);
-      if (player && neededForWinner.indexOf(String(player.group_name)) === -1) {
-        msg.textContent = `❌ ${displayCaptainName(captain)} has no remaining G${player.group_name} slot. Sale blocked.`;
-        setTimeout(() => msg.textContent = '', 6000);
+      const bidCheck = checkBid(currentWallet, soldForWinner, currentBid);
+      if (!bidCheck.allowed) {
+        msg.textContent = `❌ ${displayCaptainName(captain)}: ${bidCheck.reason} Sale blocked.`;
+        setTimeout(() => msg.textContent = '', 8000);
         return;
       }
 
@@ -217,7 +224,7 @@ function renderAuctionControl() {
 
       showUndoBar();
 
-      msg.textContent = `✓ ${displayCaptainName(captain)} wins for ${currentBid} pts!`;
+      msg.textContent = `✓ ${displayCaptainName(captain)} wins for ${fmtM(currentBid)}!`;
       setTimeout(() => msg.textContent = '', 4000);
       await loadData();
       const sel1 = document.getElementById('biddingPlayer');
@@ -228,7 +235,7 @@ function renderAuctionControl() {
       if (!lastSale) return;
       const bar = document.getElementById('undoBar');
       const text = document.getElementById('undoBarText');
-      text.textContent = `Sold: ${lastSale.playerName} → ${lastSale.captainName} for ${lastSale.soldPrice} pts`;
+      text.textContent = `Sold: ${lastSale.playerName} → ${lastSale.captainName} for ${fmtM(lastSale.soldPrice)}`;
       bar.style.display = 'flex';
       if (undoTimer) clearTimeout(undoTimer);
       undoTimer = setTimeout(() => {

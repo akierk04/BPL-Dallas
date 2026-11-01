@@ -1,5 +1,6 @@
 // Player pool, bidding dropdowns, manual assign, roster assignments
 // Extracted from admin.html during Admin refactor.
+// Season 4: no player groups. Random draw + back-of-queue + max bid rule.
 
 function renderPlayersList() {
       const list = document.getElementById('playersList'), count = document.getElementById('playerCount');
@@ -12,20 +13,12 @@ function renderPlayersList() {
         return `
           <div class="player-row">
             <span class="player-row-name">${p.name}</span>
-            <select onchange="updatePlayerGroup('${p.id}', this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);width:auto;">
-              <option value="1" ${p.group_name === '1' ? 'selected' : ''}>Group 1</option>
-              <option value="2" ${p.group_name === '2' ? 'selected' : ''}>Group 2</option>
-              <option value="3" ${p.group_name === '3' ? 'selected' : ''}>Group 3</option>
-              <option value="4" ${p.group_name === '4' ? 'selected' : ''}>Group 4</option>
-              <option value="5" ${p.group_name === '5' ? 'selected' : ''}>Group 5</option>
-              <option value="6" ${p.group_name === '6' ? 'selected' : ''}>Group 6</option>
-            </select>
             <select onchange="updatePlayerStatus('${p.id}', this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--surface2);border:1px solid ${isTentative ? 'rgba(240,192,64,0.5)' : 'var(--border)'};color:${isTentative ? 'var(--accent)' : 'var(--text)'};font-family:var(--font-body);width:auto;">
               <option value="confirmed" ${!isTentative ? 'selected' : ''}>Confirmed</option>
               <option value="tentative" ${isTentative ? 'selected' : ''}>Tentative</option>
             </select>
-            <span class="player-row-meta">${p.base_price} pts base</span>
-            ${p.is_sold ? `<span class="sold-badge">Sold → ${cap ? displayCaptainName(cap) : '?'} · ${p.sold_price} pts</span>` : `<span class="unsold-badge">Available</span>`}
+            <span class="player-row-meta">${fmtM(S4_BASE)} base</span>
+            ${p.is_sold ? `<span class="sold-badge">Sold → ${cap ? displayCaptainName(cap) : '?'} · ${fmtM(p.sold_price)}</span>` : `<span class="unsold-badge">${p.unsold_at ? 'Unsold · back of queue' : 'Available'}</span>`}
             <div class="player-row-actions">
               ${!p.is_sold ? `<button class="btn-sm" onclick="quickAssign('${p.id}')">Assign →</button>` : ''}
               <button class="btn-danger" onclick="deletePlayer('${p.id}')">Delete</button>
@@ -35,12 +28,12 @@ function renderPlayersList() {
     }
 
     async function addPlayer() {
-      const name = document.getElementById('playerName').value.trim(), group = document.getElementById('playerGroup').value;
+      const name = document.getElementById('playerName').value.trim();
       const status = document.getElementById('playerStatus').value;
       const msg = document.getElementById('playerMsg');
       if (!name) { msg.textContent = 'Enter a player name.'; return; }
-      const basePrice = GROUP_BASE[group] || 0;
-      const { error } = await db.from('players').insert({ name, group_name: group, base_price: basePrice, status });
+      // group_name is a legacy column; S4 writes a constant so DB constraints still pass.
+      const { error } = await db.from('players').insert({ name, group_name: S4_LEGACY_GROUP, base_price: S4_BASE, status });
       if (error) { msg.textContent = 'Error: ' + error.message; return; }
       document.getElementById('playerName').value = '';
       msg.textContent = `${name} added.`;
@@ -54,12 +47,6 @@ function renderPlayersList() {
       loadData();
     }
 
-    async function updatePlayerGroup(id, newGroup) {
-      const basePrice = GROUP_BASE[newGroup] || 0;
-      await db.from('players').update({ group_name: newGroup, base_price: basePrice }).eq('id', id);
-      loadData();
-    }
-
     async function updatePlayerStatus(id, newStatus) {
       await db.from('players').update({ status: newStatus }).eq('id', id);
       loadData();
@@ -69,45 +56,61 @@ function renderPlayersList() {
       const sel = document.getElementById('biddingPlayer');
       const cur = sel.value;
       const unsold = allPlayers.filter(p => !p.is_sold);
-      // Shuffle for random presentation order
+      // Shuffle so the manual list does not reveal the draw order
       for (let i = unsold.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [unsold[i], unsold[j]] = [unsold[j], unsold[i]];
       }
-      sel.innerHTML = '<option value="">Select player to go live...</option>' +
+      sel.innerHTML = '<option value="">Pick a specific player (manual)...</option>' +
         unsold.map(p => `
-          <option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.name} · Group ${p.group_name} · ${p.base_price} pts${p.status === 'tentative' ? ' · Tentative' : ''}</option>`).join('');
+          <option value="${p.id}" ${p.id === cur ? 'selected' : ''}>${p.name} · ${fmtM(S4_BASE)}${p.unsold_at ? ' · Unsold' : ''}${p.status === 'tentative' ? ' · Tentative' : ''}</option>`).join('');
       if (currentPlayerId) sel.value = currentPlayerId;
-      updateRandomButtons();
+      updateQueueStatus();
     }
 
-    // ── Random player picker ──
-    function pickRandom(group) {
-      const unsoldInGroup = allPlayers.filter(p => !p.is_sold && String(p.group_name) === String(group));
-      if (!unsoldInGroup.length) return;
-      const pick = unsoldInGroup[Math.floor(Math.random() * unsoldInGroup.length)];
-      const sel  = document.getElementById('biddingPlayer');
-      sel.value  = pick.id;
-      const msg  = document.getElementById('biddingMsg');
-      msg.textContent = pick.name + ' (G' + group + ') selected — click Go Live to confirm.';
-      setTimeout(() => msg.textContent = '', 5000);
+    // ── Queue: random draw, unsold players go to the back ──
+    // Order of play:
+    //   1. Players who have never been offered, drawn at random.
+    //   2. Once every fresh player has been offered, unsold players come back
+    //      oldest-first (the first player to go unsold is the first to return).
+    // unsold_at is stamped when bidding closes with no bids (auction.js).
+    function liveUnsoldPlayer() {
+      return currentPlayerId ? allPlayers.find(p => p.id === currentPlayerId && !p.is_sold) : null;
     }
 
-    function updateRandomButtons() {
-      ['1','2','3','4','5','6'].forEach(g => {
-        const btn = document.getElementById('randG' + g);
-        if (!btn) return;
-        const available = allPlayers.filter(p => !p.is_sold && String(p.group_name) === g).length;
-        btn.disabled = available === 0;
-        btn.title    = available === 0 ? 'No G' + g + ' players left' : available + ' G' + g + ' player' + (available !== 1 ? 's' : '') + ' available';
-        btn.style.opacity = available === 0 ? '0.35' : '1';
-      });
+    function queueCounts() {
+      const pool = allPlayers.filter(p => !p.is_sold && p.id !== currentPlayerId);
+      const fresh = pool.filter(p => !p.unsold_at).length;
+      return { fresh, returned: pool.length - fresh, total: pool.length };
     }
 
-    async function setBiddingPlayer() {
-      const pid = document.getElementById('biddingPlayer').value, msg = document.getElementById('biddingMsg');
-      if (!pid) { msg.textContent = 'Select a player first.'; return; }
-      await db.from('bidding_state').update({
+    function nextFromQueue() {
+      const pool = allPlayers.filter(p => !p.is_sold && p.id !== currentPlayerId);
+      if (!pool.length) return null;
+      const fresh = pool.filter(p => !p.unsold_at);
+      if (fresh.length) return fresh[Math.floor(Math.random() * fresh.length)];
+      return pool.slice().sort((a, b) => new Date(a.unsold_at) - new Date(b.unsold_at))[0];
+    }
+
+    function updateQueueStatus() {
+      const btn = document.getElementById('drawNextBtn');
+      const info = document.getElementById('queueStatus');
+      const q = queueCounts();
+      const live = !!liveUnsoldPlayer();
+      if (btn) {
+        btn.disabled = live || q.total === 0;
+        btn.style.opacity = (live || q.total === 0) ? '0.45' : '1';
+      }
+      if (info) {
+        info.textContent = q.total === 0 && !live
+          ? 'Queue is empty.'
+          : q.fresh + ' not yet offered · ' + q.returned + ' unsold waiting at the back'
+            + (live ? ' · close or cancel the live player first' : '');
+      }
+    }
+
+    async function goLive(pid) {
+      const { error } = await db.from('bidding_state').update({
         player_id: pid,
         current_bid: 0,
         current_bidder_id: null,
@@ -115,6 +118,29 @@ function renderPlayersList() {
         bid_started_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }).eq('id', 1);
+      return error;
+    }
+
+    async function drawNextPlayer() {
+      const msg = document.getElementById('biddingMsg');
+      if (liveUnsoldPlayer()) { msg.textContent = 'A player is already live. Close bidding or cancel first.'; return; }
+      const pick = nextFromQueue();
+      if (!pick) { msg.textContent = 'No players left in the queue.'; return; }
+      const err = await goLive(pick.id);
+      if (err) { msg.textContent = 'Error: ' + err.message; return; }
+      msg.textContent = pick.name + ' is live' + (pick.unsold_at ? ' (back from unsold).' : '.');
+      setTimeout(() => msg.textContent = '', 4000);
+      await loadData();
+      document.getElementById('consolePlayer').value = pick.id;
+      updateConsoleWarning();
+    }
+
+    // Manual pick from the dropdown (override for the random draw)
+    async function setBiddingPlayer() {
+      const pid = document.getElementById('biddingPlayer').value, msg = document.getElementById('biddingMsg');
+      if (!pid) { msg.textContent = 'Select a player first.'; return; }
+      const err = await goLive(pid);
+      if (err) { msg.textContent = 'Error: ' + err.message; return; }
       msg.textContent = 'Player set live!';
       setTimeout(() => msg.textContent = '', 3000);
       await loadData();
@@ -147,12 +173,13 @@ function renderPlayersList() {
       const cur_c = cSel.value;
       pSel.innerHTML = '<option value="">Select player...</option>' +
         allPlayers.filter(p => !p.is_sold).map(p =>
-          `<option value="${p.id}" ${p.id === cur_p ? 'selected' : ''}>${p.name} · Group ${p.group_name}${p.status === 'tentative' ? ' · Tentative' : ''}</option>`
+          `<option value="${p.id}" ${p.id === cur_p ? 'selected' : ''}>${p.name}${p.status === 'tentative' ? ' · Tentative' : ''}</option>`
         ).join('');
       cSel.innerHTML = '<option value="">Select captain...</option>' +
-        allCaptains.map(c =>
-          `<option value="${c.id}" ${c.id === cur_c ? 'selected' : ''}>${displayCaptainName(c)} · ${c.wallet.toLocaleString()} pts left</option>`
-        ).join('');
+        allCaptains.map(c => {
+          const sold = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
+          return `<option value="${c.id}" ${c.id === cur_c ? 'selected' : ''}>${displayCaptainName(c)} · ${fmtM(c.wallet)} left · max ${fmtM(maxBid(c.wallet, sold))}</option>`;
+        }).join('');
     }
 
     function quickAssign(playerId) {
@@ -164,28 +191,19 @@ function renderPlayersList() {
 
     function updateConsoleWarning() {
       const captainId = document.getElementById('consoleCaptain').value;
-      const playerId  = document.getElementById('consolePlayer').value;
       const warn      = document.getElementById('consoleWarning');
       if (!captainId) { warn.innerHTML = ''; return; }
       const captain    = allCaptains.find(c => c.id === captainId);
       const soldForCap = allPlayers.filter(p => p.captain_id === captainId && p.is_sold);
       let html = warningBadgeHtml(captain.wallet, captain.captain_group, soldForCap);
 
-      // Show eligibility warning when a player is also selected
-      if (playerId) {
-        const player = allPlayers.find(p => p.id === playerId);
-        if (player) {
-          if (String(player.group_name) === String(captain.captain_group)) {
-            html += `<div style="margin-top:6px;padding:7px 12px;border-radius:8px;background:rgba(224,90,43,0.1);border:1px solid rgba(224,90,43,0.4);font-size:13px;font-weight:500;color:var(--red);">❌ ${displayCaptainName(captain)} is a G${captain.captain_group} captain — cannot buy G${player.group_name} players.</div>`;
-          } else {
-            const needed = groupsStillNeeded(captain.captain_group, soldForCap);
-            if (needed.indexOf(String(player.group_name)) === -1) {
-              html += `<div style="margin-top:6px;padding:7px 12px;border-radius:8px;background:rgba(224,90,43,0.1);border:1px solid rgba(224,90,43,0.4);font-size:13px;font-weight:500;color:var(--red);">❌ No remaining G${player.group_name} slot for ${displayCaptainName(captain)}.</div>`;
-            } else {
-              html += `<div style="margin-top:6px;padding:7px 12px;border-radius:8px;background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.35);font-size:13px;font-weight:500;color:var(--green);">✓ ${displayCaptainName(captain)} can buy G${player.group_name} players.</div>`;
-            }
-          }
-        }
+      // Check the typed price against the max bid rule as soon as one is entered
+      const raw = document.getElementById('consolePrice').value;
+      if (raw !== '') {
+        const chk = checkBid(captain.wallet, soldForCap, parseInt(raw, 10));
+        html += chk.allowed
+          ? `<div style="margin-top:6px;padding:7px 12px;border-radius:8px;background:rgba(62,207,142,0.08);border:1px solid rgba(62,207,142,0.35);font-size:13px;font-weight:500;color:var(--green);">✓ ${fmtM(parseInt(raw, 10))} is a legal bid for ${displayCaptainName(captain)}.</div>`
+          : `<div style="margin-top:6px;padding:7px 12px;border-radius:8px;background:rgba(224,90,43,0.1);border:1px solid rgba(224,90,43,0.4);font-size:13px;font-weight:500;color:var(--red);">❌ ${chk.reason}</div>`;
       }
       warn.innerHTML = html;
     }
@@ -195,23 +213,11 @@ function renderPlayersList() {
       const price = parseInt(document.getElementById('consolePrice').value), msg = document.getElementById('consoleMsg');
       if (!playerId || !captainId || isNaN(price) || price < 0) { msg.textContent = 'Fill all fields.'; return; }
       const captain = allCaptains.find(c => c.id === captainId);
-      const player  = allPlayers.find(p => p.id === playerId);
 
-      // ── BLOCK: same group ──
-      if (player && String(player.group_name) === String(captain.captain_group)) {
-        msg.textContent = `❌ ${displayCaptainName(captain)} is a G${captain.captain_group} captain — cannot be assigned G${player.group_name} players.`;
-        return;
-      }
-
-      // ── BLOCK: slot already filled ──
+      // ── BLOCK: max bid rule (also blocks a full roster and sub-base prices) ──
       const soldForCap = allPlayers.filter(p => p.captain_id === captainId && p.is_sold);
-      const needed     = groupsStillNeeded(captain.captain_group, soldForCap);
-      if (player && needed.indexOf(String(player.group_name)) === -1) {
-        msg.textContent = `❌ ${displayCaptainName(captain)} has no remaining G${player.group_name} slot.`;
-        return;
-      }
-
-      if (price > captain.wallet) { msg.textContent = `${displayCaptainName(captain)} only has ${captain.wallet} pts left.`; return; }
+      const chk = checkBid(captain.wallet, soldForCap, price);
+      if (!chk.allowed) { msg.textContent = `❌ ${displayCaptainName(captain)}: ${chk.reason}`; return; }
 
       await db.from('players').update({
         captain_id: captainId,
@@ -245,6 +251,7 @@ function renderPlayersList() {
       document.getElementById('consolePlayer').value = '';
       document.getElementById('consoleCaptain').value = '';
       document.getElementById('consolePrice').value = '';
+      document.getElementById('consoleWarning').innerHTML = '';
       msg.textContent = 'Player assigned!';
       setTimeout(() => msg.textContent = '', 3000);
       const wasLivePlayer = playerId === currentPlayerId;
@@ -256,7 +263,7 @@ function renderPlayersList() {
     }
 
     async function unassignPlayer(playerId, captainId, soldPrice) {
-      if (!confirm('Unassign this player and refund the points?')) return;
+      if (!confirm('Unassign this player and refund the purse?')) return;
       const { data: fresh } = await db.from('captains').select('wallet').eq('id', captainId).single();
       const currentWallet = fresh?.wallet ?? allCaptains.find(c => c.id === captainId)?.wallet ?? 0;
       const player = allPlayers.find(p => p.id === playerId);
