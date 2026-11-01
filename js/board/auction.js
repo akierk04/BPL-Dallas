@@ -3,7 +3,23 @@ function isPreAuctionMode() {
       return soldCount === 0 && !currentPlayerId;
     }
 
+    // "Friday, November 6, 2026 · 6:00 PM CT" from the same DB value the countdown uses.
+    function formatAuctionStart(iso) {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      var tz = 'America/Chicago';
+      var day = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz });
+      var time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz });
+      return day + ' \u00b7 ' + time + ' CT';
+    }
+
     function updateCountdown() {
+      var whenEl = document.getElementById('auctionStartText');
+      if (whenEl) {
+        var txt = (bidState && bidState.auction_start_time) ? formatAuctionStart(bidState.auction_start_time) : '';
+        whenEl.textContent = txt;
+        whenEl.style.display = txt ? 'block' : 'none';
+      }
       if (!bidState || !bidState.auction_start_time) return;
 
       var target = new Date(bidState.auction_start_time).getTime();
