@@ -272,7 +272,7 @@ function isPreAuctionMode() {
           document.getElementById('sbarSoldFill').style.width = Math.round(sold.length / total * 100) + '%';
           document.getElementById('sbarUnsoldText').textContent = backlog;
           document.getElementById('sbarUnsoldFill').style.width = Math.round(backlog / total * 100) + '%';
-          bars.style.display = 'block';
+          bars.style.display = 'grid';
         }
       }
     }
