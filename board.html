@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="css/board.css?v=5" />
+  <link rel="stylesheet" href="css/board.css?v=8" />
 </head>
 <body>
 
@@ -141,6 +141,11 @@
     </div>
 </div>
 
+  <div id="auctionProgress" class="auction-progress" style="display:none;">
+    <div class="ap-text" id="apText"></div>
+    <div class="ap-bar"><div class="ap-fill" id="apFill"></div></div>
+  </div>
+
   <div id="nowBidding" class="now-bidding" style="display:none;">
     <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
     <div class="now-bidding-name" id="nowBiddingName">—</div>
@@ -164,30 +169,10 @@
     <div class="sold-banner-sub" id="soldBannerSub">—</div>
   </div>
 
-  <div class="auction-grid" id="auctionGrid">
-    <div class="story-stack">
-      <div class="spotlight-grid">
-        <div class="spotlight-card">
-          <div class="spotlight-title">Top Spender</div>
-          <div class="spotlight-name" id="topSpenderName">—</div>
-          <div class="spotlight-copy" id="topSpenderCopy">Waiting for the first big spend.</div>
-        </div>
-      </div>
-    </div>
-    <div class="recent-sales-card">
-      <div class="recent-sales-title">Recent Sales</div>
-      <div id="recentSales"></div>
-    </div>
-  </div>
-
   <div class="stats-bar" id="auctionStatsBar">
     <div class="stat-item"><div class="stat-val" id="statSold">—</div><div class="stat-label">Players Sold</div></div>
     <div class="stat-div"></div>
     <div class="stat-item"><div class="stat-val" id="statAvail">—</div><div class="stat-label">Available</div></div>
-    <div class="stat-div"></div>
-    <div class="stat-item"><div class="stat-val" id="statSpent">—</div><div class="stat-label">Total Spent</div></div>
-    <div class="stat-div"></div>
-    <div class="stat-item"><div class="stat-val" id="statTopSale">—</div><div class="stat-label">Highest Sale</div></div>
   </div>
   <div class="section-title" id="captainsSectionTitle">Captains & Teams</div>
   <div class="board-grid" id="boardCaptains"></div>
@@ -195,8 +180,10 @@
   <div class="pool-filters" id="poolFilters">
     <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
     <button class="filter-btn" onclick="setFilter('available',this)">Available</button>
+    <button class="filter-btn" onclick="setFilter('unsold',this)">Unsold</button>
     <button class="filter-btn" onclick="setFilter('sold',this)">Sold</button>
   </div>
+  <input type="search" id="poolSearch" class="pool-search" placeholder="Search players" autocomplete="off" oninput="setPoolSearch(this.value)" />
   <div class="pool-grid" id="boardPool"></div>
 </div>
 
@@ -287,9 +274,9 @@
 
   <script src="standings.js?v=5"></script>
 
-  <script src="js/board/state.js?v=5"></script>
-  <script src="js/board/data.js?v=8"></script>
-  <script src="js/board/auction.js?v=6"></script>
+  <script src="js/board/state.js?v=6"></script>
+  <script src="js/board/data.js?v=9"></script>
+  <script src="js/board/auction.js?v=8"></script>
   <script src="js/board/standings.js?v=5"></script>
   <script src="js/board/teams.js?v=2"></script>
   <script src="js/board/dues.js?v=3"></script>
