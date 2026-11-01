@@ -337,3 +337,19 @@
 @media (max-width: 600px) {
   #matchDayBanner > div { grid-template-columns: 1fr; }
 }
+
+/* S4: keep Captain Status in view while the main column scrolls (laptop only) */
+@media (min-width: 901px) {
+  .auction-side {
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+}
+/* S4: price box without spinner arrows so the placeholder is not clipped */
+#consolePrice::-webkit-outer-spin-button,
+#consolePrice::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#consolePrice { -moz-appearance: textfield; appearance: textfield; }
+/* S4: breathing room between the live card and the sections now below it */
+.auction-live-card { margin-bottom: 22px; }
