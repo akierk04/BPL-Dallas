@@ -51,6 +51,19 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
       if (tab === 'hall') loadHallOfFameData();
     }
 
+    // Season 4: while the auction is running (or has not started), the only tab people need is
+    // Auction, so the tab bar is hidden. It comes back automatically once every player is sold
+    // (match day). Set this to false to always show all tabs. Nothing is deleted or unloaded:
+    // Dues and Hall of Fame data were already fetched only when their tab is opened.
+    var HIDE_TABS_DURING_AUCTION = true;
+    function applyTabVisibility() {
+      var bar = document.querySelector('.tabs');
+      if (!bar) return;
+      var hide = HIDE_TABS_DURING_AUCTION && typeof auctionInProgress === 'function' && auctionInProgress();
+      bar.style.display = hide ? 'none' : '';
+      if (hide && activeBoardTab !== 'auction') switchBoardTab('auction');
+    }
+
     // Per-phone view preferences. Nothing here is sent to the server.
     var poolSearch = '';
     var pinnedCaptainId = null;

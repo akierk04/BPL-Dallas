@@ -71,6 +71,7 @@ async function loadData(options = {}) {
 
   if (duesLoaded) renderBoardDues();
   if (hallOfFameLoaded) renderHallOfFame();
+  markFresh();
 }
 
 async function loadDuesData() {
@@ -105,7 +106,10 @@ async function loadHallOfFameData() {
 // Which refresh applies right now: while any player is still unsold the auction is
 // in progress and bidding_state matters; afterwards only match data does.
 var _lastDataAt = Date.now();
-function markFresh() { _lastDataAt = Date.now(); }
+function markFresh() {
+  _lastDataAt = Date.now();
+  if (typeof applyTabVisibility === 'function') applyTabVisibility();
+}
 
 function auctionInProgress() {
   return allPlayers.length > 0 && allPlayers.some(function(p) { return !p.is_sold; });
