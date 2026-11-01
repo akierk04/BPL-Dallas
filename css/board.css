@@ -446,3 +446,6 @@
 .ap-text { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; margin-bottom: 6px; }
 .ap-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
 .ap-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.4s ease; }
+#auctionStatsBar { display: flex; justify-content: space-around; text-align: center; }
+#auctionStatsBar .stat-div { display: block; }
+#auctionStatsBar .stat-item { align-items: center; }
