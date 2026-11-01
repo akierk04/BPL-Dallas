@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="css/admin.css?v=3" />
 </head>
 <body>
   <nav class="nav">
@@ -86,13 +86,6 @@
       <div id="liveBidEmpty" class="form-card text-muted">
         No player is live right now.
       </div>
-    </div>
-
-    <div class="auction-side">
-      <div class="section-title">Captain Status</div>
-      <div class="form-card">
-        <div id="captainStatusList"></div>
-      </div>
 
       <div class="section-title">Manual Override</div>
       <div class="form-card">
@@ -103,7 +96,7 @@
           <select id="consoleCaptain" style="flex:2;" onchange="updateConsoleWarning()">
             <option value="">Select captain...</option>
           </select>
-          <input type="number" id="consolePrice" placeholder="Sold price ($M)" min="0" step="1" oninput="updateConsoleWarning()" style="flex:1;min-width:120px;" />
+          <input type="number" id="consolePrice" placeholder="Price ($M)" min="0" step="1" oninput="updateConsoleWarning()" style="flex:1 1 140px;min-width:0;" />
           <button class="btn-primary" onclick="doAssign()">Assign Manually</button>
         </div>
         <div id="consoleWarning" style="margin-top:8px;"></div>
@@ -113,6 +106,13 @@
       <div class="section-title">Recently Sold</div>
       <div class="form-card">
         <div id="recentSalesList"></div>
+      </div>
+    </div>
+
+    <div class="auction-side">
+      <div class="section-title">Captain Status</div>
+      <div class="form-card">
+        <div id="captainStatusList"></div>
       </div>
     </div>
   </div>
