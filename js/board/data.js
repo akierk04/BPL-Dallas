@@ -62,6 +62,7 @@ async function loadData(options = {}) {
   renderStory();
   renderRecentSales();
   renderStats_();
+  renderBudgetBoard();
   renderCaptains();
   renderPool();
   renderBoardPhase();
@@ -104,6 +105,15 @@ async function loadHallOfFameData() {
 // Skips matches/goals fetch entirely and skips every schedule/standings/bracket
 // render — those don't change during bidding, so there's no reason to rebuild
 // them on every "Go Live" click or every sale.
+// Which refresh applies right now: while any player is still unsold the auction is
+// in progress and bidding_state matters; afterwards only match data does.
+function auctionInProgress() {
+  return allPlayers.length > 0 && allPlayers.some(function(p) { return !p.is_sold; });
+}
+function refreshForPhase() {
+  return auctionInProgress() ? loadBiddingData() : loadMatchData();
+}
+
 async function loadBiddingData() {
   const [capRes, playRes, bidRes] = await Promise.all([
     db.from('captains').select('*').order('name'),
@@ -127,6 +137,7 @@ async function loadBiddingData() {
   renderSpotlights();
   renderRecentSales();
   renderStats_();
+  renderBudgetBoard();
   renderCaptains();
   renderPool();
   renderTeams();
@@ -202,6 +213,7 @@ function renderBiddingUpdate() {
   renderSpotlights();
   renderRecentSales();
   renderStats_();
+  renderBudgetBoard();
   renderCaptains();
   renderPool();
   renderTeams();

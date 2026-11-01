@@ -30,7 +30,7 @@ function manualRefresh() {
   var btn = document.getElementById('refreshBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Refreshing...'; }
 
-  Promise.resolve(loadMatchData()).finally(function() {
+  Promise.resolve(refreshForPhase()).finally(function() {
     var remaining = 8;
     (function tick() {
       if (remaining <= 0) {
@@ -44,6 +44,21 @@ function manualRefresh() {
     })();
   });
 }
+
+// Phones lock and background tabs lose their websocket, and realtime does not replay what
+// was missed. During the auction, refetch once when the page becomes visible again.
+var _lastWake = 0;
+function wakeRefresh() {
+  if (document.visibilityState !== 'visible') return;
+  if (!auctionInProgress()) return;
+  var now = Date.now();
+  if (now - _lastWake < 5000) return;
+  _lastWake = now;
+  loadBiddingData();
+}
+document.addEventListener('visibilitychange', wakeRefresh);
+window.addEventListener('pageshow', function(e) { if (e.persisted) wakeRefresh(); });
+window.addEventListener('online', wakeRefresh);
 
 setInterval(updateCountdown, 1000);
 updateCountdown();

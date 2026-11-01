@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="css/board.css?v=1" />
+  <link rel="stylesheet" href="css/board.css?v=3" />
 </head>
 <body>
 
@@ -102,6 +102,9 @@
   </div>
 
   <div class="page">
+  <div id="liveStrip" class="live-strip" style="display:none;" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <span class="live-dot"></span><span class="live-strip-label">Now bidding</span><strong id="liveStripName"></strong>
+  </div>
   <!-- #10 Tournament Mode Banner (shown when auction is done) -->
   <div id="tournamentModeBanner" class="tournament-mode-banner" style="display:none;">
     <div class="tournament-mode-icon">🏆</div>
@@ -138,12 +141,6 @@
     </div>
 </div>
 
-  <div id="soldBanner" class="sold-banner" style="display:none;">
-    <div class="sold-banner-label">Just Sold</div>
-    <div class="sold-banner-main" id="soldBannerMain">SOLD</div>
-    <div class="sold-banner-sub" id="soldBannerSub">—</div>
-  </div>
-
   <div id="nowBidding" class="now-bidding" style="display:none;">
     <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
     <div class="now-bidding-name" id="nowBiddingName">—</div>
@@ -158,6 +155,14 @@
     </div>
   </div>
   <div id="waitingBanner" class="waiting-banner">Waiting for next player...</div>
+
+  <div id="budgetBoard" class="budget-board" style="display:none;"></div>
+
+  <div id="soldBanner" class="sold-banner" style="display:none;">
+    <div class="sold-banner-label">Just Sold</div>
+    <div class="sold-banner-main" id="soldBannerMain">SOLD</div>
+    <div class="sold-banner-sub" id="soldBannerSub">—</div>
+  </div>
 
   <div class="auction-grid" id="auctionGrid">
     <div class="story-stack">
@@ -189,7 +194,7 @@
     <div class="stat-div"></div>
     <div class="stat-item"><div class="stat-val" id="statAvail">—</div><div class="stat-label">Available</div></div>
     <div class="stat-div"></div>
-    <div class="stat-item"><div class="stat-val" id="statSpent">—</div><div class="stat-label">Total Pts Spent</div></div>
+    <div class="stat-item"><div class="stat-val" id="statSpent">—</div><div class="stat-label">Total Spent</div></div>
     <div class="stat-div"></div>
     <div class="stat-item"><div class="stat-val" id="statTopSale">—</div><div class="stat-label">Highest Sale</div></div>
   </div>
@@ -292,14 +297,14 @@
   <script src="standings.js?v=5"></script>
 
   <script src="js/board/state.js?v=5"></script>
-  <script src="js/board/data.js?v=5"></script>
-  <script src="js/board/auction.js?v=4"></script>
+  <script src="js/board/data.js?v=6"></script>
+  <script src="js/board/auction.js?v=5"></script>
   <script src="js/board/standings.js?v=5"></script>
   <script src="js/board/teams.js?v=2"></script>
   <script src="js/board/dues.js?v=3"></script>
   <script src="js/board/halloffame.js?v=2"></script>
-  <script src="js/board/realtime.js?v=4"></script>
-  <script src="js/board/init.js?v=3"></script>
+  <script src="js/board/realtime.js?v=5"></script>
+  <script src="js/board/init.js?v=4"></script>
 
 </body>
 </html>
