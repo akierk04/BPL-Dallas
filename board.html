@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="css/board.css?v=8" />
+  <link rel="stylesheet" href="css/board.css?v=10" />
 </head>
 <body>
 
@@ -141,11 +141,6 @@
     </div>
 </div>
 
-  <div id="auctionProgress" class="auction-progress" style="display:none;">
-    <div class="ap-text" id="apText"></div>
-    <div class="ap-bar"><div class="ap-fill" id="apFill"></div></div>
-  </div>
-
   <div id="nowBidding" class="now-bidding" style="display:none;">
     <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
     <div class="now-bidding-name" id="nowBiddingName">—</div>
@@ -173,6 +168,16 @@
     <div class="stat-item"><div class="stat-val" id="statSold">—</div><div class="stat-label">Players Sold</div></div>
     <div class="stat-div"></div>
     <div class="stat-item"><div class="stat-val" id="statAvail">—</div><div class="stat-label">Available</div></div>
+    <div class="stat-bars" id="auctionBars" style="display:none;">
+      <div class="sbar">
+        <div class="sbar-head"><span>Sold</span><span id="sbarSoldText">0 of 0</span></div>
+        <div class="sbar-track"><div class="sbar-fill sold" id="sbarSoldFill"></div></div>
+      </div>
+      <div class="sbar">
+        <div class="sbar-head"><span>Unsold, back in queue</span><span id="sbarUnsoldText">0</span></div>
+        <div class="sbar-track"><div class="sbar-fill unsold" id="sbarUnsoldFill"></div></div>
+      </div>
+    </div>
   </div>
   <div class="section-title" id="captainsSectionTitle">Captains & Teams</div>
   <div class="board-grid" id="boardCaptains"></div>
@@ -276,7 +281,7 @@
 
   <script src="js/board/state.js?v=7"></script>
   <script src="js/board/data.js?v=10"></script>
-  <script src="js/board/auction.js?v=8"></script>
+  <script src="js/board/auction.js?v=9"></script>
   <script src="js/board/standings.js?v=5"></script>
   <script src="js/board/teams.js?v=2"></script>
   <script src="js/board/dues.js?v=3"></script>

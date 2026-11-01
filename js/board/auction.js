@@ -263,14 +263,16 @@ function isPreAuctionMode() {
       const sold=allPlayers.filter(p=>p.is_sold);
       document.getElementById('statSold').textContent=sold.length;
       document.getElementById('statAvail').textContent=allPlayers.filter(p=>!p.is_sold).length;
-      var prog = document.getElementById('auctionProgress');
-      if (prog) {
+      var bars = document.getElementById('auctionBars');
+      if (bars) {
         var total = allPlayers.length, backlog = allPlayers.filter(p=>!p.is_sold && p.unsold_at).length;
-        if (isPreAuctionMode() || !total) { prog.style.display = 'none'; }
+        if (isPreAuctionMode() || !total) { bars.style.display = 'none'; }
         else {
-          document.getElementById('apText').textContent = backlog ? backlog + ' unsold, back in queue' : 'Auction progress';
-          document.getElementById('apFill').style.width = Math.round(sold.length / total * 100) + '%';
-          prog.style.display = 'block';
+          document.getElementById('sbarSoldText').textContent = sold.length + ' of ' + total;
+          document.getElementById('sbarSoldFill').style.width = Math.round(sold.length / total * 100) + '%';
+          document.getElementById('sbarUnsoldText').textContent = backlog;
+          document.getElementById('sbarUnsoldFill').style.width = Math.round(backlog / total * 100) + '%';
+          bars.style.display = 'block';
         }
       }
     }

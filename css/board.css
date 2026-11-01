@@ -449,3 +449,11 @@
 #auctionStatsBar { display: flex; justify-content: space-around; text-align: center; }
 #auctionStatsBar .stat-div { display: block; }
 #auctionStatsBar .stat-item { align-items: center; }
+#auctionStatsBar { flex-wrap: wrap; row-gap: 14px; }
+.stat-bars { flex: 0 0 100%; display: grid; gap: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+.sbar-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); letter-spacing: 0.04em; margin-bottom: 6px; }
+.sbar-head span:last-child { color: var(--text); font-weight: 600; }
+.sbar-track { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.sbar-fill { height: 100%; width: 0; border-radius: 3px; transition: width 0.4s ease; }
+.sbar-fill.sold { background: var(--accent); }
+.sbar-fill.unsold { background: #ffb020; }
