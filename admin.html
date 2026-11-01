@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="css/admin.css?v=3" />
+  <link rel="stylesheet" href="css/admin.css?v=7" />
 </head>
 <body>
   <nav class="nav">
@@ -44,12 +44,15 @@
           <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="clearBiddingPlayer()">Clear</button>
         </div>
         <p id="queueStatus" class="text-muted mt-8"></p>
-        <div class="form-row" style="margin-top:10px;">
-          <select id="biddingPlayer" style="flex:3;">
-            <option value="">Pick a specific player (manual)...</option>
-          </select>
-          <button class="btn-sm" style="width:auto;" onclick="setBiddingPlayer()">Go Live</button>
-        </div>
+        <details class="manual-pick">
+          <summary>Pick a specific player instead</summary>
+          <div class="form-row" style="margin-top:8px;">
+            <select id="biddingPlayer" style="flex:3;">
+              <option value="">Pick a specific player (manual)...</option>
+            </select>
+            <button class="btn-sm" style="width:auto;" onclick="setBiddingPlayer()">Go Live</button>
+          </div>
+        </details>
         <p id="biddingMsg" class="text-muted mt-8"></p>
       </div>
 
@@ -87,17 +90,22 @@
         No player is live right now.
       </div>
 
-      <div class="section-title">Manual Override</div>
+      <div class="section-title">Record Sale</div>
       <div class="form-card">
         <div class="form-row">
-          <select id="consolePlayer" style="flex:2;" onchange="updateConsoleWarning()">
+          <select id="consolePlayer" style="flex:2 1 180px;min-width:0;" onchange="updateConsoleWarning()">
             <option value="">Select player...</option>
           </select>
-          <select id="consoleCaptain" style="flex:2;" onchange="updateConsoleWarning()">
-            <option value="">Select captain...</option>
-          </select>
-          <input type="number" id="consolePrice" placeholder="Price ($M)" min="0" step="1" oninput="updateConsoleWarning()" style="flex:1 1 140px;min-width:0;" />
-          <button class="btn-primary" onclick="doAssign()">Assign Manually</button>
+          <input type="number" id="consolePrice" placeholder="Price ($M)" min="0" step="1" oninput="updateConsoleWarning()" style="flex:1 1 120px;min-width:0;" />
+        </div>
+        <div class="console-label">Winning captain</div>
+        <div id="captainPicker" class="captain-picker"></div>
+        <select id="consoleCaptain" style="display:none;" onchange="updateConsoleWarning()">
+          <option value="">Select captain...</option>
+        </select>
+        <div class="form-row sell-row">
+          <button class="btn-primary" id="sellDrawBtn" onclick="doAssign(true)">Sell &amp; Draw Next</button>
+          <button class="btn-sm" id="sellOnlyBtn" onclick="doAssign(false)" style="width:auto;">Sell Only</button>
         </div>
         <div id="consoleWarning" style="margin-top:8px;"></div>
         <p id="consoleMsg" class="text-muted mt-8"></p>
@@ -483,7 +491,7 @@
   <script src="js/admin/data.js?v=5"></script>
   <script src="js/admin/auction.js?v=4"></script>
   <script src="js/admin/overview.js?v=4"></script>
-  <script src="js/admin/players.js?v=4"></script>
+  <script src="js/admin/players.js?v=6"></script>
   <script src="js/admin/matches.js?v=7"></script>
   <script src="js/admin/stats_schedule.js?v=5"></script>
   <script src="js/admin/payments.js?v=4"></script>

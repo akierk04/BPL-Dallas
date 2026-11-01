@@ -62,15 +62,12 @@ function isPreAuctionMode() {
       if (poolFilters) poolFilters.style.display = preAuction ? 'none' : 'flex';
       if (playerPoolTitle) playerPoolTitle.style.display = preAuction ? 'none' : 'block';
 
-      if (title && copy) {
-        if (preAuction) {
-          title.textContent = 'Auction Begins Soon';
-          copy.textContent = 'Auction begins soon.';
-        } else if (currentPlayerId || soldCount > 0) {
-          title.textContent = 'Live Auction In Progress';
-          copy.textContent = 'Watch bids rise, squads fill up, and the board update in real time.';
-        }
-      }
+      if (title) title.textContent = preAuction ? 'Auction Begins Soon' : 'Live Auction In Progress';
+      // While a player is live the Now Bidding card says it all; keep the banner for the quiet moments
+      var banner = document.getElementById('auctionEventBanner');
+      if (banner) banner.style.display = currentPlayerId ? 'none' : 'block';
+      var bb = document.getElementById('budgetBoard');
+      if (bb && preAuction) bb.style.display = 'none';
       updateCountdown();
     }
 
@@ -137,11 +134,57 @@ function isPreAuctionMode() {
 
           nb.style.display = 'block';
           wb.style.display = 'none';
+          var stripName = document.getElementById('liveStripName');
+          if (stripName) stripName.textContent = p.name;
+          updateLiveStrip();
           return;
         }
       }
       nb.style.display = 'none';
       wb.style.display = isPreAuctionMode() ? 'none' : 'block';
+      updateLiveStrip();
+    }
+
+    // Compact "Now bidding" strip pinned to the top of the screen once the big card scrolls away
+    function updateLiveStrip() {
+      var strip = document.getElementById('liveStrip');
+      var nb = document.getElementById('nowBidding');
+      if (!strip || !nb) return;
+      var live = nb.style.display !== 'none' && typeof activeBoardTab !== 'undefined' && activeBoardTab === 'auction';
+      var gone = live && nb.getBoundingClientRect().bottom < 0;
+      strip.style.display = gone ? 'flex' : 'none';
+    }
+    window.addEventListener('scroll', updateLiveStrip, { passive: true });
+
+    // Team budgets at a glance: spots, purse and max bid for every team, sorted by who can bid the most
+    function renderBudgetBoard() {
+      var wrap = document.getElementById('budgetBoard');
+      if (!wrap) return;
+      if (isPreAuctionMode() || !allCaptains.length) { wrap.style.display = 'none'; return; }
+      var rows = allCaptains.map(function(c) {
+        var sold = allPlayers.filter(function(p) { return p.captain_id === c.id && p.is_sold; });
+        return { c: c, bought: sold.length, left: spotsLeft(sold), max: maxBid(c.wallet, sold) };
+      }).sort(function(a, b) {
+        if ((a.left === 0) !== (b.left === 0)) return a.left === 0 ? 1 : -1;
+        return b.max - a.max || String(displayCaptainName(a.c)).localeCompare(String(displayCaptainName(b.c)));
+      });
+      var html = '<div class="bb-title">Team Budgets</div>'
+        + '<div class="bb-row bb-head"><span>Team</span><span>Spots</span><span>Purse</span><span>Max bid</span></div>'
+        + rows.map(function(r) {
+            var pips = '';
+            for (var i = 0; i < S4_SLOTS; i++) pips += '<i class="bb-pip' + (i < r.bought ? ' on' : '') + '"></i>';
+            var full = r.left === 0;
+            var cls = full ? 'full' : r.max <= S4_BASE ? 'low' : r.max <= 15 ? 'mid' : 'ok';
+            return '<div class="bb-row' + (full ? ' bb-full' : '') + '">'
+              + '<span class="bb-name">' + displayCaptainName(r.c) + '</span>'
+              + '<span class="bb-pips" title="' + r.bought + ' of ' + S4_SLOTS + ' bought">' + pips + '</span>'
+              + '<span class="bb-purse">' + fmtM(r.c.wallet) + '</span>'
+              + '<span class="bb-max ' + cls + '">' + (full ? 'Full' : fmtM(r.max)) + '</span>'
+              + '</div>';
+          }).join('')
+        + '<div class="bb-note">Max bid = purse minus $' + S4_BASE + 'M for each spot still to fill after this player.</div>';
+      wrap.innerHTML = html;
+      wrap.style.display = 'block';
     }
 
     function renderSoldBanner() {
@@ -376,8 +419,8 @@ function renderRecentSales() {
       const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
       document.getElementById('statSold').textContent=sold.length;
       document.getElementById('statAvail').textContent=allPlayers.filter(p=>!p.is_sold).length;
-      document.getElementById('statSpent').textContent=spent.toLocaleString();
-      document.getElementById('statTopSale').textContent=topSale ? `${topSale.sold_price}` : '—';
+      document.getElementById('statSpent').textContent=fmtM(spent);
+      document.getElementById('statTopSale').textContent=topSale ? fmtM(topSale.sold_price) : '—';
     }
 
     function renderCaptains() {
@@ -439,7 +482,7 @@ function renderRecentSales() {
         return `
           <div class="pool-player-card ${p.is_sold?'is-sold':''} ${isCurrent?'is-current':''}">
             <div class="pool-player-card-name">${p.name}${isCurrent?' <span style="font-size:10px;color:var(--accent);">● Bidding</span>':''}</div>
-            ${p.is_sold?`<div class="pool-player-card-sold">✓ ${cap?displayCaptainName(cap):'?'} · ${fmtM(p.sold_price)}</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'Live now':'Available'}</div>`}
+            ${p.is_sold?`<div class="pool-player-card-sold">✓ ${cap?displayCaptainName(cap):'?'} · ${fmtM(p.sold_price)}</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'Live now':(p.unsold_at?'Unsold · back in queue':'Available')}</div>`}
           </div>`;
       }).join('');
     }

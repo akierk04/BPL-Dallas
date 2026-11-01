@@ -7,7 +7,7 @@ const _cid = Math.random().toString(36).slice(2);
 let _lightReloadTimer = null;
 function scheduleLightReload() {
   clearTimeout(_lightReloadTimer);
-  _lightReloadTimer = setTimeout(() => loadMatchData(), 300);
+  _lightReloadTimer = setTimeout(() => refreshForPhase(), 300);
 }
 
 // Match Day Board:
@@ -17,7 +17,13 @@ function scheduleLightReload() {
 // handlers in data.js, same zero-extra-query approach used during the
 // auction -- no reason to drop that discipline just because the phase
 // changed. Payments and Hall of Fame stay lazy-loaded on tab open.
+// Season 4: the auction runs on this board, so captains/players/bidding_state are live
+// again. These use the patch-from-payload handlers in data.js (one broadcast, zero extra
+// queries per viewer), so 80 phones watching does not multiply database load.
 db.channel('bpl-board-' + _cid)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'bidding_state' },    handleBiddingStateEvent)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'players' },          handlePlayersEvent)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'captains' },         handleCaptainsEvent)
   .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' },          handleMatchesEvent)
   .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' },            handleGoalsEvent)
   .on('postgres_changes', { event: '*', schema: 'public', table: 'tiebreak_results' }, handleTiebreakEvent)

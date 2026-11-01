@@ -100,13 +100,11 @@ function renderPlayersList() {
       if (btn) {
         btn.disabled = live || q.total === 0;
         btn.style.opacity = (live || q.total === 0) ? '0.45' : '1';
+        btn.textContent = q.total === 0
+          ? '\uD83C\uDFB2 Queue empty'
+          : '\uD83C\uDFB2 Draw Next Player \u00b7 ' + q.total + ' left' + (q.returned ? ' (' + q.returned + ' unsold)' : '');
       }
-      if (info) {
-        info.textContent = q.total === 0 && !live
-          ? 'Queue is empty.'
-          : q.fresh + ' not yet offered · ' + q.returned + ' unsold waiting at the back'
-            + (live ? ' · close or cancel the live player first' : '');
-      }
+      if (info) info.style.display = 'none';
     }
 
     async function goLive(pid) {
@@ -167,6 +165,8 @@ function renderPlayersList() {
       if (sel) sel.value = '';
     }
 
+    let _assigning = false;
+
     function populateConsoleDropdowns() {
       const pSel  = document.getElementById('consolePlayer'), cSel = document.getElementById('consoleCaptain');
       const cur_p = pSel.value || currentPlayerId || '';
@@ -180,6 +180,32 @@ function renderPlayersList() {
           const sold = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
           return `<option value="${c.id}" ${c.id === cur_c ? 'selected' : ''}>${displayCaptainName(c)} · ${fmtM(c.wallet)} left · max ${fmtM(maxBid(c.wallet, sold))}</option>`;
         }).join('');
+      renderCaptainPicker();
+    }
+
+    // Tap-to-pick captain buttons. The hidden #consoleCaptain select stays the source of truth
+    // so doAssign() and updateConsoleWarning() are unchanged.
+    function renderCaptainPicker() {
+      const wrap = document.getElementById('captainPicker');
+      const sel = document.getElementById('consoleCaptain');
+      if (!wrap || !sel) return;
+      const chosen = sel.value;
+      wrap.innerHTML = allCaptains.map(c => {
+        const sold = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
+        const left = spotsLeft(sold);
+        const full = left === 0;
+        const sub = full ? 'Squad full' : 'max ' + fmtM(maxBid(c.wallet, sold)) + ' \u00b7 ' + left + ' left';
+        return `<button type="button" class="cap-btn${c.id === chosen ? ' selected' : ''}${full ? ' full' : ''}" ${full ? 'disabled' : ''} onclick="pickCaptain('${c.id}')">`
+          + `<span class="cap-btn-name">${displayCaptainName(c)}</span><span class="cap-btn-sub">${sub}</span></button>`;
+      }).join('');
+    }
+
+    function pickCaptain(id) {
+      document.getElementById('consoleCaptain').value = id;
+      renderCaptainPicker();
+      updateConsoleWarning();
+      const price = document.getElementById('consolePrice');
+      if (price) price.focus();
     }
 
     function quickAssign(playerId) {
@@ -208,16 +234,20 @@ function renderPlayersList() {
       warn.innerHTML = html;
     }
 
-    async function doAssign() {
+    async function doAssign(thenDraw) {
       const playerId = document.getElementById('consolePlayer').value, captainId = document.getElementById('consoleCaptain').value;
       const price = parseInt(document.getElementById('consolePrice').value), msg = document.getElementById('consoleMsg');
-      if (!playerId || !captainId || isNaN(price) || price < 0) { msg.textContent = 'Fill all fields.'; return; }
+      if (_assigning) return; // ignore a second tap while a sale is being written
+      if (!playerId || !captainId || isNaN(price) || price < 0) { msg.textContent = 'Pick a player, a captain and a price.'; return; }
       const captain = allCaptains.find(c => c.id === captainId);
 
       // ── BLOCK: max bid rule (also blocks a full roster and sub-base prices) ──
       const soldForCap = allPlayers.filter(p => p.captain_id === captainId && p.is_sold);
       const chk = checkBid(captain.wallet, soldForCap, price);
       if (!chk.allowed) { msg.textContent = `❌ ${displayCaptainName(captain)}: ${chk.reason}`; return; }
+
+      _assigning = true;
+      try {
 
       await db.from('players').update({
         captain_id: captainId,
@@ -259,6 +289,10 @@ function renderPlayersList() {
       if (wasLivePlayer) {
         const sel = document.getElementById('biddingPlayer');
         if (sel) sel.value = '';
+      }
+      if (thenDraw === true) await drawNextPlayer();
+      } finally {
+        _assigning = false;
       }
     }
 
