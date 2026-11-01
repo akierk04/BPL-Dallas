@@ -78,19 +78,8 @@ function renderAuctionControl() {
       const wrap = document.getElementById('recentSalesList');
       const sold = allPlayers.filter(p => p.is_sold);
 
-      const sessionSale = lastSale
-        ? [{
-            id: `session-${lastSale.playerId}`,
-            name: lastSale.playerName,
-            captain_id: lastSale.captainId,
-            sold_price: lastSale.soldPrice,
-            created_at: new Date().toISOString()
-          }]
-        : [];
-
-      const rows = [...sessionSale, ...sold]
-        .filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
-        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      const rows = [...sold]
+        .sort((a, b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))
         .slice(0, 5);
 
       if (!rows.length) {

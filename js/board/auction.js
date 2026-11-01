@@ -216,66 +216,6 @@ function isPreAuctionMode() {
       banner.style.display = 'block';
     }
 
-    function renderStory() {
-      const wrap = document.getElementById('boardStory');
-      const sold = allPlayers.filter(p => p.is_sold);
-      const available = allPlayers.filter(p => !p.is_sold);
-      const sortedWallets = [...allCaptains].sort((a,b) => b.wallet - a.wallet);
-      const fullest = allCaptains.map(c => ({
-        captain: c,
-        count: allPlayers.filter(p => p.captain_id === c.id).length
-      })).sort((a,b)=>b.count-a.count || a.captain.wallet-b.captain.wallet);
-      const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
-      const lines = [];
-
-      if (isPreAuctionMode()) {
-        wrap.innerHTML = '<div class="story-line"><span>Countdown to auction</span> is live. Wallet details are hidden until the first nomination.</div>';
-        return;
-      }
-
-      if (currentPlayerId) {
-        const p = allPlayers.find(x => x.id === currentPlayerId);
-        if (p && !p.is_sold) {
-          const currentBid = bidState?.current_bid || 0;
-          const bidder = bidState?.current_bidder_id ? allCaptains.find(c=>c.id===bidState.current_bidder_id) : null;
-          if (currentBid > 0 && bidder) {
-            lines.push(`<span>${p.name}</span> is live at <span>${fmtM(currentBid)}</span>, led by <span>${displayCaptainName(bidder)}</span>.`);
-          } else {
-            lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${fmtM(S4_BASE)}</span>.`);
-          }
-        }
-      } else {
-        // Show most recent sale from DB (works on refresh), prefer in-memory event if fresh
-        const recentSale = lastSoldEvent
-          ? lastSoldEvent
-          : (() => {
-              const p = [...allPlayers].filter(s => s.is_sold && s.captain_id)
-                .sort((a,b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))[0];
-              if (!p) return null;
-              const cap = allCaptains.find(c => c.id === p.captain_id);
-              return { player: p.name, captain: cap ? displayCaptainName(cap) : '—', price: p.sold_price || 0 };
-            })();
-        if (recentSale) {
-          lines.push(`<span>${recentSale.player}</span> just went to <span>${recentSale.captain}</span> for <span>${fmtM(recentSale.price)}</span>.`);
-        } else {
-          lines.push(`Auction is between nominations right now. <span>${available.length}</span> players are still available.`);
-        }
-      }
-
-      if (sortedWallets[0]) {
-        lines.push(`<span>${displayCaptainName(sortedWallets[0])}</span> has the biggest purse left at <span>${fmtM(sortedWallets[0].wallet)}</span>.`);
-      }
-      if (fullest[0]) {
-        lines.push(`<span>${displayCaptainName(fullest[0].captain)}</span> currently has the fullest squad with <span>${fullest[0].count}</span> player${fullest[0].count !== 1 ? 's' : ''} bought.`);
-      }
-      if (topSale) {
-        const cap = allCaptains.find(c=>c.id===topSale.captain_id);
-        lines.push(`Highest sale so far: <span>${topSale.name}</span> to <span>${cap ? displayCaptainName(cap) : '—'}</span> for <span>${fmtM(topSale.sold_price || 0)}</span>.`);
-      }
-
-      wrap.innerHTML = lines.slice(0,4).map(line => `<div class="story-line">${line}</div>`).join('');
-    }
-
     function renderBoardPhase() {
       const el = document.getElementById('boardPhase');
       const tournamentBanner = document.getElementById('tournamentModeBanner');
@@ -321,8 +261,6 @@ function isPreAuctionMode() {
       if (isPreAuctionMode()) {
         document.getElementById('topSpenderName').textContent = 'Auction begins soon';
         document.getElementById('topSpenderCopy').textContent = 'Spending leaders will appear once bidding starts.';
-        document.getElementById('pressureWatchName').textContent = 'Wallets hidden';
-        document.getElementById('pressureWatchCopy').textContent = 'Budget pressure will appear after the first sale.';
         return;
       }
       const sold = allPlayers.filter(p => p.is_sold);
@@ -333,63 +271,12 @@ function isPreAuctionMode() {
       }).sort((a,b) => b.spent - a.spent || b.roster - a.roster);
 
       const top = spendRows[0];
-      const pressure = [...allCaptains].map(c => {
-        const soldForCap = sold.filter(p => p.captain_id === c.id);
-        const roster = soldForCap.length;
-        const safe = budgetWarning(c.wallet, c.captain_group, soldForCap).safe;
-        return { captain: c, roster, safe, wallet: c.wallet };
-      }).filter(r => r.roster < S4_SLOTS).sort((a,b) => a.safe - b.safe || a.wallet - b.wallet)[0];
 
       document.getElementById('topSpenderName').textContent = top && top.spent > 0 ? displayCaptainName(top.captain) : 'No leader yet';
       document.getElementById('topSpenderCopy').textContent = top && top.spent > 0
         ? `${fmtM(top.spent)} spent across ${top.roster}/${S4_SLOTS} spots. They are setting the auction pace.`
         : 'The board is waiting for the first statement buy.';
 
-      document.getElementById('pressureWatchName').textContent = pressure ? displayCaptainName(pressure.captain) : 'No alert';
-      document.getElementById('pressureWatchCopy').textContent = pressure && allPlayers.filter(p => p.is_sold).length
-        ? `${fmtM(pressure.wallet)} left with ${Math.max(0, S4_SLOTS - pressure.roster)} spot${S4_SLOTS - pressure.roster !== 1 ? 's' : ''} remaining. Max bid: ${fmtM(pressure.safe)}.`
-        : 'Nobody is under purse pressure yet.';
-    }
-
-    function renderStoryline() {
-      const el = document.getElementById('boardStory');
-      const sold = allPlayers.filter(p => p.is_sold).sort((a,b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0));
-      const lines = [];
-      const topSale = sold.reduce((best,p)=>!best || (p.sold_price||0) > (best.sold_price||0) ? p : best, null);
-      const current = currentPlayerId ? allPlayers.find(p => p.id === currentPlayerId) : null;
-      const currentBidder = bidState?.current_bidder_id ? allCaptains.find(c => c.id === bidState.current_bidder_id) : null;
-      const spendRows = allCaptains.map(c => ({
-        captain: c,
-        spent: sold.filter(p => p.captain_id === c.id).reduce((sum,p) => sum + (p.sold_price||0), 0),
-        roster: sold.filter(p => p.captain_id === c.id).length,
-        safe: budgetWarning(c.wallet, c.captain_group, sold.filter(p => p.captain_id === c.id)).safe
-      })).sort((a,b) => b.spent - a.spent);
-      const topSpender = spendRows[0];
-      const pressure = spendRows.filter(r => r.roster < S4_SLOTS).sort((a,b) => a.safe - b.safe || a.captain.wallet - b.captain.wallet)[0];
-
-      if (current && currentBidder && bidState?.current_bid) {
-        lines.push(`<div class="story-line"><span>${current.name}</span> is live at <span>${fmtM(bidState.current_bid)}</span>, led by <span>${displayCaptainName(currentBidder)}</span>.</div>`);
-      } else if (current) {
-        lines.push(`<div class="story-line"><span>${current.name}</span> is on the block. Opening value is <span>${fmtM(S4_BASE)}</span>.</div>`);
-      }
-      if (lastSoldEvent) {
-        lines.push(`<div class="story-line"><span>${lastSoldEvent.player}</span> just moved to <span>${lastSoldEvent.captain}</span> for <span>${fmtM(lastSoldEvent.price)}</span>.</div>`);
-      } else if (sold[0]) {
-        const cap = allCaptains.find(c => c.id === sold[0].captain_id);
-        lines.push(`<div class="story-line">Most recent sale: <span>${sold[0].name}</span> to <span>${cap ? displayCaptainName(cap) : '—'}</span> for <span>${fmtM(sold[0].sold_price || 0)}</span>.</div>`);
-      }
-      if (topSale) {
-        const cap = allCaptains.find(c => c.id === topSale.captain_id);
-        lines.push(`<div class="story-line">Highest ticket so far is <span>${fmtM(topSale.sold_price)}</span> for <span>${topSale.name}</span>${cap ? `, landed by <span>${displayCaptainName(cap)}</span>` : ''}.</div>`);
-      }
-      if (topSpender && topSpender.spent > 0) {
-        lines.push(`<div class="story-line"><span>${displayCaptainName(topSpender.captain)}</span> leads spending at <span>${fmtM(topSpender.spent)}</span> across <span>${topSpender.roster}</span> players.</div>`);
-      }
-      if (pressure && sold.length) {
-        lines.push(`<div class="story-line"><span>${displayCaptainName(pressure.captain)}</span> has the lowest max bid at <span>${fmtM(pressure.safe)}</span>.</div>`);
-      }
-      if (!lines.length) lines.push('<div class="story-line">Auction room is warming up. First bid will set the tone.</div>');
-      el.innerHTML = lines.slice(0,4).join('');
     }
 
 function renderRecentSales() {

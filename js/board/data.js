@@ -59,7 +59,6 @@ async function loadData(options = {}) {
   handleAuctionDrama();
   renderCurrentPlayer();
   renderSoldBanner();
-  renderStory();
   renderRecentSales();
   renderStats_();
   renderBudgetBoard();
@@ -131,8 +130,6 @@ async function loadBiddingData() {
   handleAuctionDrama();
   renderCurrentPlayer();
   renderSoldBanner();
-  renderStory();
-  renderStoryline();
   renderBoardPhase();
   renderSpotlights();
   renderRecentSales();
@@ -207,8 +204,6 @@ function renderBiddingUpdate() {
   handleAuctionDrama();
   renderCurrentPlayer();
   renderSoldBanner();
-  renderStory();
-  renderStoryline();
   renderBoardPhase();
   renderSpotlights();
   renderRecentSales();
