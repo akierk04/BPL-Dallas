@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="css/board.css?v=11" />
+  <link rel="stylesheet" href="css/board.css?v=12" />
 </head>
 <body>
 
@@ -124,20 +124,13 @@
 
 <!-- Auction tab -->
 <div id="btab-auction">
-  <div class="stats-bar" id="auctionStatsBar">
-    <div class="stat-item"><div class="stat-val" id="statSold">—</div><div class="stat-label">Players Sold</div></div>
-    <div class="stat-div"></div>
-    <div class="stat-item"><div class="stat-val" id="statAvail">—</div><div class="stat-label">Available</div></div>
-    <div class="stat-bars" id="auctionBars" style="display:none;">
-      <div class="sbar">
-        <div class="sbar-head"><span>Sold</span><span id="sbarSoldText">0 of 0</span></div>
-        <div class="sbar-track"><div class="sbar-fill sold" id="sbarSoldFill"></div></div>
-      </div>
-      <div class="sbar">
-        <div class="sbar-head"><span>Unsold, back in queue</span><span id="sbarUnsoldText">0</span></div>
-        <div class="sbar-track"><div class="sbar-fill unsold" id="sbarUnsoldFill"></div></div>
-      </div>
+  <div class="stats-strip" id="auctionStatsBar">
+    <div class="strip-line">
+      <span><b id="statSold">&mdash;</b> sold</span>
+      <span><b id="statAvail">&mdash;</b> available</span>
+      <span class="strip-q"><b id="statQueue">0</b> unsold in queue</span>
     </div>
+    <div class="strip-bar"><i class="sb-sold" id="sbarSoldFill"></i><i class="sb-queue" id="sbarUnsoldFill"></i></div>
   </div>
 
   <div class="event-banner" id="auctionEventBanner">
@@ -160,8 +153,8 @@
   <div id="nowBidding" class="now-bidding" style="display:none;">
     <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
     <div class="now-bidding-name" id="nowBiddingName">—</div>
-    <div id="nowBiddingBase" style="font-size:13px;color:var(--muted);margin-top:6px;letter-spacing:0.04em;"></div>
-    <div id="boardAuctionStatus" class="now-bidding-status live">Live Auction</div>
+    <div id="nowBiddingBase" style="font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:0.04em;"></div>
+    <div id="boardAuctionStatus" class="now-bidding-status live" style="display:none;"></div>
     <div id="nowBiddingLive" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(240,192,64,0.2);display:none;">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Current Bid</div>
       <div style="display:flex;align-items:baseline;gap:10px;justify-content:center;flex-wrap:wrap;">
@@ -282,7 +275,7 @@
 
   <script src="js/board/state.js?v=7"></script>
   <script src="js/board/data.js?v=10"></script>
-  <script src="js/board/auction.js?v=10"></script>
+  <script src="js/board/auction.js?v=11"></script>
   <script src="js/board/standings.js?v=5"></script>
   <script src="js/board/teams.js?v=2"></script>
   <script src="js/board/dues.js?v=3"></script>

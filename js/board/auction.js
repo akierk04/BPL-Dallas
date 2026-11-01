@@ -55,7 +55,7 @@ function isPreAuctionMode() {
       var copy = document.getElementById('auctionEventCopy');
 
       if (prePanel) prePanel.style.display = preAuction ? 'block' : 'none';
-      if (statsBar) statsBar.style.display = preAuction ? 'none' : 'flex';
+      if (statsBar) statsBar.style.display = preAuction ? 'none' : 'block';
       if (waiting) waiting.style.display = preAuction ? 'none' : waiting.style.display;
       if (poolFilters) poolFilters.style.display = preAuction ? 'none' : 'flex';
       var poolSearchEl = document.getElementById('poolSearch');
@@ -116,12 +116,14 @@ function isPreAuctionMode() {
             : null;
 
           statusEl.className = 'now-bidding-status';
+          // The plain 'Live Auction' pill was dropped (the banner already says Now Bidding).
+          // Only show a pill when bidding is locked.
           if (bidState?.bid_locked) {
             statusEl.textContent = 'Bid Locked';
             statusEl.classList.add('locked');
+            statusEl.style.display = 'inline-flex';
           } else {
-            statusEl.textContent = 'Live Auction';
-            statusEl.classList.add('live');
+            statusEl.style.display = 'none';
           }
 
           if (currentBid > 0) {
@@ -263,18 +265,11 @@ function isPreAuctionMode() {
       const sold=allPlayers.filter(p=>p.is_sold);
       document.getElementById('statSold').textContent=sold.length;
       document.getElementById('statAvail').textContent=allPlayers.filter(p=>!p.is_sold).length;
-      var bars = document.getElementById('auctionBars');
-      if (bars) {
-        var total = allPlayers.length, backlog = allPlayers.filter(p=>!p.is_sold && p.unsold_at).length;
-        if (isPreAuctionMode() || !total) { bars.style.display = 'none'; }
-        else {
-          document.getElementById('sbarSoldText').textContent = sold.length + ' of ' + total;
-          document.getElementById('sbarSoldFill').style.width = Math.round(sold.length / total * 100) + '%';
-          document.getElementById('sbarUnsoldText').textContent = backlog;
-          document.getElementById('sbarUnsoldFill').style.width = Math.round(backlog / total * 100) + '%';
-          bars.style.display = 'grid';
-        }
-      }
+      var total = allPlayers.length, backlog = allPlayers.filter(p=>!p.is_sold && p.unsold_at).length;
+      document.getElementById('statQueue').textContent = backlog;
+      var pct = function(n) { return total ? (n / total * 100).toFixed(1) + '%' : '0%'; };
+      document.getElementById('sbarSoldFill').style.width = pct(sold.length);
+      document.getElementById('sbarUnsoldFill').style.width = pct(backlog);
     }
 
     function renderCaptains() {
