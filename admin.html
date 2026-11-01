@@ -40,20 +40,15 @@
       <div class="section-title">Start Auction</div>
       <div class="form-card">
         <div class="form-row">
-          <select id="biddingPlayer" style="flex:3;">
-            <option value="">Select player to go live...</option>
-          </select>
-          <button class="btn-primary" onclick="setBiddingPlayer()">Go Live</button>
+          <button id="drawNextBtn" class="btn-primary" onclick="drawNextPlayer()" style="flex:2;">🎲 Draw Next Player</button>
           <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="clearBiddingPlayer()">Clear</button>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
-          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;align-self:center;margin-right:4px;white-space:nowrap;">Random Pick:</div>
-          <button id="randG1" class="btn-sm" onclick="pickRandom('1')" style="width:auto;">🎲 G1</button>
-          <button id="randG2" class="btn-sm" onclick="pickRandom('2')" style="width:auto;">🎲 G2</button>
-          <button id="randG3" class="btn-sm" onclick="pickRandom('3')" style="width:auto;">🎲 G3</button>
-          <button id="randG4" class="btn-sm" onclick="pickRandom('4')" style="width:auto;">🎲 G4</button>
-          <button id="randG5" class="btn-sm" onclick="pickRandom('5')" style="width:auto;">🎲 G5</button>
-          <button id="randG6" class="btn-sm" onclick="pickRandom('6')" style="width:auto;">🎲 G6</button>
+        <p id="queueStatus" class="text-muted mt-8"></p>
+        <div class="form-row" style="margin-top:10px;">
+          <select id="biddingPlayer" style="flex:3;">
+            <option value="">Pick a specific player (manual)...</option>
+          </select>
+          <button class="btn-sm" style="width:auto;" onclick="setBiddingPlayer()">Go Live</button>
         </div>
         <p id="biddingMsg" class="text-muted mt-8"></p>
       </div>
@@ -108,7 +103,7 @@
           <select id="consoleCaptain" style="flex:2;" onchange="updateConsoleWarning()">
             <option value="">Select captain...</option>
           </select>
-          <input type="number" id="consolePrice" placeholder="Sold price (pts)" min="0" style="flex:1;min-width:120px;" />
+          <input type="number" id="consolePrice" placeholder="Sold price ($M)" min="0" step="1" oninput="updateConsoleWarning()" style="flex:1;min-width:120px;" />
           <button class="btn-primary" onclick="doAssign()">Assign Manually</button>
         </div>
         <div id="consoleWarning" style="margin-top:8px;"></div>
@@ -136,14 +131,6 @@
   <div class="form-card">
     <div class="form-row">
       <input type="text" id="playerName" placeholder="Player name" />
-      <select id="playerGroup">
-        <option value="1">Group 1 (1100 pts base)</option>
-        <option value="2">Group 2 (800 pts base)</option>
-        <option value="3">Group 3 (550 pts base)</option>
-        <option value="4">Group 4 (350 pts base)</option>
-        <option value="5">Group 5 (200 pts base)</option>
-        <option value="6">Group 6 (100 pts base)</option>
-      </select>
       <select id="playerStatus">
         <option value="confirmed">Confirmed</option>
         <option value="tentative">Tentative</option>
@@ -488,15 +475,15 @@
 
   <script src="supabase-config.js?v=3"></script>
 
-  <script src="budget-warning.js?v=6"></script>
+  <script src="budget-warning.js?v=7"></script>
 
   <script src="standings.js?v=5"></script>
 
   <script src="js/admin/state.js?v=5"></script>
   <script src="js/admin/data.js?v=5"></script>
-  <script src="js/admin/auction.js?v=3"></script>
-  <script src="js/admin/overview.js?v=3"></script>
-  <script src="js/admin/players.js?v=3"></script>
+  <script src="js/admin/auction.js?v=4"></script>
+  <script src="js/admin/overview.js?v=4"></script>
+  <script src="js/admin/players.js?v=4"></script>
   <script src="js/admin/matches.js?v=7"></script>
   <script src="js/admin/stats_schedule.js?v=5"></script>
   <script src="js/admin/payments.js?v=4"></script>

@@ -12,7 +12,7 @@ function renderOverview() {
               <div class="roster-player">
                 <span class="roster-player-name">${p.name}</span>
                 <div style="display:flex;align-items:center;gap:6px;">
-                  <span class="roster-player-price">${p.sold_price} pts</span>
+                  <span class="roster-player-price">${fmtM(p.sold_price)}</span>
                   <button class="btn-danger" onclick="unassignPlayer('${p.id}','${c.id}',${p.sold_price})">✕</button>
                 </div>
               </div>`).join('')
@@ -23,9 +23,9 @@ function renderOverview() {
               <div style="width:100%;">
                 <div style="display:flex;gap:20px;margin-bottom:10px;">
                   <div><div class="captain-wallet-label">Purse left</div>
-                    <div class="captain-wallet">${c.wallet.toLocaleString()} <span style="font-size:0.75rem;color:var(--muted)">pts</span></div></div>
+                    <div class="captain-wallet">${fmtM(c.wallet)}</div></div>
                   <div><div class="captain-wallet-label">Spent</div>
-                    <div class="captain-wallet" style="color:var(--muted)">${spent.toLocaleString()} <span style="font-size:0.75rem;">pts</span></div></div>
+                    <div class="captain-wallet" style="color:var(--muted)">${fmtM(spent)}</div></div>
                 </div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
                   <div>

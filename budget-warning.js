@@ -1,125 +1,94 @@
-// BPL Dallas Season 3 - Budget Warning
-// Squad: 6 players total (captain + 5 bids)
-// Captain fills their own group slot; buys exactly ONE player from each
-// of the other 5 groups. No group requires more than one purchase.
-// Base prices: G1=1100, G2=800, G3=550, G4=350, G5=200, G6=100
+// BPL Dallas Season 4 - Budget rules (replaces the Season 3 group/reserve model)
 //
-// Reserve = base price of EVERY group the captain still needs to buy,
-// including whichever group is currently live for auction. "Safe to
-// spend" is wallet minus that full reserve -- i.e. genuinely discretionary
-// money above and beyond simply meeting every remaining slot's base cost,
-// not just the other slots. There is no exclusion for the active group.
+// Purse: $60M per team, stored in captains.wallet as whole millions (60).
+// Squad: captain + 5 auction players. Captains play for their own team and are
+// NOT charged against the purse.
+// Base price $5M for every player, minimum raise $1M, no player groups.
+//
+// MAXIMUM BID RULE
+//   Max Bid = Remaining Budget - (Remaining Roster Spots After This Purchase x $5M)
+//   Example: $60M, 5 spots left -> 60 - (4 x 5) = $40M
+//            buy for $20M -> $40M, 4 spots left -> 40 - (3 x 5) = $25M
+//
+// A team with no spots left has no max bid (it cannot buy anyone).
 
-var ALL_GROUPS = ['1', '2', '3', '4', '5', '6'];
-var GROUP_BASE = { '1': 1100, '2': 800, '3': 550, '4': 350, '5': 200, '6': 100 };
+var S4_BUDGET = 60;
+var S4_SLOTS = 5;
+var S4_BASE = 5;
+var S4_INCREMENT = 1;
+// players.group_name / captains.captain_group still exist in the database but
+// Season 4 does not use them. New players are written with this constant so the
+// column constraints keep passing.
+var S4_LEGACY_GROUP = '1';
 
-// Returns array of group strings still needed (one entry per remaining slot).
-// Example: G2 captain, 0 bought -> ['1','3','4','5','6']
-// Example: G5 captain, bought G1 -> ['2','3','4','6']
-function groupsStillNeeded(captainGroup, soldPlayers) {
-  var own = String(captainGroup);
-  var have = (soldPlayers || []).map(function(p) { return String(p.group_name); });
-  var required = ALL_GROUPS.filter(function(g) { return g !== own; });
-  var haveList = have.slice();
-  var stillNeeded = [];
-
-  required.forEach(function(g) {
-    var idx = haveList.indexOf(g);
-    if (idx !== -1) {
-      haveList.splice(idx, 1); // already covered by a purchased player
-    } else {
-      stillNeeded.push(g);
-    }
-  });
-
-  return stillNeeded;
+// $ formatter. All purse and price values are whole millions.
+function fmtM(n) {
+  return '$' + Number(n || 0).toLocaleString() + 'M';
 }
 
-// Minimum pts captain must keep in reserve for all remaining required groups.
-function reserveNeeded(captainGroup, soldPlayers) {
-  return groupsStillNeeded(captainGroup, soldPlayers)
-    .reduce(function(sum, g) { return sum + (GROUP_BASE[g] || 0); }, 0);
+function spotsLeft(soldPlayers) {
+  return Math.max(0, S4_SLOTS - (soldPlayers || []).length);
 }
 
-// Main budget warning
-// wallet:       current balance
-// captainGroup: 1-6
-// soldPlayers:  array of player objects assigned to this captain
-// activeGroup:  the group currently live for auction, if any. Per the
-//               official rules doc: "When a player is live, their group
-//               is excluded from the reserve -- safe spend increases
-//               accordingly." So the live group's base price is NOT
-//               counted toward the reserve while it's live -- you're
-//               allowed to spend up to wallet-minus-other-reserves on it.
+// Highest legal bid for a team right now (0 if its roster is full).
+function maxBid(wallet, soldPlayers) {
+  var left = spotsLeft(soldPlayers);
+  if (left === 0) return 0;
+  return Math.max(0, wallet - (left - 1) * S4_BASE);
+}
+
+// Is `amount` a legal winning bid for this team?  Returns { allowed, reason }.
+function checkBid(wallet, soldPlayers, amount) {
+  var left = spotsLeft(soldPlayers);
+  if (left === 0) {
+    return { allowed: false, reason: 'Roster is full (' + S4_SLOTS + '/' + S4_SLOTS + ' players).' };
+  }
+  if (!isFinite(amount) || Math.floor(amount) !== amount) {
+    return { allowed: false, reason: 'Bids are whole $M amounts.' };
+  }
+  if (amount < S4_BASE) {
+    return { allowed: false, reason: 'Below the ' + fmtM(S4_BASE) + ' base price.' };
+  }
+  var mb = maxBid(wallet, soldPlayers);
+  if (amount > mb) {
+    return { allowed: false, reason: 'Over max bid. Max is ' + fmtM(mb) + ' (' + fmtM(wallet) + ' left, ' + left + ' spot' + (left !== 1 ? 's' : '') + ' to fill).' };
+  }
+  return { allowed: true, reason: '' };
+}
+
+// Summary used by the badges and the board spotlights.
+// Signature kept from Season 3 so call sites do not change; the group
+// arguments are ignored. `safe` is the max bid (used for "most pressure" sorting).
 function budgetWarning(wallet, captainGroup, soldPlayers, activeGroup) {
-  var needed = groupsStillNeeded(captainGroup, soldPlayers || []);
-  var reserveGroups = activeGroup
-    ? needed.filter(function(g) { return String(g) !== String(activeGroup); })
-    : needed;
-  var reserve = reserveGroups.reduce(function(s, g) { return s + (GROUP_BASE[g] || 0); }, 0);
-  var safe = wallet - reserve;
-
-  // Reserve badge color -- independent of the Safe-to-Spend color below.
-  // Per explicit instruction: green -> yellow -> red as reserve DECREASES.
-  // Thresholds picked against the realistic range (max ~3000 for a G1
-  // captain with 0 bought, down to 0 at a complete squad).
-  var reserveColor = reserve <= 300 ? 'var(--red)' : reserve <= 1000 ? 'var(--groupB)' : 'var(--green)';
-
-  if (needed.length === 0) {
-    return { color: 'var(--green)', reserveColor: 'var(--green)', msg: 'Squad complete -- no more bids needed', safe: 0, reserve: 0, needed: [] };
+  var left = spotsLeft(soldPlayers);
+  if (left === 0) {
+    return { color: 'var(--green)', reserveColor: 'var(--green)', msg: 'Squad complete. No more bids needed', safe: 0, reserve: 0, needed: [], maxBid: 0, spotsLeft: 0 };
   }
-  if (safe <= 0) {
-    return { color: 'var(--red)', reserveColor: reserveColor, msg: 'Warning: Over budget reserve!', safe: safe, reserve: reserve, needed: needed };
-  }
-  if (safe <= 200) {
-    return { color: 'var(--groupB)', reserveColor: reserveColor, msg: 'Caution: Only ' + safe + ' pts safe to spend', safe: safe, reserve: reserve, needed: needed };
-  }
-  return { color: 'var(--green)', reserveColor: reserveColor, msg: 'Safe to spend: ' + safe + ' pts', safe: safe, reserve: reserve, needed: needed };
+  var mb = maxBid(wallet, soldPlayers);
+  var reserve = (left - 1) * S4_BASE;
+  var needed = [];
+  for (var i = 0; i < left; i++) needed.push('spot');
+  var color = mb <= S4_BASE ? 'var(--red)' : mb <= 15 ? 'var(--groupB)' : 'var(--green)';
+  return {
+    color: color,
+    reserveColor: 'var(--muted)',
+    msg: 'Max bid: ' + fmtM(mb),
+    safe: mb,
+    reserve: reserve,
+    needed: needed,
+    maxBid: mb,
+    spotsLeft: left
+  };
 }
 
-// HTML badge -- Reserve and Safe to Spend on separate lines, each with
-// their own independent color.
+// HTML badge: max bid on the first line, spots left on the second.
 function warningBadgeHtml(wallet, captainGroup, soldPlayers, activeGroup) {
   var w = budgetWarning(wallet, captainGroup, soldPlayers || [], activeGroup);
-  if (w.needed.length === 0) {
+  if (w.spotsLeft === 0) {
     return '<div style="margin-top:8px;padding:7px 12px;border-radius:8px;background:' + w.color + '18;border:1px solid ' + w.color + '55;font-size:13px;font-weight:500;color:' + w.color + ';">' + w.msg + '</div>';
   }
   return '<div style="margin-top:8px;padding:7px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-size:13px;font-weight:500;">'
-    + '<div style="color:' + w.reserveColor + ';">Reserve: ' + w.reserve + ' pts</div>'
-    + '<div style="color:' + w.color + ';margin-top:3px;">Safe to Spend: ' + w.safe + ' pts</div>'
+    + '<div style="color:' + w.color + ';">Max Bid: ' + fmtM(w.maxBid) + (w.maxBid <= S4_BASE ? ' (base price only)' : '') + '</div>'
+    + '<div style="color:var(--muted);margin-top:3px;">' + w.spotsLeft + ' spot' + (w.spotsLeft !== 1 ? 's' : '') + ' left</div>'
     + '</div>';
-}
-
-// Bid eligibility check -- returns { allowed: bool, reason: string }
-function canBid(captain, playerGroup, nextBid, soldPlayers) {
-  var own = String(captain.captain_group);
-  var pg = String(playerGroup);
-
-  if (pg === own) {
-    return { allowed: false, reason: 'Cannot bid on your own group (Group ' + own + ')' };
-  }
-
-  var needed = groupsStillNeeded(own, soldPlayers);
-
-  if (needed.indexOf(pg) === -1) {
-    return { allowed: false, reason: 'Group ' + pg + ' slot already filled' };
-  }
-
-  if (captain.wallet < nextBid) {
-    return { allowed: false, reason: 'Insufficient funds (' + captain.wallet + ' pts left)' };
-  }
-
-  // Post-bid reserve: if this bid wins, group pg is filled -- check that
-  // the remaining wallet still covers every other still-needed group.
-  var neededAfter = needed.slice();
-  var idx = neededAfter.indexOf(pg);
-  if (idx !== -1) neededAfter.splice(idx, 1);
-  var reserveAfter = neededAfter.reduce(function(s, g) { return s + (GROUP_BASE[g] || 0); }, 0);
-  var walletAfter = captain.wallet - nextBid;
-
-  if (walletAfter < reserveAfter) {
-    return { allowed: false, reason: 'Not enough safe budget. Need ' + reserveAfter + ' pts in reserve for remaining groups.' };
-  }
-
-  return { allowed: true, reason: '' };
 }

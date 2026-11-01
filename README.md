@@ -21,7 +21,19 @@ A real-time PWA for managing the Brownish Premier League Dallas player auction, 
 
 ---
 
-## Season 2 (Current) — June 2026
+## Season 4 (Current) — Auction
+
+- 7 teams, 7 playing captains (captains are not charged against the purse)
+- Purse $60M per team, 5 auction players per captain, 6-player squads, 35 players in the auction
+- Base price $5M, minimum raise $1M, no player groups
+- **Max bid rule:** `max bid = remaining budget - (roster spots left after this purchase x $5M)`. Enforced when a sale is closed or assigned in Admin, and shown on the captain page and the board.
+- **Draw order:** Admin uses **Draw Next Player**. Players never offered are drawn at random. A player who goes unsold (Close Bidding with no bids) goes to the back of the queue and returns only after every fresh player has been offered, oldest-unsold first.
+- Run `S4_migration.sql` once in Supabase (adds `players.unsold_at`).
+- Purses are stored in whole $M (`captains.wallet = 60`). `players.group_name` is a legacy column; new players are written with `'1'`.
+
+---
+
+## Season 2 — June 2026
 
 ### Format
 - **10 teams**, 2 groups of 5 (Group A, Group B)

@@ -4,13 +4,6 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
 
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
 
-    // Returns the group_name of the player currently up for bid (or null).
-    // Used to exclude that group from reserve calculations during live bidding.
-    function getActiveBidGroup() {
-      if (!currentPlayerId) return null;
-      var p = allPlayers.find(function(p) { return p.id === currentPlayerId && !p.is_sold; });
-      return p ? p.group_name : null;
-    }
     function teamFlag(teamName) {
 
     var flags = {

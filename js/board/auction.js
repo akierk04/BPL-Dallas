@@ -93,10 +93,8 @@ function isPreAuctionMode() {
         const p = allPlayers.find(x => x.id === currentPlayerId);
         if (p && !p.is_sold) {
           nm.textContent = p.name;
-          const grpColor = p.group_name === '1' ? '#e05a2b' : p.group_name === '2' ? '#f0c040' : p.group_name === '3' ? '#3ecf8e' : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
           bp.innerHTML =
-            `Base price ${p.base_price} pts` +
-            ` <span style="margin-left:6px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${grpColor}18;border:1px solid ${grpColor}55;color:${grpColor};">Group ${p.group_name}</span>` +
+            `Base price ${fmtM(S4_BASE)}` +
             (p.status === 'tentative' ? ' <span style="margin-left:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);color:var(--green);">Tentative</span>' : '');
 
           const currentBid    = bidState?.current_bid || 0;
@@ -114,7 +112,7 @@ function isPreAuctionMode() {
           }
 
           if (currentBid > 0) {
-            amountEl.textContent    = currentBid.toLocaleString() + ' pts';
+            amountEl.textContent    = fmtM(currentBid);
             bidderEl.textContent    = currentBidder ? `Highest bid · ${displayCaptainName(currentBidder)}` : '—';
             liveSection.style.display = 'block';
           } else {
@@ -138,7 +136,7 @@ function isPreAuctionMode() {
       // Use in-memory event if fresh (within 25s), otherwise fall back to DB data
       if (lastSoldEvent && (Date.now() - lastSoldEvent.at) <= 25000) {
         main.textContent = lastSoldEvent.player;
-        sub.textContent = `Sold to ${lastSoldEvent.captain} for ${lastSoldEvent.price} pts`;
+        sub.textContent = `Sold to ${lastSoldEvent.captain} for ${fmtM(lastSoldEvent.price)}`;
         banner.style.display = 'block';
         return;
       }
@@ -155,7 +153,7 @@ function isPreAuctionMode() {
 
       const cap = allCaptains.find(c => c.id === latestSold.captain_id);
       main.textContent = latestSold.name;
-      sub.textContent = `Sold to ${cap ? displayCaptainName(cap) : '—'} for ${latestSold.sold_price || 0} pts`;
+      sub.textContent = `Sold to ${cap ? displayCaptainName(cap) : '—'} for ${fmtM(latestSold.sold_price || 0)}`;
       banner.style.display = 'block';
     }
 
@@ -182,9 +180,9 @@ function isPreAuctionMode() {
           const currentBid = bidState?.current_bid || 0;
           const bidder = bidState?.current_bidder_id ? allCaptains.find(c=>c.id===bidState.current_bidder_id) : null;
           if (currentBid > 0 && bidder) {
-            lines.push(`<span>${p.name}</span> is live at <span>${currentBid} pts</span>, led by <span>${displayCaptainName(bidder)}</span>.`);
+            lines.push(`<span>${p.name}</span> is live at <span>${fmtM(currentBid)}</span>, led by <span>${displayCaptainName(bidder)}</span>.`);
           } else {
-            lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${p.base_price} pts</span>.`);
+            lines.push(`<span>${p.name}</span> is live now. Opening price is <span>${fmtM(S4_BASE)}</span>.`);
           }
         }
       } else {
@@ -199,21 +197,21 @@ function isPreAuctionMode() {
               return { player: p.name, captain: cap ? displayCaptainName(cap) : '—', price: p.sold_price || 0 };
             })();
         if (recentSale) {
-          lines.push(`<span>${recentSale.player}</span> just went to <span>${recentSale.captain}</span> for <span>${recentSale.price} pts</span>.`);
+          lines.push(`<span>${recentSale.player}</span> just went to <span>${recentSale.captain}</span> for <span>${fmtM(recentSale.price)}</span>.`);
         } else {
           lines.push(`Auction is between nominations right now. <span>${available.length}</span> players are still available.`);
         }
       }
 
       if (sortedWallets[0]) {
-        lines.push(`<span>${displayCaptainName(sortedWallets[0])}</span> has the biggest purse left at <span>${sortedWallets[0].wallet.toLocaleString()} pts</span>.`);
+        lines.push(`<span>${displayCaptainName(sortedWallets[0])}</span> has the biggest purse left at <span>${fmtM(sortedWallets[0].wallet)}</span>.`);
       }
       if (fullest[0]) {
         lines.push(`<span>${displayCaptainName(fullest[0].captain)}</span> currently has the fullest squad with <span>${fullest[0].count}</span> player${fullest[0].count !== 1 ? 's' : ''} bought.`);
       }
       if (topSale) {
         const cap = allCaptains.find(c=>c.id===topSale.captain_id);
-        lines.push(`Highest sale so far: <span>${topSale.name}</span> to <span>${cap ? displayCaptainName(cap) : '—'}</span> for <span>${topSale.sold_price || 0} pts</span>.`);
+        lines.push(`Highest sale so far: <span>${topSale.name}</span> to <span>${cap ? displayCaptainName(cap) : '—'}</span> for <span>${fmtM(topSale.sold_price || 0)}</span>.`);
       }
 
       wrap.innerHTML = lines.slice(0,4).map(line => `<div class="story-line">${line}</div>`).join('');
@@ -279,18 +277,18 @@ function isPreAuctionMode() {
       const pressure = [...allCaptains].map(c => {
         const soldForCap = sold.filter(p => p.captain_id === c.id);
         const roster = soldForCap.length;
-        const safe = budgetWarning(c.wallet, c.captain_group, soldForCap, getActiveBidGroup()).safe;
+        const safe = budgetWarning(c.wallet, c.captain_group, soldForCap).safe;
         return { captain: c, roster, safe, wallet: c.wallet };
-      }).sort((a,b) => a.safe - b.safe || a.wallet - b.wallet)[0];
+      }).filter(r => r.roster < S4_SLOTS).sort((a,b) => a.safe - b.safe || a.wallet - b.wallet)[0];
 
       document.getElementById('topSpenderName').textContent = top && top.spent > 0 ? displayCaptainName(top.captain) : 'No leader yet';
       document.getElementById('topSpenderCopy').textContent = top && top.spent > 0
-        ? `${top.spent} pts spent across ${top.roster}/5 slots. They are setting the auction pace.`
+        ? `${fmtM(top.spent)} spent across ${top.roster}/${S4_SLOTS} spots. They are setting the auction pace.`
         : 'The board is waiting for the first statement buy.';
 
       document.getElementById('pressureWatchName').textContent = pressure ? displayCaptainName(pressure.captain) : 'No alert';
       document.getElementById('pressureWatchCopy').textContent = pressure && allPlayers.filter(p => p.is_sold).length
-        ? `${pressure.wallet} pts left with ${Math.max(0, 5 - pressure.roster)} slots remaining. Safe spend: ${pressure.safe} pts.`
+        ? `${fmtM(pressure.wallet)} left with ${Math.max(0, S4_SLOTS - pressure.roster)} spot${S4_SLOTS - pressure.roster !== 1 ? 's' : ''} remaining. Max bid: ${fmtM(pressure.safe)}.`
         : 'Nobody is under purse pressure yet.';
     }
 
@@ -305,31 +303,31 @@ function isPreAuctionMode() {
         captain: c,
         spent: sold.filter(p => p.captain_id === c.id).reduce((sum,p) => sum + (p.sold_price||0), 0),
         roster: sold.filter(p => p.captain_id === c.id).length,
-        safe: budgetWarning(c.wallet, c.captain_group, sold.filter(p => p.captain_id === c.id), getActiveBidGroup()).safe
+        safe: budgetWarning(c.wallet, c.captain_group, sold.filter(p => p.captain_id === c.id)).safe
       })).sort((a,b) => b.spent - a.spent);
       const topSpender = spendRows[0];
-      const pressure = [...spendRows].sort((a,b) => a.safe - b.safe || a.captain.wallet - b.captain.wallet)[0];
+      const pressure = spendRows.filter(r => r.roster < S4_SLOTS).sort((a,b) => a.safe - b.safe || a.captain.wallet - b.captain.wallet)[0];
 
       if (current && currentBidder && bidState?.current_bid) {
-        lines.push(`<div class="story-line"><span>${current.name}</span> is live at <span>${bidState.current_bid} pts</span>, led by <span>${displayCaptainName(currentBidder)}</span>.</div>`);
+        lines.push(`<div class="story-line"><span>${current.name}</span> is live at <span>${fmtM(bidState.current_bid)}</span>, led by <span>${displayCaptainName(currentBidder)}</span>.</div>`);
       } else if (current) {
-        lines.push(`<div class="story-line"><span>${current.name}</span> is on the block. Opening value is <span>${current.base_price} pts</span>.</div>`);
+        lines.push(`<div class="story-line"><span>${current.name}</span> is on the block. Opening value is <span>${fmtM(S4_BASE)}</span>.</div>`);
       }
       if (lastSoldEvent) {
-        lines.push(`<div class="story-line"><span>${lastSoldEvent.player}</span> just moved to <span>${lastSoldEvent.captain}</span> for <span>${lastSoldEvent.price} pts</span>.</div>`);
+        lines.push(`<div class="story-line"><span>${lastSoldEvent.player}</span> just moved to <span>${lastSoldEvent.captain}</span> for <span>${fmtM(lastSoldEvent.price)}</span>.</div>`);
       } else if (sold[0]) {
         const cap = allCaptains.find(c => c.id === sold[0].captain_id);
-        lines.push(`<div class="story-line">Most recent sale: <span>${sold[0].name}</span> to <span>${cap ? displayCaptainName(cap) : '—'}</span> for <span>${sold[0].sold_price || 0} pts</span>.</div>`);
+        lines.push(`<div class="story-line">Most recent sale: <span>${sold[0].name}</span> to <span>${cap ? displayCaptainName(cap) : '—'}</span> for <span>${fmtM(sold[0].sold_price || 0)}</span>.</div>`);
       }
       if (topSale) {
         const cap = allCaptains.find(c => c.id === topSale.captain_id);
-        lines.push(`<div class="story-line">Highest ticket so far is <span>${topSale.sold_price} pts</span> for <span>${topSale.name}</span>${cap ? `, landed by <span>${displayCaptainName(cap)}</span>` : ''}.</div>`);
+        lines.push(`<div class="story-line">Highest ticket so far is <span>${fmtM(topSale.sold_price)}</span> for <span>${topSale.name}</span>${cap ? `, landed by <span>${displayCaptainName(cap)}</span>` : ''}.</div>`);
       }
       if (topSpender && topSpender.spent > 0) {
-        lines.push(`<div class="story-line"><span>${displayCaptainName(topSpender.captain)}</span> leads spending at <span>${topSpender.spent} pts</span> across <span>${topSpender.roster}</span> players.</div>`);
+        lines.push(`<div class="story-line"><span>${displayCaptainName(topSpender.captain)}</span> leads spending at <span>${fmtM(topSpender.spent)}</span> across <span>${topSpender.roster}</span> players.</div>`);
       }
       if (pressure && sold.length) {
-        lines.push(`<div class="story-line"><span>${displayCaptainName(pressure.captain)}</span> is under the most purse pressure with only <span>${pressure.safe} pts</span> safe to spend.</div>`);
+        lines.push(`<div class="story-line"><span>${displayCaptainName(pressure.captain)}</span> has the lowest max bid at <span>${fmtM(pressure.safe)}</span>.</div>`);
       }
       if (!lines.length) lines.push('<div class="story-line">Auction room is warming up. First bid will set the tone.</div>');
       el.innerHTML = lines.slice(0,4).join('');
@@ -352,7 +350,7 @@ function renderRecentSales() {
         return `
           <div class="recent-sale-row">
             <div class="recent-sale-name">${p.name}</div>
-            <div class="recent-sale-meta">${cap ? displayCaptainName(cap) : '—'} · ${p.sold_price || 0} pts</div>
+            <div class="recent-sale-meta">${cap ? displayCaptainName(cap) : '—'} · ${fmtM(p.sold_price || 0)}</div>
           </div>`;
       }).join('');
     }
@@ -375,7 +373,7 @@ function renderRecentSales() {
       grid.innerHTML=sorted.map(c=>{
         const roster = allPlayers.filter(p=>p.captain_id===c.id && p.is_sold);
         const slotsUsed    = roster.length;
-        const totalSlots   = 5; // 5 bids per captain (6 total including captain)
+        const totalSlots   = S4_SLOTS; // 5 auction players per captain (6 total including captain)
         const teamName     = c.team_name ? displayTeamName(c.team_name) : null;
 
         const rHtml = roster.length
@@ -383,10 +381,9 @@ function renderRecentSales() {
               <div class="board-player-row">
                 <span class="board-player-name">
                   ${p.name}
-                  <span style="font-size:10px;background:rgba(240,192,64,0.1);color:var(--muted);padding:1px 5px;border-radius:3px;margin-left:4px;">G${p.group_name}</span>
                   ${p.status==='tentative' ? '<span style="font-size:10px;background:rgba(62,207,142,0.1);color:var(--green);padding:1px 5px;border-radius:3px;margin-left:2px;">T</span>' : ''}
                 </span>
-                <span class="board-player-price">${p.sold_price} pts</span>
+                <span class="board-player-price">${fmtM(p.sold_price)}</span>
               </div>`).join('')
           : '<div class="board-empty">No players yet</div>';
 
@@ -405,11 +402,11 @@ function renderRecentSales() {
               </div>
               <div class="board-purse-wrap">
                 <div class="board-purse-label">Purse</div>
-                <div class="board-purse">${c.wallet.toLocaleString()}</div>
-                <div class="board-purse-label">pts left</div>
+                <div class="board-purse">${fmtM(c.wallet)}</div>
+                <div class="board-purse-label">left</div>
               </div>
             </div>
-            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet, c.captain_group, roster, getActiveBidGroup())}</div>
+            <div style="padding:8px 16px 0;">${warningBadgeHtml(c.wallet, c.captain_group, roster)}</div>
             <div class="board-roster">${rHtml}</div>
           </div>`;
       }).join('');
@@ -426,7 +423,7 @@ function renderRecentSales() {
         return `
           <div class="pool-player-card ${p.is_sold?'is-sold':''} ${isCurrent?'is-current':''}">
             <div class="pool-player-card-name">${p.name}${isCurrent?' <span style="font-size:10px;color:var(--accent);">● Bidding</span>':''}</div>
-            ${p.is_sold?`<div class="pool-player-card-sold">✓ ${cap?displayCaptainName(cap):'?'} · ${p.sold_price} pts</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'Live now':'Available'}</div>`}
+            ${p.is_sold?`<div class="pool-player-card-sold">✓ ${cap?displayCaptainName(cap):'?'} · ${fmtM(p.sold_price)}</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'Live now':'Available'}</div>`}
           </div>`;
       }).join('');
     }

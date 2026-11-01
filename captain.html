@@ -107,11 +107,10 @@
         <div class="bid-current-bidder" id="bidCurrentBidder">—</div>
       </div>
     </div>
-    <div class="bid-stats" style="grid-template-columns:repeat(4,minmax(0,1fr));">
+    <div class="bid-stats" style="grid-template-columns:repeat(3,minmax(0,1fr));">
       <div class="bid-stat"><div class="bid-stat-label">Next Bid</div><div id="nextBidStat" class="bid-stat-value emph">—</div></div>
-      <div class="bid-stat"><div class="bid-stat-label">Reserve</div><div id="reserveStat" class="bid-stat-value" style="color:var(--muted);">—</div></div>
-      <div class="bid-stat"><div class="bid-stat-label">Safe Spend</div><div id="safeSpendStat" class="bid-stat-value" style="color:var(--green);">—</div></div>
-      <div class="bid-stat"><div class="bid-stat-label">Slots Left</div><div id="playersLeftStat" class="bid-stat-value">—</div></div>
+      <div class="bid-stat"><div class="bid-stat-label">Your Max Bid</div><div id="maxBidStat" class="bid-stat-value" style="color:var(--green);">—</div></div>
+      <div class="bid-stat"><div class="bid-stat-label">Spots Left</div><div id="playersLeftStat" class="bid-stat-value">—</div></div>
     </div>
     <div class="watch-only-strip">👀 Bidding is managed in person — raise your hand to bid</div>
   </div>
@@ -144,7 +143,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
-  <script src="budget-warning.js"></script>
+  <script src="budget-warning.js?v=7"></script>
   <script>
     const user = JSON.parse(sessionStorage.getItem('bpl_user') || 'null');
     if (!user || sessionStorage.getItem('bpl_role') !== 'captain') window.location.href = 'index.html';
@@ -154,14 +153,6 @@
 
     let allCaptains = [], allPlayers = [], bidState = null;
     let previousSoldState = new Map(), lastSoldEvent = null, isFirstLoad = true;
-
-    // Returns the group_name of the player currently live for bidding (or null).
-    // Passed to budgetWarning() so that group is excluded from reserve calculation.
-    function getActiveBidGroup() {
-      if (!bidState?.player_id) return null;
-      const p = allPlayers.find(p => p.id === bidState.player_id && !p.is_sold);
-      return p ? p.group_name : null;
-    }
 
     function detectSoldTransition(nextPlayers) {
       if (isFirstLoad) {
@@ -199,9 +190,8 @@
       if (me) {
         user.wallet = me.wallet;
         const myRoster = allPlayers.filter(p => p.captain_id === me.id && p.is_sold);
-        document.getElementById('myWalletAmount').textContent = me.wallet.toLocaleString() + ' pts';
+        document.getElementById('myWalletAmount').textContent = fmtM(me.wallet);
         document.getElementById('myWalletName').textContent   = displayCaptainName(me);
-        // Wallet card shows full reserve (no activeGroup) — correct outside live bid context
         document.getElementById('myWarning').innerHTML = warningBadgeHtml(me.wallet, me.captain_group, myRoster);
       }
 
@@ -220,15 +210,14 @@
       const me = allCaptains.find(c => c.id === user.id);
       if (!me) { ribbon.innerHTML = ''; return; }
       const myRoster  = allPlayers.filter(p => p.captain_id === me.id && p.is_sold);
-      const needed    = groupsStillNeeded(me.captain_group, myRoster);
-      const slotsLeft = needed.length;
+      const slotsLeft = spotsLeft(myRoster);
       const unsold    = allPlayers.filter(p => !p.is_sold).length;
       ribbon.innerHTML =
         '<div class="status-pill"><strong>' + unsold + '</strong>&nbsp;players remaining</div>' +
         '<div class="status-pill ' + (slotsLeft === 0 ? 'good' : '') + '">' +
-          (slotsLeft === 0 ? '✅' : '⬜') + '&nbsp;<strong>' + slotsLeft + '</strong>&nbsp;slot' + (slotsLeft !== 1 ? 's' : '') + ' to fill' +
+          (slotsLeft === 0 ? '✅' : '⬜') + '&nbsp;<strong>' + slotsLeft + '</strong>&nbsp;spot' + (slotsLeft !== 1 ? 's' : '') + ' to fill' +
         '</div>' +
-        (slotsLeft > 0 ? '<div class="status-pill">Need: ' + needed.map(g => 'G' + g).join(', ') + '</div>' : '');
+        (slotsLeft > 0 ? '<div class="status-pill">Max bid: ' + fmtM(maxBid(me.wallet, myRoster)) + '</div>' : '');
     }
 
     // ── Live Bidding Panel (display only) ──
@@ -244,72 +233,40 @@
 
       const me            = allCaptains.find(c => c.id === user.id);
       const myRoster      = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
-      const currentBid    = bidState.current_bid || player.base_price;
-      const nextBid       = bidState.current_bid === 0 ? player.base_price : currentBid + 50;
+      const currentBid    = bidState.current_bid || S4_BASE;
+      const nextBid       = bidState.current_bid === 0 ? S4_BASE : currentBid + S4_INCREMENT;
       const currentBidder = bidState.current_bidder_id ? allCaptains.find(c => c.id === bidState.current_bidder_id) : null;
-      const needed        = me ? groupsStillNeeded(me.captain_group, myRoster) : [];
-
-      // KEY FIX: exclude the live player's group from reserve so safe spend is correct
-      const activePg  = getActiveBidGroup();
-      const safeSpend = me ? budgetWarning(me.wallet, me.captain_group, myRoster, activePg).safe : 0;
-
-      const grpColor = player.group_name === '1' ? '#e05a2b'
-                     : player.group_name === '2' ? '#f0c040'
-                     : player.group_name === '3' ? '#3ecf8e'
-                     : player.group_name === '4' ? '#7c8cf8' : '#a78bfa';
+      const left          = me ? spotsLeft(myRoster) : 0;
+      const myMax         = me ? maxBid(me.wallet, myRoster) : 0;
 
       document.getElementById('bidPlayerName').textContent = player.name;
       document.getElementById('bidBasePrice').innerHTML =
-        'Base price ' + player.base_price + ' pts' +
-        ' <span style="margin-left:6px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:' + grpColor + '18;border:1px solid ' + grpColor + '55;color:' + grpColor + ';">Group ' + player.group_name + '</span>' +
+        'Base price ' + fmtM(S4_BASE) +
         (player.status === 'tentative' ? ' <span style="margin-left:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);color:var(--green);">Tentative</span>' : '');
 
-      document.getElementById('bidCurrentAmount').textContent = currentBid.toLocaleString() + ' pts';
+      document.getElementById('bidCurrentAmount').textContent = fmtM(currentBid);
       document.getElementById('bidCurrentBidder').textContent = currentBidder ? displayCaptainName(currentBidder) : 'No bids yet';
-      const reserveAmt = me ? budgetWarning(me.wallet, me.captain_group, myRoster).reserve : 0;
-      document.getElementById('nextBidStat').textContent      = nextBid.toLocaleString() + ' pts';
-      document.getElementById('reserveStat').textContent      = reserveAmt.toLocaleString() + ' pts';
-      document.getElementById('safeSpendStat').textContent    = safeSpend.toLocaleString() + ' pts';
-      document.getElementById('playersLeftStat').textContent  = needed.length + ' group' + (needed.length !== 1 ? 's' : '');
+      document.getElementById('nextBidStat').textContent      = fmtM(nextBid);
+      document.getElementById('maxBidStat').textContent       = left === 0 ? '—' : fmtM(myMax);
+      document.getElementById('playersLeftStat').textContent  = left + ' of ' + S4_SLOTS;
     }
 
-    // ── Available Players — grouped by G1-G5, chips layout ──
+    // ── Available Players: one flat list (no groups in S4) ──
     function renderAvailablePlayers() {
       const wrap    = document.getElementById('captainAvailablePlayers');
-      const me      = allCaptains.find(c => c.id === user.id);
-      const myRoster = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
-      const needed  = me ? groupsStillNeeded(me.captain_group, myRoster) : [];
       const curId   = bidState?.player_id || null;
       const available = allPlayers.filter(p => !p.is_sold).sort((a, b) => a.name.localeCompare(b.name));
 
       if (!available.length) { wrap.innerHTML = '<div class="text-muted" style="font-size:13px;">No players remaining.</div>'; return; }
 
-      const GRP_COLOR = { '1':'#e05a2b','2':'#f0c040','3':'#3ecf8e','4':'#7c8cf8','5':'#a78bfa' };
-      const GRP_LABEL = { '1':'Group 1 — 500 pts base','2':'Group 2 — 400 pts base','3':'Group 3 — 300 pts base','4':'Group 4 — 200 pts base','5':'Group 5 — 100 pts base' };
-
-      let html = '';
-      ['1','2','3','4','5'].forEach(g => {
-        const grpPlayers = available.filter(p => p.group_name === g);
-        if (!grpPlayers.length) return;
-        const color = GRP_COLOR[g];
-        // Ineligible = own group OR slot already filled
-        const isOwnGroup   = me && String(me.captain_group) === g;
-        const slotFilled   = me && needed.indexOf(g) === -1 && !isOwnGroup;
-        const ineligible   = isOwnGroup || slotFilled;
-        const labelSuffix  = isOwnGroup ? ' <span style="color:var(--muted);font-weight:400;">(your group)</span>'
-                           : slotFilled ? ' <span style="color:var(--green);font-weight:400;">✓ slot filled</span>'
-                           : '';
-        html += '<div class="avail-group-label" style="color:' + color + ';">' + GRP_LABEL[g] + labelSuffix + '</div>';
-        html += '<div class="avail-pool-grid">';
-        grpPlayers.forEach(p => {
-          const isCur = p.id === curId;
-          html += '<div class="avail-chip' + (isCur ? ' is-current' : '') + (ineligible && !isCur ? ' is-ineligible' : '') + '">'
-            + '<span class="avail-chip-name">' + (isCur ? '⚡ ' : '') + p.name + '</span>'
-            + '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:' + color + '18;color:' + color + ';font-weight:700;flex-shrink:0;margin-left:4px;">G' + g + '</span>'
-            + '</div>';
-        });
-        html += '</div>';
+      let html = '<div class="avail-pool-grid">';
+      available.forEach(p => {
+        const isCur = p.id === curId;
+        html += '<div class="avail-chip' + (isCur ? ' is-current' : '') + '">'
+          + '<span class="avail-chip-name">' + (isCur ? '⚡ ' : '') + p.name + '</span>'
+          + '</div>';
       });
+      html += '</div>';
       wrap.innerHTML = html;
     }
 
@@ -323,67 +280,52 @@
           .sort((a, b) => (b.sold_at ? new Date(b.sold_at).getTime() : 0) - (a.sold_at ? new Date(a.sold_at).getTime() : 0))[0];
         if (!byDate) { banner.style.display = 'none'; return; }
         const cap = allCaptains.find(c => c.id === byDate.captain_id);
-        text.textContent = byDate.name + ' sold to ' + (cap ? displayCaptainName(cap) : '—') + ' for ' + (byDate.sold_price || 0) + ' pts';
+        text.textContent = byDate.name + ' sold to ' + (cap ? displayCaptainName(cap) : '—') + ' for ' + fmtM(byDate.sold_price || 0);
         banner.style.display = 'block';
         return;
       }
-      text.textContent = latest.name + ' sold to ' + latest.captainName + ' for ' + latest.sold_price + ' pts';
+      text.textContent = latest.name + ' sold to ' + latest.captainName + ' for ' + fmtM(latest.sold_price);
       banner.style.display = 'block';
     }
 
-    // ── My Roster + groups needed badges ──
+    // ── My Roster + spots badges ──
     function renderRoster() {
       const me       = allCaptains.find(c => c.id === user.id);
       const myRoster = allPlayers.filter(p => p.captain_id === user.id && p.is_sold);
       const badgeWrap = document.getElementById('groupsNeededBadge');
       if (me && myRoster.length > 0) {
-        const needed = groupsStillNeeded(me.captain_group, myRoster);
-        const requiredSlots = [];
-        ['1','2','3'].filter(g => g !== String(me.captain_group)).forEach(g => requiredSlots.push(g));
-        requiredSlots.push('4'); requiredSlots.push('4');
-        if (String(me.captain_group) !== '5') requiredSlots.push('5');
-        badgeWrap.innerHTML = requiredSlots.map(g => {
-          const filled = needed.indexOf(g) === -1;
-          return '<div class="group-need-badge ' + (filled ? 'filled' : 'needed') + '">'
-            + (filled ? '✅' : '⚠️') + ' Group ' + g + '</div>';
-        }).join('');
+        let badges = '';
+        for (let i = 0; i < S4_SLOTS; i++) {
+          const filled = i < myRoster.length;
+          badges += '<div class="group-need-badge ' + (filled ? 'filled' : 'needed') + '">'
+            + (filled ? '✅' : '⚠️') + ' Spot ' + (i + 1) + '</div>';
+        }
+        badgeWrap.innerHTML = badges;
       } else {
         badgeWrap.innerHTML = '';
       }
       document.getElementById('myRoster').innerHTML = myRoster.length
         ? myRoster.map(p => {
-            const grpColor = p.group_name === '1' ? '#e05a2b'
-                           : p.group_name === '2' ? '#f0c040'
-                           : p.group_name === '3' ? '#3ecf8e'
-                           : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
             return '<div class="roster-player">'
               + '<span class="roster-player-name">' + p.name
-              + ' <span style="font-size:10px;background:' + grpColor + '18;color:' + grpColor + ';padding:1px 6px;border-radius:4px;font-weight:600;">G' + p.group_name + '</span>'
               + (p.status === 'tentative' ? ' <span style="font-size:10px;background:rgba(62,207,142,0.1);color:var(--green);padding:1px 6px;border-radius:4px;">T</span>' : '')
               + '</span>'
-              + '<span class="roster-player-price">' + (p.sold_price ? p.sold_price + ' pts' : '—') + '</span>'
+              + '<span class="roster-player-price">' + (p.sold_price ? fmtM(p.sold_price) : '—') + '</span>'
               + '</div>';
           }).join('')
         : '<div class="roster-empty">No players yet</div>';
     }
 
     // ── All Captains grid ──
-    // warningBadgeHtml here does NOT pass activeGroup — full reserve is correct on captain cards
     function renderCaptainsGrid() {
       const grid = document.getElementById('captainsGrid');
       grid.innerHTML = allCaptains.filter(c => c.id !== user.id).map(c => {
         const roster = allPlayers.filter(p => p.captain_id === c.id && p.is_sold);
         const rosterHtml = roster.length
           ? roster.map(p => {
-              const grpColor = p.group_name === '1' ? '#e05a2b'
-                             : p.group_name === '2' ? '#f0c040'
-                             : p.group_name === '3' ? '#3ecf8e'
-                             : p.group_name === '4' ? '#7c8cf8' : '#a78bfa';
               return '<div class="roster-player">'
-                + '<span class="roster-player-name">' + p.name
-                + ' <span style="font-size:10px;background:' + grpColor + '18;color:' + grpColor + ';padding:1px 6px;border-radius:4px;font-weight:600;">G' + p.group_name + '</span>'
-                + '</span>'
-                + '<span class="roster-player-price">' + (p.sold_price ? p.sold_price + ' pts' : '—') + '</span>'
+                + '<span class="roster-player-name">' + p.name + '</span>'
+                + '<span class="roster-player-price">' + (p.sold_price ? fmtM(p.sold_price) : '—') + '</span>'
                 + '</div>';
             }).join('')
           : '<div class="roster-empty">No players yet</div>';
@@ -391,7 +333,7 @@
           + '<div class="captain-card-header"><div style="width:100%;">'
           + '<div class="captain-name">' + displayCaptainName(c) + '</div>'
           + '<div class="captain-wallet-label">Purse</div>'
-          + '<div class="captain-wallet">' + c.wallet.toLocaleString() + ' <span style="font-size:0.8rem;color:var(--muted)">pts</span></div>'
+          + '<div class="captain-wallet">' + fmtM(c.wallet) + '</div>'
           + warningBadgeHtml(c.wallet, c.captain_group, roster)
           + '</div></div>'
           + '<div class="team-roster">' + rosterHtml + '</div>'
@@ -408,8 +350,7 @@
       auctionBanner.style.display = (allPlayers.length > 0 && unsold === 0) ? 'block' : 'none';
       if (me) {
         const myRoster = allPlayers.filter(p => p.captain_id === me.id && p.is_sold);
-        const needed   = groupsStillNeeded(me.captain_group, myRoster);
-        const full     = needed.length === 0 && myRoster.length >= 5;
+        const full     = spotsLeft(myRoster) === 0;
         squadBanner.style.display = full ? 'block' : 'none';
         if (full) document.getElementById('squadCompleteSubtext').textContent = 'All ' + myRoster.length + ' players signed. Good luck!';
       }
