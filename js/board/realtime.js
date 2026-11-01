@@ -1,3 +1,4 @@
+var rtDown = false;
 const _cid = Math.random().toString(36).slice(2);
 
 // -- FALLBACK path --
@@ -9,6 +10,9 @@ function scheduleLightReload() {
   clearTimeout(_lightReloadTimer);
   _lightReloadTimer = setTimeout(() => refreshForPhase(), 300);
 }
+
+// The old 'watching live' presence channel was removed: 75 phones joining at once can exceed
+// the Free plan's 20 presence messages per second, and the counter was cosmetic.
 
 // Match Day Board:
 // Auction is over -- players/captains/bidding_state no longer change, so
@@ -27,28 +31,15 @@ db.channel('bpl-board-' + _cid)
   .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' },          handleMatchesEvent)
   .on('postgres_changes', { event: '*', schema: 'public', table: 'goals' },            handleGoalsEvent)
   .on('postgres_changes', { event: '*', schema: 'public', table: 'tiebreak_results' }, handleTiebreakEvent)
-  .subscribe();
-
-const presenceKey =
-  (window.crypto && crypto.randomUUID)
-    ? crypto.randomUUID()
-    : ('id-' + Date.now() + '-' + Math.random().toString(36).slice(2));
-
-const presenceChannel = db.channel('bpl-presence', { config: { presence: { key: presenceKey } } });
-let _presenceTimer = null;
-presenceChannel
-  .on('presence', { event: 'sync' }, () => {
-    clearTimeout(_presenceTimer);
-    _presenceTimer = setTimeout(() => {
-      const state = presenceChannel.presenceState();
-      const count = Object.keys(state).length;
-      const el = document.getElementById('viewerCount');
-      if (!el) return;
-      el.innerHTML = count === 1 ? '<span class="viewer-pill"><span class="live-dot"></span>1 watching live</span>' : '<span class="viewer-pill"><span class="live-dot"></span>' + count + ' watching live</span>';
-    }, 2000);
-  })
-  .subscribe(async (status) => {
+  .subscribe(function(status) {
+    // Realtime does not replay events missed while disconnected. Track the link state for the
+    // freshness label, and refetch as soon as it comes back so nothing stays stale.
     if (status === 'SUBSCRIBED') {
-      await presenceChannel.track({ online_at: new Date().toISOString() });
+      var wasDown = rtDown;
+      rtDown = false;
+      if (wasDown) refreshForPhase();
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      rtDown = true;
     }
+    if (typeof updateFreshness === "function") updateFreshness();
   });
