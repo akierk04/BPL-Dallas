@@ -1,16 +1,32 @@
 // ── BPL Dallas · Shared Standings & Stats Logic ──
-// Tournament format: 9 teams, single group, round-robin (4 matches each)
-// Knockouts: Quarterfinals (1v8, 2v7, 3v6, 4v5) -> Semifinals -> Final
-// Single-leg knockout throughout (no aggregate/two-legged rounds).
+// Season 4 format: 7 teams, single prelim table (4 games each, 14 total).
+// Prelim ranking: Points (W3 D1 L0), then Goal Difference, then Goals Scored, then Head-to-Head
+// (only when exactly two teams are still tied), then TGT (the recorded shootout/tiebreak result).
+// If three or more teams are still tied after Points, GD and GF, it goes straight to TGT.
+// Playoffs: all 7 qualify, double elimination (see bracket.js).
 
-const QF_ROUNDS = ['QF1', 'QF2', 'QF3', 'QF4'];
-const SF_ROUNDS = ['SF1', 'SF2'];
-const KO_ROUNDS = [...QF_ROUNDS, ...SF_ROUNDS, 'Final'];
+const PLAYOFF_TEAMS_COUNT = 7;
+
+// Playoff slots in the order they are played. minutes = game length.
+const PLAYOFF_ROUNDS = [
+  { code: 'W1A', stage: 'WB', minutes: 12, label: 'Winners Round 1 · #2 vs #7' },
+  { code: 'W1B', stage: 'WB', minutes: 12, label: 'Winners Round 1 · #3 vs #6' },
+  { code: 'W1C', stage: 'WB', minutes: 12, label: 'Winners Round 1 · #4 vs #5' },
+  { code: 'L1',  stage: 'LB', minutes: 12, label: 'Losers Round 1' },
+  { code: 'W2A', stage: 'WB', minutes: 12, label: 'Winners Round 2 · Match A' },
+  { code: 'W2B', stage: 'WB', minutes: 12, label: 'Winners Round 2 · Match B' },
+  { code: 'L2A', stage: 'LB', minutes: 12, label: 'Losers Round 2 · Match A' },
+  { code: 'L2B', stage: 'LB', minutes: 12, label: 'Losers Round 2 · Match B' },
+  { code: 'WF',  stage: 'WB', minutes: 15, label: 'Winners Final' },
+  { code: 'L3',  stage: 'LB', minutes: 12, label: 'Losers Round 3' },
+  { code: 'LF',  stage: 'LB', minutes: 15, label: 'Losers Final' },
+  { code: 'GF',  stage: 'GF', minutes: 20, label: 'Grand Final' },
+  { code: 'RF',  stage: 'GF', minutes: 20, label: 'Reset Final' }
+];
+const KO_ROUNDS = PLAYOFF_ROUNDS.map(r => r.code);
 
 function isKoRound(round)     { return KO_ROUNDS.includes(String(round)); }
 function isLeagueRound(round) { return !isKoRound(round); }
-function isQfRound(round)     { return QF_ROUNDS.includes(String(round)); }
-function isSfRound(round)     { return SF_ROUNDS.includes(String(round)); }
 
 // ── Compute standings (single flat table, all captains) ──
 function computeStandings(captains, matches, tiebreakResults) {
@@ -52,17 +68,22 @@ function computeStandings(captains, matches, tiebreakResults) {
     return rec ? rec.winner : null;
   }
 
-  return Object.values(table).sort((a, b) => {
+  const rows = Object.values(table);
+  // Teams sharing the same Pts/GD/GF form a tie group. Exactly two -> head-to-head, then TGT.
+  // Three or more -> straight to TGT (no head-to-head).
+  const tieKey = r => r.pts + '|' + r.gd + '|' + r.gf;
+  const tieSize = {};
+  rows.forEach(r => { const k = tieKey(r); tieSize[k] = (tieSize[k] || 0) + 1; });
+
+  return rows.sort((a, b) => {
     if (b.pts !== a.pts) return b.pts - a.pts;
     if (b.gd  !== a.gd)  return b.gd  - a.gd;
     if (b.gf  !== a.gf)  return b.gf  - a.gf;
-    if (a.ga  !== b.ga)  return a.ga  - b.ga;
-    const h2h_a = a.results[b.captain.id];
-    const h2h_b = b.results[a.captain.id];
-    if (h2h_a && h2h_b && h2h_b.pts !== h2h_a.pts) return h2h_b.pts - h2h_a.pts;
-    // No head-to-head distinction -- either they never played each other
-    // (only 4 of 8 possible opponents each), or they drew. Check for a
-    // recorded penalty shootout result before falling through to "tied".
+    if (tieSize[tieKey(a)] === 2) {
+      const h2h_a = a.results[b.captain.id];
+      const h2h_b = b.results[a.captain.id];
+      if (h2h_a && h2h_b && h2h_b.pts !== h2h_a.pts) return h2h_b.pts - h2h_a.pts;
+    }
     const winner = tiebreakWinner(a.captain.id, b.captain.id);
     if (winner) return winner === a.captain.id ? -1 : 1;
     return 0;
@@ -86,12 +107,17 @@ function detectDeadlocks(rows, matches, tiebreakResults) {
   if (!leagueComplete) return [];
 
   const deadlocks = [];
+  const tieKey = r => r.pts + '|' + r.gd + '|' + r.gf;
+  const tieSize = {};
+  rows.forEach(r => { const k = tieKey(r); tieSize[k] = (tieSize[k] || 0) + 1; });
   for (let i = 0; i < rows.length - 1; i++) {
     const a = rows[i], b = rows[i + 1];
-    if (a.pts !== b.pts || a.gd !== b.gd || a.gf !== b.gf || a.ga !== b.ga) continue;
-    const h2h_a = a.results[b.captain.id];
-    const h2h_b = b.results[a.captain.id];
-    if (h2h_a && h2h_b && h2h_a.pts !== h2h_b.pts) continue; // h2h already resolved it
+    if (tieKey(a) !== tieKey(b)) continue;
+    if (tieSize[tieKey(a)] === 2) {
+      const h2h_a = a.results[b.captain.id];
+      const h2h_b = b.results[a.captain.id];
+      if (h2h_a && h2h_b && h2h_a.pts !== h2h_b.pts) continue; // head-to-head already resolved it
+    }
     const hasResult = tiebreakResults.some(t =>
       (t.team_a === a.captain.id && t.team_b === b.captain.id) ||
       (t.team_a === b.captain.id && t.team_b === a.captain.id)
@@ -103,17 +129,22 @@ function detectDeadlocks(rows, matches, tiebreakResults) {
 }
 
 // ── Tiebreaker badge ──
-function _tiebreakLabel(r, i, rows) {
+function _tiebreakLabel(r, i, rows, tiebreakResults) {
   if (i === 0) return null;
   const prev = rows[i - 1];
   if (!prev || prev.pts !== r.pts) return null;
   if (prev.gd !== r.gd) return 'GD';
   if (prev.gf !== r.gf) return 'GF';
-  if (prev.ga !== r.ga) return 'GA';
-  const h2h  = r.results[prev.captain.id];
-  const ph2h = prev.results[r.captain.id];
-  if (h2h && ph2h && h2h.pts !== ph2h.pts) return 'H2H';
-  return null;
+  const size = rows.filter(x => x.pts === r.pts && x.gd === r.gd && x.gf === r.gf).length;
+  if (size === 2) {
+    const h2h  = r.results[prev.captain.id];
+    const ph2h = prev.results[r.captain.id];
+    if (h2h && ph2h && h2h.pts !== ph2h.pts) return 'H2H';
+  }
+  const hasTgt = (tiebreakResults || []).some(t =>
+    (t.team_a === r.captain.id && t.team_b === prev.captain.id) ||
+    (t.team_a === prev.captain.id && t.team_b === r.captain.id));
+  return hasTgt ? 'TGT' : null;
 }
 
 // ── Standings table HTML (single flat table) ──
@@ -129,17 +160,16 @@ function standingsTableHtml(captains, matches, tiebreakResults) {
     return d.teamA.id === captainId ? d.teamB : d.teamA;
   }
 
-  // Qualification: top 8 advance to Quarterfinals. Anyone below that is out.
-  // Works regardless of exact team count -- only position matters.
+  // Season 4: all 7 teams qualify; the prelim table only decides seeding (#1 gets a Winners Round 1 bye).
   function qualBadge(i) {
-    if (i < 8) {
-      return `<span style="font-size:10px;background:rgba(62,207,142,0.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:6px;">→ QF</span>`;
+    if (i < PLAYOFF_TEAMS_COUNT) {
+      return `<span style="font-size:10px;background:rgba(62,207,142,0.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:6px;">Seed #${i + 1}</span>`;
     }
     return `<span style="font-size:10px;background:rgba(224,90,43,0.15);color:var(--red);padding:2px 6px;border-radius:4px;margin-left:6px;">Eliminated</span>`;
   }
 
   const rowsHtml = rows.map((r, i) => {
-    const tb = _tiebreakLabel(r, i, rows);
+    const tb = _tiebreakLabel(r, i, rows, tiebreakResults);
     const tbBadge = tb
       ? `<span style="font-size:10px;background:rgba(224,90,43,0.15);color:var(--red);padding:2px 5px;border-radius:4px;margin-left:5px;font-weight:600;" title="Separated by ${tb}">↑${tb}</span>`
       : '';
@@ -147,7 +177,7 @@ function standingsTableHtml(captains, matches, tiebreakResults) {
     const deadlockBadge = partner
       ? `<span style="font-size:10px;background:rgba(240,192,64,0.15);color:var(--accent);padding:2px 6px;border-radius:4px;margin-left:6px;" title="Tied with ${partner.team_name || partner.name} on every tiebreaker -- needs a shootout">⚠ Shootout Pending</span>`
       : '';
-    const rowBg = i < 8 ? 'background:rgba(62,207,142,0.04);' : 'background:rgba(224,90,43,0.03);';
+    const rowBg = i < PLAYOFF_TEAMS_COUNT ? 'background:rgba(62,207,142,0.04);' : 'background:rgba(224,90,43,0.03);';
     return `
       <tr style="border-bottom:0.5px solid var(--border);${rowBg}">
         <td style="padding:10px 10px;color:var(--muted);">${i+1}</td>
@@ -184,8 +214,7 @@ function standingsTableHtml(captains, matches, tiebreakResults) {
       </table>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-top:4px;padding:0 4px;">
-      <span style="color:var(--green);">●</span> Top 8 → Quarterfinals &nbsp;
-      <span style="color:var(--red);">●</span> 9th place eliminated
+      <span style="color:var(--green);">●</span> All 7 teams qualify for the playoffs. Rank sets the seed. Tiebreakers: Pts, GD, GF, Head-to-Head, TGT.
       ${deadlocks.length ? '&nbsp; <span style="color:var(--accent);">●</span> ' + deadlocks.length + ' shootout' + (deadlocks.length > 1 ? 's' : '') + ' pending' : ''}
     </div>`;
 }
@@ -268,9 +297,6 @@ function matchScheduleHtml(matches, captains, players, standings) {
 
   function cname(c) { return c ? (c.team_name || c.name) : '<span style="color:var(--muted)">TBD</span>'; }
 
-  // Seeded positions from final league table: seed(0) = 1st place ... seed(7) = 8th place.
-  function seed(i) { return rows[i]?.captain || null; }
-
   function matchCard(m, label) {
     const h = captains.find(c => c.id === m.home_captain_id);
     const a = captains.find(c => c.id === m.away_captain_id);
@@ -316,12 +342,6 @@ function matchScheduleHtml(matches, captains, players, standings) {
       });
   }
 
-  function koWinner(round) {
-    const m = matches.find(x => x.round === round && x.played);
-    if (!m) return null;
-    return captains.find(c => c.id === (m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id));
-  }
-
   let html = '';
 
   // ── League Stage ──
@@ -336,65 +356,18 @@ function matchScheduleHtml(matches, captains, players, standings) {
     });
   }
 
-  // ── Quarterfinals: 1v8, 2v7, 3v6, 4v5 ──
-  const qfMatches = matches.filter(m => isQfRound(m.round));
-  if (qfMatches.length) {
-    html += sectionHeader('Quarterfinals');
-    const qfLabels = {
-      'QF1': 'QF1 · 1st vs 8th',
-      'QF2': 'QF2 · 2nd vs 7th',
-      'QF3': 'QF3 · 3rd vs 6th',
-      'QF4': 'QF4 · 4th vs 5th'
-    };
-    const qfSeeds = {
-      'QF1': { home: seed(0), away: seed(7) },
-      'QF2': { home: seed(1), away: seed(6) },
-      'QF3': { home: seed(2), away: seed(5) },
-      'QF4': { home: seed(3), away: seed(4) }
-    };
-    QF_ROUNDS.forEach(r => {
-      const m = qfMatches.find(x => x.round === r);
-      if (!m) return;
-      const label = qfLabels[r];
-      if (m.played) {
-        html += matchCard(m, label);
-      } else {
-        const h = captains.find(c => c.id === m.home_captain_id) || qfSeeds[r].home;
-        const a = captains.find(c => c.id === m.away_captain_id) || qfSeeds[r].away;
-        html += upcomingCard(h, a, label);
-      }
+  // ── Playoffs (double elimination): list the generated fixtures in play order ──
+  const playoffMatches = PLAYOFF_ROUNDS
+    .map(r => matches.find(m => m.round === r.code))
+    .filter(Boolean);
+  if (playoffMatches.length) {
+    html += sectionHeader('Playoffs');
+    playoffMatches.forEach(m => {
+      const label = roundLabel(m.round) + ' · ' + roundMinutes(m.round) + ' min';
+      const h = captains.find(c => c.id === m.home_captain_id);
+      const a = captains.find(c => c.id === m.away_captain_id);
+      html += m.played ? matchCard(m, label) : upcomingCard(h, a, label);
     });
-  }
-
-  // ── Semifinals: W(QF1) vs W(QF4), W(QF2) vs W(QF3) ──
-  const sfMatches = matches.filter(m => isSfRound(m.round));
-  if (sfMatches.length) {
-    html += sectionHeader('Semifinals');
-    const sfLabels = {
-      'SF1': 'SF1 · W(QF1) vs W(QF4)',
-      'SF2': 'SF2 · W(QF2) vs W(QF3)'
-    };
-    SF_ROUNDS.forEach(r => {
-      const m = sfMatches.find(x => x.round === r);
-      if (!m) return;
-      const label = sfLabels[r];
-      if (m.played) {
-        html += matchCard(m, label);
-      } else {
-        const h = captains.find(c => c.id === m.home_captain_id) || (r === 'SF1' ? koWinner('QF1') : koWinner('QF2'));
-        const a = captains.find(c => c.id === m.away_captain_id) || (r === 'SF1' ? koWinner('QF4') : koWinner('QF3'));
-        html += upcomingCard(h, a, label);
-      }
-    });
-  }
-
-  // ── Final ──
-  const fin = matches.find(m => m.round === 'Final');
-  if (fin) {
-    html += sectionHeader('Final');
-    const finH = captains.find(c => c.id === fin.home_captain_id) || koWinner('SF1');
-    const finA = captains.find(c => c.id === fin.away_captain_id) || koWinner('SF2');
-    html += fin.played ? matchCard(fin, '🏆 Final') : upcomingCard(finH, finA, '🏆 Final');
   }
 
   return html || '<div class="text-muted">No fixtures loaded yet.</div>';

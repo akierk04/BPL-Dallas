@@ -28,7 +28,8 @@ A real-time PWA for managing the Brownish Premier League Dallas player auction, 
 - Base price $5M, minimum raise $1M, no player groups
 - **Max bid rule:** `max bid = remaining budget - (roster spots left after this purchase x $5M)`. Enforced when a sale is closed or assigned in Admin, and shown on the captain page and the board.
 - **Draw order:** Admin uses **Draw Next Player**. Players never offered are drawn at random. A player who goes unsold (Close Bidding with no bids) goes to the back of the queue and returns only after every fresh player has been offered, oldest-unsold first.
-- **Tournament format (proposed):** 7 teams, 5v5, no goalkeepers, one field. Prelims: every team plays 4 games (14 total, 10 min), seeds #1-#7 from standings. Playoffs: all 7 qualify, double elimination (#1 gets a first-round bye; #4v#5, #3v#6, #2v#7). First loss drops a team to the Losers Bracket, ranked by goal difference of the game lost, then by cumulative Losers Bracket GD. Second loss eliminates. Winners Bracket champion vs Losers Bracket champion, with a reset final if the Losers Bracket champion wins. Match lengths: prelims 10, early playoffs 12, WB/LB finals 15, Grand Final 20. The app's schedule and bracket tooling is still the Season 3 top-8 single-elimination design and has not been changed for this.
+- **Tournament format (Season 4):** 7 teams, 5v5, no goalkeepers, one field. Prelims: every team plays 4 games (14 total, 10 min). Seeds #1-#7 from standings; tiebreakers: Points (W3 D1 L0), GD, GF, Head-to-Head (only when exactly 2 teams are tied), then TGT (the shootout tiebreak the admin records). Playoffs: all 7 qualify, double elimination. Slot codes: W1A (#2v#7), W1B (#3v#6), W1C (#4v#5; #1 has a bye), W2A, W2B, WF, L1, L2A, L2B, L3, LF, GF, RF (reset final, only if the Losers Bracket champion wins the Grand Final). Minutes: prelims 10; W1/W2/L1/L2/L3 12; WF and LF 15; GF and RF 20. First playoff loss drops a team to the Losers Bracket, second eliminates. Losers ranking follows the pasted S4 rules (GD/GF in the game lost for new entrants, cumulative Losers Bracket GD/GF for existing teams, then seed).
+- **Bracket engine:** `bracket.js` derives the whole bracket from match rows (round = slot code). Admin > Matches shows one button that generates every fixture whose two teams are known. If a played result is edited so a fixture no longer matches the bracket, it is flagged and generation is blocked until that fixture is deleted and regenerated. Playoff games cannot end level: enter the winning score.
 - Run `S4_migration.sql` once in Supabase (adds `players.unsold_at`).
 - Purses are stored in whole $M (`captains.wallet = 60`). `players.group_name` is a legacy column; new players are written with `'1'`.
 
@@ -102,7 +103,8 @@ A real-time PWA for managing the Brownish Premier League Dallas player auction, 
 ├── style.css               # Global dark theme
 ├── auth.js                 # Login logic
 ├── budget-warning.js       # Budget warning calculator (Season 2)
-├── standings.js            # Standings, schedule, bracket HTML generators
+├── standings.js            # Standings and schedule HTML generators
+├── bracket.js              # S4 double-elimination bracket engine
 ├── supabase-config.js      # Supabase client (const db = ...)
 ├── manifest.json           # PWA manifest
 ├── css/

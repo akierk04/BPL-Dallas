@@ -72,27 +72,27 @@ function populateMatchDropdowns() {
         leagueHtml += '</div></div>';
         html += leagueHtml;
       }
-      const KO_ORDER = ['QF1','QF2','QF3','QF4','SF1','SF2','Final'];
-      const KO_LABELS = {
-        'QF1':'QF1 · 1st vs 8th','QF2':'QF2 · 2nd vs 7th','QF3':'QF3 · 3rd vs 6th','QF4':'QF4 · 4th vs 5th',
-        'SF1':'SF1 · W(QF1) vs W(QF4)','SF2':'SF2 · W(QF2) vs W(QF3)',
-        'Final':'🏆 Final'
-      };
-      const koMatches = allMatches.filter(function(m) { return KO_ORDER.includes(m.round); });
+      const koMatches = PLAYOFF_ROUNDS
+        .map(function(r) { return allMatches.find(function(x) { return x.round === r.code; }); })
+        .filter(Boolean);
+      const bState = computeBracket(allCaptains, allMatches, allTiebreaks);
+      if (bState.mismatches.length) {
+        html += '<div style="background:rgba(224,90,43,0.1);border:1px solid rgba(224,90,43,0.4);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--red);">'
+          + 'Fixture(s) ' + bState.mismatches.join(', ') + ' have different teams than the results now imply (a result was edited after they were generated). '
+          + 'Delete those fixtures with the X button, then press Generate Next Playoff Round.</div>';
+      }
       if (koMatches.length) {
         let koHtml = '<div style="margin-bottom:20px;">'
-          + '<div class="section-title" style="margin-bottom:10px;">Knockouts</div>'
+          + '<div class="section-title" style="margin-bottom:10px;">Playoff Fixtures</div>'
           + '<div style="display:flex;flex-direction:column;gap:8px;">';
-        KO_ORDER.forEach(function(r) {
-          const m = koMatches.find(function(x) { return x.round === r; });
-          if (!m) return;
+        koMatches.forEach(function(m) {
           const h = allCaptains.find(function(c) { return c.id === m.home_captain_id; });
           const a = allCaptains.find(function(c) { return c.id === m.away_captain_id; });
           const played = m.played;
           const borderColor = played ? 'rgba(62,207,142,0.3)' : 'var(--border)';
           koHtml += '<div style="background:var(--surface);border:1px solid ' + borderColor + ';border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
             + '<div style="flex:1;min-width:0;">'
-            + '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px;">' + (KO_LABELS[r]||r) + (played ? ' · <span style="color:var(--green);">Played</span>' : '') + '</div>'
+            + '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:3px;">' + roundLabel(m.round) + ' · ' + roundMinutes(m.round) + ' min' + (played ? ' · <span style="color:var(--green);">Played</span>' : '') + '</div>'
             + '<div style="font-size:14px;font-weight:600;color:var(--text);">' + (h ? displayCaptainName(h) : 'TBD') + ' vs ' + (a ? displayCaptainName(a) : 'TBD') + '</div>'
             + (played ? '<div style="font-size:12px;color:var(--accent);font-family:var(--font-display);">' + m.home_score + ' – ' + m.away_score + '</div>' : '')
             + '</div>'
@@ -272,42 +272,9 @@ function populateMatchDropdowns() {
       await loadData();
     }
 
-    // ── Readiness checks -- single source of truth, used both to disable
-    // the buttons proactively and to validate before actually generating.
-    function qfReadiness() {
-      const leagueMatches = allMatches.filter(m => isLeagueRound(m.round));
-      if (!leagueMatches.length) return { ready: false, reason: 'Generate League Matches first.' };
-      const unplayed = leagueMatches.filter(m => !m.played).length;
-      if (unplayed) return { ready: false, reason: unplayed + ' league match(es) still need results entered.' };
-      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
-      if (standings.length < 8) return { ready: false, reason: 'Need at least 8 captains.' };
-      const deadlocks = detectDeadlocks(standings, allMatches, allTiebreaks);
-      if (deadlocks.length) return { ready: false, reason: deadlocks.length + ' shootout(s) unresolved -- see Standings tab.' };
-      if (allMatches.some(m => isQfRound(m.round))) return { ready: false, reason: 'Quarterfinals already generated.' };
-      return { ready: true, reason: '' };
-    }
-
-    function sfReadiness() {
-      const qfMatches = allMatches.filter(m => isQfRound(m.round));
-      if (qfMatches.length < 4) return { ready: false, reason: 'Generate Quarterfinals first.' };
-      const unplayed = qfMatches.filter(m => !m.played).length;
-      if (unplayed) return { ready: false, reason: unplayed + ' Quarterfinal result(s) still need to be entered.' };
-      if (allMatches.some(m => isSfRound(m.round))) return { ready: false, reason: 'Semifinals already generated.' };
-      return { ready: true, reason: '' };
-    }
-
-    function finalReadiness() {
-      const sfMatches = allMatches.filter(m => isSfRound(m.round));
-      if (sfMatches.length < 2) return { ready: false, reason: 'Generate Semifinals first.' };
-      const unplayed = sfMatches.filter(m => !m.played).length;
-      if (unplayed) return { ready: false, reason: unplayed + ' Semifinal result(s) still need to be entered.' };
-      if (allMatches.find(m => m.round === 'Final')) return { ready: false, reason: 'Final already generated.' };
-      return { ready: true, reason: '' };
-    }
-
-    // Visually disables each Generate button until its real prerequisites
-    // are met -- not just reactive on click, so it's not possible to miss
-    // that a round isn't ready yet.
+    // ── Playoff generation ──
+    // The bracket is derived from results (see bracket.js). This button inserts a fixture row for every
+    // slot whose two teams are now known and that has no fixture yet.
     function updateGenerateButtons() {
       const leagueBtn = document.getElementById('btnGenLeague');
       if (leagueBtn) {
@@ -317,98 +284,39 @@ function populateMatchDropdowns() {
         leagueBtn.style.opacity = leagueExists ? '0.5' : '1';
         leagueBtn.style.cursor = leagueExists ? 'not-allowed' : 'pointer';
       }
-      [['btnGenQF', qfReadiness()], ['btnGenSF', sfReadiness()], ['btnGenFinal', finalReadiness()]].forEach(([id, r]) => {
-        const btn = document.getElementById(id);
-        if (!btn) return;
+      const btn = document.getElementById('btnGenPlayoffs');
+      if (btn) {
+        const r = playoffReadiness(allCaptains, allMatches, allTiebreaks);
         btn.disabled = !r.ready;
         btn.title = r.reason;
+        btn.textContent = r.ready
+          ? '⚡ Generate ' + r.slots.map(s => s.code).join(' + ')
+          : '⚡ Generate Next Playoff Round';
         btn.style.opacity = r.ready ? '1' : '0.5';
         btn.style.cursor = r.ready ? 'pointer' : 'not-allowed';
-      });
+      }
     }
 
-    // ── Generate Quarterfinals: 1v8, 2v7, 3v6, 4v5 from final league table ──
-    async function generateQuarterfinals() {
+    async function generatePlayoffRound() {
       const msg = document.getElementById('generateMsg');
-      const r = qfReadiness();
+      const r = playoffReadiness(allCaptains, allMatches, allTiebreaks);
       if (!r.ready) {
         msg.textContent = r.reason;
         setTimeout(() => msg.textContent = '', 5000);
         return;
       }
-      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
-      const fixtures = [
-        { round: 'QF1', home: standings[0]?.captain?.id, away: standings[7]?.captain?.id },
-        { round: 'QF2', home: standings[1]?.captain?.id, away: standings[6]?.captain?.id },
-        { round: 'QF3', home: standings[2]?.captain?.id, away: standings[5]?.captain?.id },
-        { round: 'QF4', home: standings[3]?.captain?.id, away: standings[4]?.captain?.id }
-      ];
-      for (const f of fixtures) {
-        await db.from('matches').insert({
-          home_captain_id: f.home || null,
-          away_captain_id: f.away || null,
-          home_score: 0, away_score: 0,
-          played: false, round: f.round, display_order: null
+      const maxOrder = allMatches.reduce((mx, m) => Math.max(mx, Number(m.display_order) || 0), 0);
+      let n = 0;
+      for (const s of r.slots) {
+        const { error } = await db.from('matches').insert({
+          home_captain_id: s.derivedHome, away_captain_id: s.derivedAway,
+          home_score: 0, away_score: 0, played: false,
+          round: s.code, display_order: maxOrder + (++n)
         });
+        if (error) { msg.textContent = 'Error generating ' + s.code + ': ' + error.message; return; }
       }
-      msg.textContent = 'Quarterfinal fixtures generated!';
-      setTimeout(() => msg.textContent = '', 3000);
-      await loadData();
-    }
-
-    // ── Generate Semifinals: SF1 = W(QF1) vs W(QF4), SF2 = W(QF2) vs W(QF3) ──
-    async function generateSemifinals() {
-      const msg = document.getElementById('generateMsg');
-      const r = sfReadiness();
-      if (!r.ready) {
-        msg.textContent = r.reason;
-        setTimeout(() => msg.textContent = '', 5000);
-        return;
-      }
-      function koWinnerId(round) {
-        const m = allMatches.find(x => x.round === round && x.played);
-        if (!m) return null;
-        return m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id;
-      }
-      const fixtures = [
-        { round: 'SF1', home: koWinnerId('QF1'), away: koWinnerId('QF4') },
-        { round: 'SF2', home: koWinnerId('QF2'), away: koWinnerId('QF3') }
-      ];
-      for (const f of fixtures) {
-        await db.from('matches').insert({
-          home_captain_id: f.home || null,
-          away_captain_id: f.away || null,
-          home_score: 0, away_score: 0,
-          played: false, round: f.round, display_order: null
-        });
-      }
-      msg.textContent = 'Semifinal fixtures generated!';
-      setTimeout(() => msg.textContent = '', 3000);
-      await loadData();
-    }
-
-    // ── Generate Final: W(SF1) vs W(SF2) ──
-    async function generateFinal() {
-      const msg = document.getElementById('generateMsg');
-      const r = finalReadiness();
-      if (!r.ready) {
-        msg.textContent = r.reason;
-        setTimeout(() => msg.textContent = '', 5000);
-        return;
-      }
-      function koWinnerId(round) {
-        const m = allMatches.find(x => x.round === round && x.played);
-        if (!m) return null;
-        return m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id;
-      }
-      await db.from('matches').insert({
-        home_captain_id: koWinnerId('SF1'),
-        away_captain_id: koWinnerId('SF2'),
-        home_score: 0, away_score: 0,
-        played: false, round: 'Final', display_order: null
-      });
-      msg.textContent = 'Final fixture generated!';
-      setTimeout(() => msg.textContent = '', 3000);
+      msg.textContent = 'Generated: ' + r.slots.map(s => roundLabel(s.code)).join(' · ');
+      setTimeout(() => msg.textContent = '', 6000);
       await loadData();
     }
 
@@ -445,27 +353,13 @@ function populateMatchDropdowns() {
         hint.textContent = selectedFixtureId ? 'Loaded from League fixture.' : '';
         return;
       }
-      // KO rounds — prefill from standings/results
-      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
-      function koWinnerId(round) {
-        const m = allMatches.find(x => x.round === round && x.played);
-        if (!m) return null;
-        return m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id;
-      }
-      const map = {
-        'QF1':  { home: standings[0]?.captain?.id, away: standings[7]?.captain?.id, label: 'QF1 · 1st vs 8th' },
-        'QF2':  { home: standings[1]?.captain?.id, away: standings[6]?.captain?.id, label: 'QF2 · 2nd vs 7th' },
-        'QF3':  { home: standings[2]?.captain?.id, away: standings[5]?.captain?.id, label: 'QF3 · 3rd vs 6th' },
-        'QF4':  { home: standings[3]?.captain?.id, away: standings[4]?.captain?.id, label: 'QF4 · 4th vs 5th' },
-        'SF1':  { home: koWinnerId('QF1'), away: koWinnerId('QF4'), label: 'SF1 · W(QF1) vs W(QF4)' },
-        'SF2':  { home: koWinnerId('QF2'), away: koWinnerId('QF3'), label: 'SF2 · W(QF2) vs W(QF3)' },
-        'Final':{ home: koWinnerId('SF1'), away: koWinnerId('SF2'), label: 'Final' }
-      };
-      const seed = map[matchType];
-      if (seed && !selectedFixtureId) {
-        if (seed.home) document.getElementById('matchHome').value = seed.home;
-        if (seed.away) document.getElementById('matchAway').value = seed.away;
-        hint.textContent = seed.label + ' — prefilled from standings.';
+      // Playoff rounds: prefill from the derived bracket
+      const slot = computeBracket(allCaptains, allMatches, allTiebreaks).slots.find(s => s.code === matchType);
+      if (slot && !selectedFixtureId) {
+        if (slot.derivedHome) document.getElementById('matchHome').value = slot.derivedHome;
+        if (slot.derivedAway) document.getElementById('matchAway').value = slot.derivedAway;
+        hint.textContent = roundLabel(matchType) + ' · ' + roundMinutes(matchType) + ' min' +
+          (slot.derivedHome && slot.derivedAway ? ' — prefilled from the bracket.' : ' — teams not decided yet.');
       }
     }
 
@@ -477,6 +371,7 @@ function populateMatchDropdowns() {
       const msg = document.getElementById('matchMsg');
       if (!homeId || !awayId || isNaN(hs) || isNaN(as_)) { msg.textContent = 'Fill all fields.'; return; }
       if (homeId === awayId) { msg.textContent = 'Home and away must be different teams.'; return; }
+      if (isKoRound(round) && hs === as_) { msg.textContent = 'Playoff games cannot end level. Enter the winning score (e.g. 3–2 after extra time).'; return; }
 
       let data, error;
       if (selectedFixtureId) {
@@ -657,8 +552,7 @@ function populateMatchDropdowns() {
           const c = !p ? allCaptains.find(x => x.id === g.player_id) : null;
           return p ? p.name : (c ? c.name + ' (C)' : '?');
         }).join(', ');
-        const KO_ROUNDS_ADMIN = ['QF1','QF2','QF3','QF4','SF1','SF2','Final'];
-        const label = KO_ROUNDS_ADMIN.includes(m.round) ? m.round : (isLeagueRound(m.round) ? 'League' : (m.round || '—'));
+        const label = isLeagueRound(m.round) ? 'League' : roundLabel(m.round);
         return `
           <div class="player-row" style="flex-wrap:wrap;gap:8px;">
             <span class="unsold-badge">${label}</span>
@@ -698,7 +592,7 @@ function populateMatchDropdowns() {
       const a = allCaptains.find(c => c.id === m.away_captain_id);
       document.getElementById('editMatchLabel').textContent =
         `${displayCaptainName(h)} vs ${displayCaptainName(a)}` +
-        (m.round ? ` · ${isLeagueRound(m.round) ? 'League' : m.round}` : '');
+        (m.round ? ` · ${isLeagueRound(m.round) ? 'League' : roundLabel(m.round)}` : '');
       const teamOpts = allCaptains.map(c => `<option value="${c.id}">${displayCaptainName(c)}</option>`).join('');
       document.getElementById('editMatchHome').innerHTML = teamOpts;
       document.getElementById('editMatchAway').innerHTML = teamOpts;
@@ -765,6 +659,8 @@ function populateMatchDropdowns() {
       const mvpId = document.getElementById('editMvpPlayer').value || null;
       const err = document.getElementById('editMatchError');
       if (isNaN(hs) || isNaN(as_) || hs < 0 || as_ < 0) { err.textContent = 'Enter valid scores.'; return; }
+      const editing = allMatches.find(x => x.id === matchId);
+      if (editing && isKoRound(editing.round) && hs === as_) { err.textContent = 'Playoff games cannot end level. Enter the winning score.'; return; }
       await db.from('goals').delete().eq('match_id', matchId);
       if (editMatchState.goals.length) {
         const { error } = await db.from('goals').insert(

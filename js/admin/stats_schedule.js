@@ -50,67 +50,9 @@ function renderStandings() {
       const container = document.getElementById(containerId);
       const card = cardId ? document.getElementById(cardId) : null;
       if (!container) return;
-
-      const KO_ALL = ['QF1','QF2','QF3','QF4','SF1','SF2','Final'];
-      const ko = allMatches.filter(m => KO_ALL.includes(m.round));
-      if (!ko.length) { if (card) card.style.display = 'none'; return; }
+      const html = bracketHtml(allCaptains, allMatches, allTiebreaks);
+      if (!html) { if (card) card.style.display = 'none'; return; }
       if (card) card.style.display = 'block';
-
-      const standings = computeStandings(allCaptains, allMatches, allTiebreaks);
-      function seed(i) { return standings[i]?.captain || null; }
-      function getMatch(r) { return ko.find(m => m.round === r) || null; }
-      function getWinner(m) {
-        if (!m || !m.played) return null;
-        return allCaptains.find(c => c.id === (m.home_score > m.away_score ? m.home_captain_id : m.away_captain_id));
-      }
-
-      function bm(m, homeC, awayC, label) {
-        const played = m && m.played;
-        const live = m && !m.played && (m.home_captain_id || homeC) && (m.away_captain_id || awayC);
-        const actualHome = played ? allCaptains.find(c => c.id === m.home_captain_id) : homeC;
-        const actualAway = played ? allCaptains.find(c => c.id === m.away_captain_id) : awayC;
-        const homeN = actualHome ? displayCaptainName(actualHome) : (homeC ? displayCaptainName(homeC) : 'TBD');
-        const awayN = actualAway ? displayCaptainName(actualAway) : (awayC ? displayCaptainName(awayC) : 'TBD');
-        const homeWon = played && m.home_score > m.away_score;
-        const awayWon = played && m.away_score > m.home_score;
-        const cls = played ? 'winner' : live ? 'live' : '';
-        return `<div class="bracket-match ${cls}">
-          <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:5px;">${label}</div>
-          <div class="bracket-team ${played?(homeWon?'won':'lost'):(actualHome?'':'tbd')}">
-            <span>${homeN}</span>${played?`<span class="bracket-score">${m.home_score}</span>`:''}
-          </div>
-          <div class="bracket-team ${played?(awayWon?'won':'lost'):(actualAway?'':'tbd')}">
-            <span>${awayN}</span>${played?`<span class="bracket-score">${m.away_score}</span>`:''}
-          </div>
-        </div>`;
-      }
-
-      const qf1=getMatch('QF1'), qf2=getMatch('QF2'), qf3=getMatch('QF3'), qf4=getMatch('QF4');
-      const sf1=getMatch('SF1'), sf2=getMatch('SF2');
-      const fin=getMatch('Final');
-
-      let html = '<div class="bracket-wrap">';
-
-      if (qf1||qf2||qf3||qf4) {
-        html += `<div class="bracket-round"><div class="bracket-round-title">Quarterfinals</div>
-          ${bm(qf1, seed(0), seed(7), 'QF1 · 1 vs 8')}
-          ${bm(qf2, seed(1), seed(6), 'QF2 · 2 vs 7')}
-          ${bm(qf3, seed(2), seed(5), 'QF3 · 3 vs 6')}
-          ${bm(qf4, seed(3), seed(4), 'QF4 · 4 vs 5')}
-        </div><div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
-      }
-
-      if (sf1||sf2) {
-        html += `<div class="bracket-round"><div class="bracket-round-title">Semifinals</div>
-          ${bm(sf1, getWinner(qf1), getWinner(qf4), 'SF1 · W(QF1) vs W(QF4)')}
-          ${bm(sf2, getWinner(qf2), getWinner(qf3), 'SF2 · W(QF2) vs W(QF3)')}
-        </div><div class="bracket-connector"><div class="bracket-connector-line"></div></div>`;
-      }
-
-      html += `<div class="bracket-round"><div class="bracket-round-title">🏆 Final</div>
-        ${bm(fin, getWinner(sf1), getWinner(sf2), 'Final')}
-      </div></div>`;
-
       container.innerHTML = html;
     }
 
@@ -127,8 +69,8 @@ function renderStandings() {
         return `${displayCaptainName(h)} vs ${displayCaptainName(a)}`;
       }
       function metaLine(m) {
-        const base = isLeagueRound(m.round) ? 'League Stage' : (m.round || 'Fixture');
-        return m.display_order ? `${base} · Match ${m.display_order}` : base;
+        if (!isLeagueRound(m.round)) return roundLabel(m.round) + ' · ' + roundMinutes(m.round) + ' min';
+        return m.display_order ? `League Stage · Match ${m.display_order}` : 'League Stage';
       }
       document.getElementById('nowPlayingTeams').textContent = teamLine(now);
       document.getElementById('nowPlayingMeta').textContent  = metaLine(now);

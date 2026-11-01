@@ -470,3 +470,25 @@ select:focus { border-color: var(--accent); }
   user-select: none;
   -webkit-user-drag: element;
 }
+
+/* ── Season 4 double-elimination bracket (bracket.js) ── */
+.pb-section { margin-bottom: 22px; }
+.pb-section-title { font-family: var(--font-display); font-size: 1.15rem; letter-spacing: 0.08em; color: var(--text); margin-bottom: 10px; }
+.pb-rounds { display: flex; flex-wrap: wrap; gap: 16px 20px; align-items: flex-start; }
+.pb-round { flex: 1 1 200px; min-width: 0; max-width: 340px; }
+.pb-round-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px; }
+.pb-card { background: var(--surface2, #1b1b1b); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; margin-bottom: 8px; }
+.pb-card.st-played { border-color: rgba(62,207,142,0.35); }
+.pb-card.st-ready, .pb-card.st-scheduled { border-color: rgba(240,192,64,0.5); background: rgba(240,192,64,0.05); }
+.pb-card.st-tbd, .pb-card.st-na { opacity: 0.7; }
+.pb-card-top { display: flex; justify-content: space-between; gap: 8px; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+.pb-min { color: var(--muted); white-space: nowrap; }
+.pb-team { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; padding: 3px 0; color: var(--text); }
+.pb-team.won { font-weight: 700; }
+.pb-team.lost { color: var(--muted); }
+.pb-team.tbd { color: var(--muted); font-style: italic; font-size: 13px; }
+.pb-seed { font-style: normal; font-size: 10px; color: var(--muted); margin-right: 6px; }
+.pb-score { font-family: var(--font-display); font-size: 1.05rem; color: var(--accent); }
+.pb-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.pb-champion { text-align: center; background: linear-gradient(135deg, rgba(240,192,64,0.18), rgba(240,192,64,0.05)); border: 1px solid rgba(240,192,64,0.5); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 18px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.pb-champion strong { display: block; font-family: var(--font-display); font-size: 2rem; letter-spacing: 0.06em; color: var(--text); text-transform: none; margin-top: 2px; }
