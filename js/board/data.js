@@ -106,6 +106,9 @@ async function loadHallOfFameData() {
 // them on every "Go Live" click or every sale.
 // Which refresh applies right now: while any player is still unsold the auction is
 // in progress and bidding_state matters; afterwards only match data does.
+var _lastDataAt = Date.now();
+function markFresh() { _lastDataAt = Date.now(); }
+
 function auctionInProgress() {
   return allPlayers.length > 0 && allPlayers.some(function(p) { return !p.is_sold; });
 }
@@ -138,6 +141,7 @@ async function loadBiddingData() {
   renderCaptains();
   renderPool();
   renderTeams();
+  markFresh();
 }
 
 // ── PATCH-FROM-PAYLOAD path (scales to many simultaneous viewers) ──
@@ -212,6 +216,7 @@ function renderBiddingUpdate() {
   renderCaptains();
   renderPool();
   renderTeams();
+  markFresh();
 }
 
 // -- MATCH DAY: lightweight fallback fetch --
@@ -238,6 +243,7 @@ async function loadMatchData() {
   renderBoardSchedule();
   renderBoardStats();
   renderTeams();
+  markFresh();
 }
 
 // -- MATCH DAY: patch-from-payload handlers --
@@ -295,4 +301,5 @@ function renderMatchUpdate() {
   renderBoardStandings();
   renderBoardSchedule();
   renderBoardStats();
+  markFresh();
 }
