@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=2" />
-  <link rel="stylesheet" href="css/board.css?v=14" />
+  <link rel="stylesheet" href="css/board.css?v=15" />
 </head>
 <body>
 
@@ -284,9 +284,12 @@
   <script src="standings.js?v=6"></script>
   <script src="bracket.js?v=1"></script>
 
+    <div id="photoLightbox" class="photo-lightbox" style="display:none;" onclick="closePhotoLightbox()" role="dialog" aria-label="Player photo">
+    <div class="pl-card"><img id="plImg" alt=""><div id="plName" class="pl-name"></div></div>
+  </div>
   <script src="js/board/state.js?v=7"></script>
   <script src="js/board/data.js?v=10"></script>
-  <script src="js/board/auction.js?v=13"></script>
+  <script src="js/board/auction.js?v=15"></script>
   <script src="js/board/standings.js?v=6"></script>
   <script src="js/board/teams.js?v=2"></script>
   <script src="js/board/dues.js?v=3"></script>
