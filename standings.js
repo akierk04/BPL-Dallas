@@ -305,12 +305,7 @@ function matchScheduleHtml(matches, captains, players, standings) {
     const mvp = m.mvp_player_id
       ? (players.find(p => p.id === m.mvp_player_id) || captains.find(c => c.id === m.mvp_player_id))
       : null;
-    let winner = m.home_score > m.away_score ? 'home' : m.home_score < m.away_score ? 'away' : 'draw';
-    let tgtNote = '';
-    if (winner === 'draw' && isKoRound(m.round) && m.tgt_winner_id) {
-      winner = m.tgt_winner_id === m.home_captain_id ? 'home' : 'away';
-      tgtNote = `<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:4px;">${cname(winner === 'home' ? h : a)} won on TGT</div>`;
-    }
+    const winner = m.home_score > m.away_score ? 'home' : m.home_score < m.away_score ? 'away' : 'draw';
     return `
       <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
         ${label ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>` : ''}
@@ -319,7 +314,6 @@ function matchScheduleHtml(matches, captains, players, standings) {
           <span style="font-family:var(--font-display);font-size:1.4rem;color:var(--accent);min-width:52px;text-align:center;">${m.home_score} – ${m.away_score}</span>
           <span style="flex:1;font-weight:${winner==='away'?'600':'400'};color:${winner==='away'?'var(--text)':'var(--muted)'};">${cname(a)}</span>
         </div>
-        ${tgtNote}
         ${mvp ? `<div style="text-align:center;font-size:11px;color:var(--accent);margin-top:6px;">⭐ MVP: ${mvp.name}</div>` : ''}
       </div>`;
   }

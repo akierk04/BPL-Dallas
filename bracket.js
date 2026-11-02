@@ -19,8 +19,8 @@
 //    other survivor plays the WF loser. Winner meets the bye team in the Losers Final.
 //  * Grand Final: Winners champion (0 losses) v Losers champion (1 loss). If the Losers champion wins,
 //    a Reset Final is played. Two losses eliminates.
-//  * Playoff games that are level after 10 minutes go straight to a TGT. The admin records the TGT winner
-//    on the match (matches.tgt_winner_id); the score stays level, so GD and goals scored are unaffected.
+//  * Playoff games cannot end level. If level after 10 minutes the game goes to a TGT and the TGT winner
+//    gets +1 goal, so the admin enters the final score (a 1-1 game won on TGT is entered as 2-1).
 
 var PLAYOFF_TEAMS = 8;
 
@@ -51,25 +51,16 @@ function computeBracket(captains, matches, tiebreaks) {
   function row(code) {
     return matches.find(function(m) { return m.round === code; }) || null;
   }
-  // A played playoff game with a winner. A level game is decided by its TGT winner (matches.tgt_winner_id);
-  // until that is recorded the game has no result yet.
+  // A played playoff game with a winner. Level games have no result (they are rejected on entry).
   function res(code) {
     var m = row(code);
-    if (!m || !m.played) return null;
-    var hw;
-    if (m.home_score === m.away_score) {
-      if (m.tgt_winner_id && m.tgt_winner_id === m.home_captain_id) hw = true;
-      else if (m.tgt_winner_id && m.tgt_winner_id === m.away_captain_id) hw = false;
-      else return null;
-    } else {
-      hw = m.home_score > m.away_score;
-    }
+    if (!m || !m.played || m.home_score === m.away_score) return null;
+    var hw = m.home_score > m.away_score;
     return {
       winner: hw ? m.home_captain_id : m.away_captain_id,
       loser:  hw ? m.away_captain_id : m.home_captain_id,
       wScore: Math.max(m.home_score, m.away_score),
-      lScore: Math.min(m.home_score, m.away_score),
-      tgt: m.home_score === m.away_score
+      lScore: Math.min(m.home_score, m.away_score)
     };
   }
   function bySeed(a, b) { return (seedNo[a] || 99) - (seedNo[b] || 99); }
@@ -181,8 +172,7 @@ function computeBracket(captains, matches, tiebreaks) {
       code: code, label: meta.label, stage: meta.stage, minutes: meta.minutes,
       match: m, home: home, away: away, derivedHome: d[0], derivedAway: d[1],
       srcHome: SRC[code][0], srcAway: SRC[code][1],
-      status: status, winner: r ? r.winner : null, loser: r ? r.loser : null,
-      needsTgt: !!(m && m.played && m.home_score === m.away_score && !r), tgt: !!(r && r.tgt)
+      status: status, winner: r ? r.winner : null, loser: r ? r.loser : null
     };
   });
 
@@ -216,8 +206,6 @@ function playoffReadiness(captains, matches, tiebreaks) {
   if (captains.length !== PLAYOFF_TEAMS) return { ready: false, reason: 'Playoffs need exactly ' + PLAYOFF_TEAMS + ' teams.', slots: [], bracket: b };
   if (b.deadlocks.length) return { ready: false, reason: b.deadlocks.length + ' tiebreak(s) unresolved. See Standings.', slots: [], bracket: b };
   if (b.mismatches.length) return { ready: false, reason: 'Fix mismatched fixture(s) first: ' + b.mismatches.join(', ') + '.', slots: [], bracket: b };
-  var tgtMissing = b.slots.filter(function(s) { return s.needsTgt; }).map(function(s) { return s.code; });
-  if (tgtMissing.length) return { ready: false, reason: 'Record the TGT winner for ' + tgtMissing.join(', ') + ' (level score).', slots: [], bracket: b };
   var ready = b.slots.filter(function(s) { return s.status === 'ready'; });
   if (!ready.length) {
     if (b.champion) return { ready: false, reason: 'Playoffs complete.', slots: [], bracket: b };
@@ -242,7 +230,7 @@ function bracketHtml(captains, matches, tiebreaks) {
     if (c) cls = played ? (slot.winner === id ? 'won' : 'lost') : '';
     var seed = c && b.seedNo[id] ? '<i class="pb-seed">#' + b.seedNo[id] + '</i>' : '';
     return '<div class="pb-team ' + cls + '"><span>' + seed + (c ? _bn(c) : src) + '</span>'
-      + (played ? '<span class="pb-score">' + score + (slot.tgt && slot.winner === id ? ' <i class="pb-seed">TGT</i>' : '') + '</span>' : '') + '</div>';
+      + (played ? '<span class="pb-score">' + score + '</span>' : '') + '</div>';
   }
   function card(code) {
     var s = b.slots.find(function(x) { return x.code === code; });
@@ -253,7 +241,6 @@ function bracketHtml(captains, matches, tiebreaks) {
       + teamRow(s.home, s.srcHome, s, 'home')
       + teamRow(s.away, s.srcAway, s, 'away')
       + (note ? '<div class="pb-note">' + note + '</div>' : '')
-      + (s.needsTgt ? '<div class="pb-note">Level: record the TGT winner</div>' : '')
       + (s.status === 'na' ? '<div class="pb-note">Not needed</div>' : '')
       + '</div>';
   }
