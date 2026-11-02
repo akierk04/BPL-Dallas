@@ -172,6 +172,20 @@ function isPreAuctionMode() {
       updateLiveStrip();
     }
 
+    // Small round photo for list rows (player pool, captain cards): loads the ~3 KB thumbnail lazily and
+    // falls back to initials. A missing thumbnail is requested once per page load, not on every re-render.
+    function photoHtml(name, sizeClass) {
+      var slug = photoSlug(name), ini = playerInitials(name);
+      var inner = (!slug || PHOTO_MISSING[slug])
+        ? ini
+        : '<img src="photos/thumb/' + slug + '.jpg?v=' + PHOTO_VERSION + '" loading="lazy" decoding="async" alt="" data-slug="' + slug + '" data-ini="' + ini + '" onerror="photoThumbMissing(this)">';
+      return '<span class="player-photo ' + sizeClass + '" aria-hidden="true">' + inner + '</span>';
+    }
+    function photoThumbMissing(img) {
+      PHOTO_MISSING[img.getAttribute('data-slug')] = 1;
+      if (img.parentNode) img.parentNode.textContent = img.getAttribute('data-ini') || '';
+    }
+
     // Compact "Now bidding" strip pinned to the top of the screen once the big card scrolls away
     function updateLiveStrip() {
       var strip = document.getElementById('liveStrip');
@@ -327,6 +341,7 @@ function isPreAuctionMode() {
         return `
           <div class="board-captain-card${isPinned ? ' pinned' : ''}">
             <div class="board-captain-header">
+              ${photoHtml(c.name, 'ph-md')}
               <div style="flex:1;min-width:0;">
                 ${teamName
                   ? `<div class="board-captain-name" style="font-size:16px;font-weight:700;">${teamFlag(teamName)} ${teamName}</div>
@@ -362,8 +377,11 @@ function isPreAuctionMode() {
         const cap=allCaptains.find(c=>c.id===p.captain_id), isCurrent=p.id===currentPlayerId&&!p.is_sold;
         return `
           <div class="pool-player-card ${p.is_sold?'is-sold':''} ${isCurrent?'is-current':''}">
-            <div class="pool-player-card-name">${p.name}${isCurrent?' <span style="font-size:10px;color:var(--accent);">● Bidding</span>':''}</div>
-            ${p.is_sold?`<div class="pool-player-card-sold">✓ ${cap?displayCaptainName(cap):'?'} · ${fmtM(p.sold_price)}</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'Live now':(p.unsold_at?'Unsold · back in queue':'Available')}</div>`}
+            ${photoHtml(p.name, 'ph-xs')}
+            <div class="pool-card-text">
+              <div class="pool-player-card-name">${p.name}${isCurrent?' <span style="font-size:10px;color:var(--accent);">● Bidding</span>':''}</div>
+              ${p.is_sold?`<div class="pool-player-card-sold">✓ ${cap?displayCaptainName(cap):'?'} · ${fmtM(p.sold_price)}</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'Live now':(p.unsold_at?'Unsold · back in queue':'Available')}</div>`}
+            </div>
           </div>`;
       }).join('');
     }
