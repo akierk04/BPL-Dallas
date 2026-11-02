@@ -364,6 +364,47 @@ function populateMatchDropdowns() {
     }
 
 
+    // ── TGT winner (playoff games level after 10 min) ──
+    // Stored on the match as tgt_winner_id. Only touched for level playoff games, so nothing breaks if the
+    // column has not been added yet until a level playoff game is actually saved.
+    function refreshTgtPicker(prefix) {
+      const isEdit = prefix === 'edit';
+      const homeId = document.getElementById(isEdit ? 'editMatchHome' : 'matchHome').value;
+      const awayId = document.getElementById(isEdit ? 'editMatchAway' : 'matchAway').value;
+      const hs = document.getElementById(isEdit ? 'editMatchHomeScore' : 'matchHomeScore').value;
+      const as_ = document.getElementById(isEdit ? 'editMatchAwayScore' : 'matchAwayScore').value;
+      let round;
+      if (isEdit) { const e = editMatchState && allMatches.find(x => x.id === editMatchState.matchId); round = e && e.round; }
+      else round = document.getElementById('matchType').value;
+      const row = document.getElementById(isEdit ? 'editTgtRow' : 'matchTgtRow');
+      const sel = document.getElementById(isEdit ? 'editTgt' : 'matchTgt');
+      const show = !!round && isKoRound(round) && hs !== '' && as_ !== '' && hs === as_ && homeId && awayId && homeId !== awayId;
+      row.style.display = show ? 'flex' : 'none';
+      if (!show) return;
+      const keep = sel.value;
+      const h = allCaptains.find(c => c.id === homeId), a = allCaptains.find(c => c.id === awayId);
+      sel.innerHTML = '<option value="">Select TGT winner...</option>'
+        + '<option value="' + homeId + '">' + displayCaptainName(h) + '</option>'
+        + '<option value="' + awayId + '">' + displayCaptainName(a) + '</option>';
+      if (keep === homeId || keep === awayId) sel.value = keep;
+      else if (isEdit) {
+        const e = allMatches.find(x => x.id === editMatchState.matchId);
+        if (e && (e.tgt_winner_id === homeId || e.tgt_winner_id === awayId)) sel.value = e.tgt_winner_id;
+      }
+    }
+    function wireTgtPickers() {
+      ['matchType', 'matchHome', 'matchAway', 'matchHomeScore', 'matchAwayScore'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.addEventListener('change', () => refreshTgtPicker('new'));
+      });
+      ['editMatchHome', 'editMatchAway'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.addEventListener('change', () => refreshTgtPicker('edit'));
+      });
+      ['editMatchHomeScore', 'editMatchAwayScore'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.addEventListener('input', () => refreshTgtPicker('edit'));
+      });
+    }
+    document.addEventListener('DOMContentLoaded', wireTgtPickers);
+
     async function saveMatch() {
       const homeId = document.getElementById('matchHome').value, awayId = document.getElementById('matchAway').value;
       const hs = parseInt(document.getElementById('matchHomeScore').value), as_ = parseInt(document.getElementById('matchAwayScore').value);
@@ -371,22 +412,27 @@ function populateMatchDropdowns() {
       const msg = document.getElementById('matchMsg');
       if (!homeId || !awayId || isNaN(hs) || isNaN(as_)) { msg.textContent = 'Fill all fields.'; return; }
       if (homeId === awayId) { msg.textContent = 'Home and away must be different teams.'; return; }
-      if (isKoRound(round) && hs === as_) { msg.textContent = 'Playoff games cannot end level. Enter the winning score (e.g. 3–2 after extra time).'; return; }
+      refreshTgtPicker('new');
+      const tgtId = (isKoRound(round) && hs === as_) ? document.getElementById('matchTgt').value : '';
+      if (isKoRound(round) && hs === as_ && !tgtId) { msg.textContent = 'Level playoff game: pick the TGT winner.'; return; }
+      const existingFx = selectedFixtureId ? allMatches.find(x => x.id === selectedFixtureId) : null;
+      const tgtField = tgtId ? { tgt_winner_id: tgtId }
+        : (existingFx && 'tgt_winner_id' in existingFx ? { tgt_winner_id: null } : {});
 
       let data, error;
       if (selectedFixtureId) {
         ({ data, error } = await db.from('matches').update({
           home_captain_id: homeId, away_captain_id: awayId,
           home_score: hs, away_score: as_, played: false,
-          round, mvp_player_id: null
+          round, mvp_player_id: null, ...tgtField
         }).eq('id', selectedFixtureId).select().single());
       } else {
         ({ data, error } = await db.from('matches').insert({
           home_captain_id: homeId, away_captain_id: awayId,
-          home_score: hs, away_score: as_, played: false, round
+          home_score: hs, away_score: as_, played: false, round, ...tgtField
         }).select().single());
       }
-      if (error) { msg.textContent = 'Error: ' + error.message; return; }
+      if (error) { msg.textContent = 'Error: ' + error.message + (/tgt_winner_id/.test(error.message) ? ' (run the tgt_winner_id SQL in Supabase first)' : ''); return; }
 
       pendingMatchId = data.id; pendingHomeId = homeId; pendingAwayId = awayId; pendingHS = hs; pendingAS = as_;
       pendingGoals = [];
@@ -615,6 +661,7 @@ function populateMatchDropdowns() {
       document.getElementById('editMatchError').textContent = '';
       renderEditGoalsList();
       document.getElementById('editMatchModal').style.display = 'flex';
+      refreshTgtPicker('edit');
     }
 
     function addEditGoal() {
@@ -660,7 +707,12 @@ function populateMatchDropdowns() {
       const err = document.getElementById('editMatchError');
       if (isNaN(hs) || isNaN(as_) || hs < 0 || as_ < 0) { err.textContent = 'Enter valid scores.'; return; }
       const editing = allMatches.find(x => x.id === matchId);
-      if (editing && isKoRound(editing.round) && hs === as_) { err.textContent = 'Playoff games cannot end level. Enter the winning score.'; return; }
+      refreshTgtPicker('edit');
+      const level = !!(editing && isKoRound(editing.round) && hs === as_);
+      const tgtId = level ? document.getElementById('editTgt').value : '';
+      if (level && !tgtId) { err.textContent = 'Level playoff game: pick the TGT winner.'; return; }
+      const homeNow = document.getElementById('editMatchHome').value, awayNow = document.getElementById('editMatchAway').value;
+      if (level && tgtId !== homeNow && tgtId !== awayNow) { err.textContent = 'TGT winner must be one of the two teams.'; return; }
       await db.from('goals').delete().eq('match_id', matchId);
       if (editMatchState.goals.length) {
         const { error } = await db.from('goals').insert(
@@ -669,9 +721,10 @@ function populateMatchDropdowns() {
         if (error) { err.textContent = 'Error saving goals: ' + error.message; return; }
       }
       const { error } = await db.from('matches').update({
-        home_score: hs, away_score: as_, mvp_player_id: mvpId
+        home_score: hs, away_score: as_, mvp_player_id: mvpId,
+        ...(tgtId ? { tgt_winner_id: tgtId } : (editing && 'tgt_winner_id' in editing ? { tgt_winner_id: null } : {}))
       }).eq('id', matchId);
-      if (error) { err.textContent = 'Error: ' + error.message; return; }
+      if (error) { err.textContent = 'Error: ' + error.message + (/tgt_winner_id/.test(error.message) ? ' (run the tgt_winner_id SQL in Supabase first)' : ''); return; }
       closeEditMatchModal();
       await loadData();
     }

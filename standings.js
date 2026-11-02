@@ -1,27 +1,29 @@
 // ── BPL Dallas · Shared Standings & Stats Logic ──
-// Season 4 format: 7 teams, single prelim table (4 games each, 14 total).
+// Season 4 format: 8 teams, single prelim table (4 games each, 16 total, 10 min).
 // Prelim ranking: Points (W3 D1 L0), then Goal Difference, then Goals Scored, then Head-to-Head
 // (only when exactly two teams are still tied), then TGT (the recorded shootout/tiebreak result).
 // If three or more teams are still tied after Points, GD and GF, it goes straight to TGT.
-// Playoffs: all 7 qualify, double elimination (see bracket.js).
+// Playoffs: all 8 qualify, double elimination (see bracket.js).
 
-const PLAYOFF_TEAMS_COUNT = 7;
+const PLAYOFF_TEAMS_COUNT = 8;
 
 // Playoff slots in the order they are played. minutes = game length.
 const PLAYOFF_ROUNDS = [
-  { code: 'W1A', stage: 'WB', minutes: 12, label: 'Winners Round 1 · #2 vs #7' },
-  { code: 'W1B', stage: 'WB', minutes: 12, label: 'Winners Round 1 · #3 vs #6' },
-  { code: 'W1C', stage: 'WB', minutes: 12, label: 'Winners Round 1 · #4 vs #5' },
-  { code: 'L1',  stage: 'LB', minutes: 12, label: 'Losers Round 1' },
-  { code: 'W2A', stage: 'WB', minutes: 12, label: 'Winners Round 2 · Match A' },
-  { code: 'W2B', stage: 'WB', minutes: 12, label: 'Winners Round 2 · Match B' },
-  { code: 'L2A', stage: 'LB', minutes: 12, label: 'Losers Round 2 · Match A' },
-  { code: 'L2B', stage: 'LB', minutes: 12, label: 'Losers Round 2 · Match B' },
-  { code: 'WF',  stage: 'WB', minutes: 15, label: 'Winners Final' },
-  { code: 'L3',  stage: 'LB', minutes: 12, label: 'Losers Round 3' },
-  { code: 'LF',  stage: 'LB', minutes: 15, label: 'Losers Final' },
-  { code: 'GF',  stage: 'GF', minutes: 20, label: 'Grand Final' },
-  { code: 'RF',  stage: 'GF', minutes: 20, label: 'Reset Final' }
+  { code: 'W1A', stage: 'WB', minutes: 10, label: 'Winners Round 1 · #1 vs #8' },
+  { code: 'W1B', stage: 'WB', minutes: 10, label: 'Winners Round 1 · #2 vs #7' },
+  { code: 'W1C', stage: 'WB', minutes: 10, label: 'Winners Round 1 · #3 vs #6' },
+  { code: 'W1D', stage: 'WB', minutes: 10, label: 'Winners Round 1 · #4 vs #5' },
+  { code: 'L1A', stage: 'LB', minutes: 10, label: 'Losers Round 1 · Match A' },
+  { code: 'L1B', stage: 'LB', minutes: 10, label: 'Losers Round 1 · Match B' },
+  { code: 'W2A', stage: 'WB', minutes: 10, label: 'Winners Round 2 · Match A' },
+  { code: 'W2B', stage: 'WB', minutes: 10, label: 'Winners Round 2 · Match B' },
+  { code: 'L2A', stage: 'LB', minutes: 10, label: 'Losers Round 2 · Match A' },
+  { code: 'L2B', stage: 'LB', minutes: 10, label: 'Losers Round 2 · Match B' },
+  { code: 'WF',  stage: 'WB', minutes: 10, label: 'Winners Final' },
+  { code: 'L3',  stage: 'LB', minutes: 10, label: 'Losers Round 3' },
+  { code: 'LF',  stage: 'LB', minutes: 10, label: 'Losers Final' },
+  { code: 'GF',  stage: 'GF', minutes: 10, label: 'Grand Final' },
+  { code: 'RF',  stage: 'GF', minutes: 10, label: 'Reset Final' }
 ];
 const KO_ROUNDS = PLAYOFF_ROUNDS.map(r => r.code);
 
@@ -160,7 +162,7 @@ function standingsTableHtml(captains, matches, tiebreakResults) {
     return d.teamA.id === captainId ? d.teamB : d.teamA;
   }
 
-  // Season 4: all 7 teams qualify; the prelim table only decides seeding (#1 gets a Winners Round 1 bye).
+  // Season 4: all 8 teams qualify; the prelim table only decides seeding.
   function qualBadge(i) {
     if (i < PLAYOFF_TEAMS_COUNT) {
       return `<span style="font-size:10px;background:rgba(62,207,142,0.15);color:var(--green);padding:2px 6px;border-radius:4px;margin-left:6px;">Seed #${i + 1}</span>`;
@@ -214,7 +216,7 @@ function standingsTableHtml(captains, matches, tiebreakResults) {
       </table>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-top:4px;padding:0 4px;">
-      <span style="color:var(--green);">●</span> All 7 teams qualify for the playoffs. Rank sets the seed. Tiebreakers: Pts, GD, GF, Head-to-Head, TGT.
+      <span style="color:var(--green);">●</span> All 8 teams qualify for the playoffs. Rank sets the seed. Tiebreakers: Pts, GD, GF, Head-to-Head, TGT.
       ${deadlocks.length ? '&nbsp; <span style="color:var(--accent);">●</span> ' + deadlocks.length + ' shootout' + (deadlocks.length > 1 ? 's' : '') + ' pending' : ''}
     </div>`;
 }
@@ -303,7 +305,12 @@ function matchScheduleHtml(matches, captains, players, standings) {
     const mvp = m.mvp_player_id
       ? (players.find(p => p.id === m.mvp_player_id) || captains.find(c => c.id === m.mvp_player_id))
       : null;
-    const winner = m.home_score > m.away_score ? 'home' : m.home_score < m.away_score ? 'away' : 'draw';
+    let winner = m.home_score > m.away_score ? 'home' : m.home_score < m.away_score ? 'away' : 'draw';
+    let tgtNote = '';
+    if (winner === 'draw' && isKoRound(m.round) && m.tgt_winner_id) {
+      winner = m.tgt_winner_id === m.home_captain_id ? 'home' : 'away';
+      tgtNote = `<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:4px;">${cname(winner === 'home' ? h : a)} won on TGT</div>`;
+    }
     return `
       <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
         ${label ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>` : ''}
@@ -312,6 +319,7 @@ function matchScheduleHtml(matches, captains, players, standings) {
           <span style="font-family:var(--font-display);font-size:1.4rem;color:var(--accent);min-width:52px;text-align:center;">${m.home_score} – ${m.away_score}</span>
           <span style="flex:1;font-weight:${winner==='away'?'600':'400'};color:${winner==='away'?'var(--text)':'var(--muted)'};">${cname(a)}</span>
         </div>
+        ${tgtNote}
         ${mvp ? `<div style="text-align:center;font-size:11px;color:var(--accent);margin-top:6px;">⭐ MVP: ${mvp.name}</div>` : ''}
       </div>`;
   }
