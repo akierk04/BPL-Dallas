@@ -94,7 +94,7 @@ function isPreAuctionMode() {
 
     // Player headshots: photos/<name-as-slug>.jpg (e.g. "Soham M" -> photos/soham-m.jpg).
     // Players without a file show their initials. A missing file is only requested once per page load.
-    var PHOTO_VERSION = 2;
+    var PHOTO_VERSION = 3;
     var PHOTO_MISSING = {};
     function photoSlug(name) { return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
     function playerInitials(name) {
