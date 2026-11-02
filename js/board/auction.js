@@ -92,6 +92,30 @@ function isPreAuctionMode() {
       previousBidPlayerId = currentPlayerId || null;
     }
 
+    // Player headshots: photos/<name-as-slug>.jpg (e.g. "Soham M" -> photos/soham-m.jpg).
+    // Players without a file show their initials. A missing file is only requested once per page load.
+    var PHOTO_VERSION = 1;
+    var PHOTO_MISSING = {};
+    function photoSlug(name) { return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+    function playerInitials(name) {
+      var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+      if (!parts.length) return '';
+      return (parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    function setPlayerPhoto(el, name) {
+      if (!el || el.dataset.forName === name) return;   // already showing this player: no flicker on realtime refreshes
+      el.dataset.forName = name;
+      el.textContent = playerInitials(name);
+      var slug = photoSlug(name);
+      if (!slug || PHOTO_MISSING[slug]) return;
+      var img = new Image();
+      img.alt = '';
+      img.decoding = 'async';
+      img.onload = function() { if (el.dataset.forName === name) { el.textContent = ''; el.appendChild(img); } };
+      img.onerror = function() { PHOTO_MISSING[slug] = 1; };
+      img.src = 'photos/' + slug + '.jpg?v=' + PHOTO_VERSION;
+    }
+
     function renderCurrentPlayer() {
       const nb  = document.getElementById('nowBidding');
       const wb  = document.getElementById('waitingBanner');
@@ -106,6 +130,7 @@ function isPreAuctionMode() {
         const p = allPlayers.find(x => x.id === currentPlayerId);
         if (p && !p.is_sold) {
           nm.textContent = p.name;
+          setPlayerPhoto(document.getElementById('nowBiddingPhoto'), p.name);
           bp.innerHTML =
             `Base price ${fmtM(S4_BASE)}` +
             (p.status === 'tentative' ? ' <span style="margin-left:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(62,207,142,0.1);border:1px solid rgba(62,207,142,0.3);color:var(--green);">Tentative</span>' : '');
@@ -195,10 +220,12 @@ function isPreAuctionMode() {
       const banner = document.getElementById('soldBanner');
       const main = document.getElementById('soldBannerMain');
       const sub = document.getElementById('soldBannerSub');
+      const photo = document.getElementById('soldBannerPhoto');
 
       // Use in-memory event if fresh (within 25s), otherwise fall back to DB data
       if (lastSoldEvent && (Date.now() - lastSoldEvent.at) <= 25000) {
         main.textContent = lastSoldEvent.player;
+        setPlayerPhoto(photo, lastSoldEvent.player);
         sub.textContent = `Sold to ${lastSoldEvent.captain} for ${fmtM(lastSoldEvent.price)}`;
         banner.style.display = 'block';
         return;
@@ -216,6 +243,7 @@ function isPreAuctionMode() {
 
       const cap = allCaptains.find(c => c.id === latestSold.captain_id);
       main.textContent = latestSold.name;
+      setPlayerPhoto(photo, latestSold.name);
       sub.textContent = `Sold to ${cap ? displayCaptainName(cap) : '—'} for ${fmtM(latestSold.sold_price || 0)}`;
       banner.style.display = 'block';
     }
