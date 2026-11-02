@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=2" />
-  <link rel="stylesheet" href="css/board.css?v=12" />
+  <link rel="stylesheet" href="css/board.css?v=13" />
 </head>
 <body>
 
@@ -152,8 +152,13 @@
 
   <div id="nowBidding" class="now-bidding" style="display:none;">
     <div class="now-bidding-label"><span class="live-dot"></span>Now Bidding</div>
-    <div class="now-bidding-name" id="nowBiddingName">—</div>
-    <div id="nowBiddingBase" style="font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:0.04em;"></div>
+    <div class="nb-row">
+      <span class="player-photo ph-lg" id="nowBiddingPhoto" aria-hidden="true"></span>
+      <div class="nb-text">
+        <div class="now-bidding-name" id="nowBiddingName">—</div>
+        <div id="nowBiddingBase" style="font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:0.04em;"></div>
+      </div>
+    </div>
     <div id="boardAuctionStatus" class="now-bidding-status live" style="display:none;"></div>
     <div id="nowBiddingLive" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(240,192,64,0.2);display:none;">
       <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">Current Bid</div>
@@ -169,8 +174,13 @@
 
   <div id="soldBanner" class="sold-banner" style="display:none;">
     <div class="sold-banner-label">Just Sold</div>
-    <div class="sold-banner-main" id="soldBannerMain">SOLD</div>
-    <div class="sold-banner-sub" id="soldBannerSub">—</div>
+    <div class="sold-banner-row">
+      <span class="player-photo ph-sm" id="soldBannerPhoto" aria-hidden="true"></span>
+      <div>
+        <div class="sold-banner-main" id="soldBannerMain">SOLD</div>
+        <div class="sold-banner-sub" id="soldBannerSub">—</div>
+      </div>
+    </div>
   </div>
 
   <div class="section-title" id="captainsSectionTitle">Captains & Teams</div>
@@ -276,7 +286,7 @@
 
   <script src="js/board/state.js?v=7"></script>
   <script src="js/board/data.js?v=10"></script>
-  <script src="js/board/auction.js?v=11"></script>
+  <script src="js/board/auction.js?v=12"></script>
   <script src="js/board/standings.js?v=6"></script>
   <script src="js/board/teams.js?v=2"></script>
   <script src="js/board/dues.js?v=3"></script>
