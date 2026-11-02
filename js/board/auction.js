@@ -116,7 +116,30 @@ function isPreAuctionMode() {
       img.src = 'photos/' + slug + '.jpg?v=' + PHOTO_VERSION;
     }
 
+    // Tap a photo to see it larger. Tap anywhere (or press Escape) to close. It also closes by itself when the player
+    // on the block changes, so nobody misses the next bid or a sale because a photo was left open.
+    var lightboxForPlayer = null;
+    function openPhotoLightbox(name) {
+      var slug = photoSlug(name), box = document.getElementById('photoLightbox');
+      if (!box || !slug || PHOTO_MISSING[slug]) return;
+      var img = document.getElementById('plImg');
+      img.onerror = function() { PHOTO_MISSING[slug] = 1; closePhotoLightbox(); };
+      img.onload = function() { box.style.display = 'flex'; };
+      img.src = 'photos/' + slug + '.jpg?v=' + PHOTO_VERSION;
+      document.getElementById('plName').textContent = name;
+    }
+    function closePhotoLightbox() {
+      var box = document.getElementById('photoLightbox');
+      if (box) box.style.display = 'none';
+    }
+    document.addEventListener('click', function(e) {
+      var el = e.target && e.target.closest ? e.target.closest('.player-photo[data-for-name]') : null;
+      if (el && el.querySelector('img')) openPhotoLightbox(el.getAttribute('data-for-name') || el.dataset.forName);
+    });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePhotoLightbox(); });
+
     function renderCurrentPlayer() {
+      if (lightboxForPlayer !== (currentPlayerId || null)) { lightboxForPlayer = currentPlayerId || null; closePhotoLightbox(); }
       const nb  = document.getElementById('nowBidding');
       const wb  = document.getElementById('waitingBanner');
       const nm  = document.getElementById('nowBiddingName');
@@ -179,7 +202,7 @@ function isPreAuctionMode() {
       var inner = (!slug || PHOTO_MISSING[slug])
         ? ini
         : '<img src="photos/thumb/' + slug + '.jpg?v=' + PHOTO_VERSION + '" loading="lazy" decoding="async" alt="" data-slug="' + slug + '" data-ini="' + ini + '" onerror="photoThumbMissing(this)">';
-      return '<span class="player-photo ' + sizeClass + '" aria-hidden="true">' + inner + '</span>';
+      return '<span class="player-photo ' + sizeClass + '" data-for-name="' + String(name || '').replace(/"/g, '&quot;') + '">' + inner + '</span>';
     }
     function photoThumbMissing(img) {
       PHOTO_MISSING[img.getAttribute('data-slug')] = 1;
