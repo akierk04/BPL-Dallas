@@ -239,7 +239,7 @@ function isPreAuctionMode() {
             var pips = '';
             for (var i = 0; i < S4_SLOTS; i++) pips += '<i class="bb-pip' + (i < r.bought ? ' on' : '') + '"></i>';
             var full = r.left === 0;
-            var cls = full ? 'full' : r.max <= S4_BASE ? 'low' : r.max <= 15 ? 'mid' : 'ok';
+            var cls = full ? 'full' : r.max <= S4_BASE ? 'low' : r.max <= S4_BASE * 3 ? 'mid' : 'ok';
             var pinned = r.c.id === pinnedCaptainId;
             return '<div class="bb-row' + (full ? ' bb-full' : '') + (pinned ? ' bb-pinned' : '') + '">'
               + '<span class="bb-name"><button type="button" class="pin-btn' + (pinned ? ' on' : '') + '" onclick="togglePin(\'' + r.c.id + '\')" aria-label="' + (pinned ? 'Unpin' : 'Pin') + ' ' + displayCaptainName(r.c) + '">' + (pinned ? '\u2605' : '\u2606') + '</button>' + displayCaptainName(r.c) + '</span>'

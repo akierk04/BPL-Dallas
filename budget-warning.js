@@ -1,21 +1,21 @@
 // BPL Dallas Season 4 - Budget rules (replaces the Season 3 group/reserve model)
 //
-// Purse: $60M per team, stored in captains.wallet as whole millions (60).
+// Purse: $100M per team, stored in captains.wallet as whole millions (100).
 // Squad: captain + 5 auction players. Captains play for their own team and are
 // NOT charged against the purse.
-// Base price $5M for every player, minimum raise $1M, no player groups.
+// Base price $10M for every player, minimum raise $5M, no player groups.
 //
 // MAXIMUM BID RULE
-//   Max Bid = Remaining Budget - (Remaining Roster Spots After This Purchase x $5M)
-//   Example: $60M, 5 spots left -> 60 - (4 x 5) = $40M
-//            buy for $20M -> $40M, 4 spots left -> 40 - (3 x 5) = $25M
+//   Max Bid = Remaining Budget - (Remaining Roster Spots After This Purchase x $10M)
+//   Example: $100M, 5 spots left -> 100 - (4 x 10) = $60M
+//            buy for $30M -> $70M, 4 spots left -> 70 - (3 x 10) = $40M
 //
 // A team with no spots left has no max bid (it cannot buy anyone).
 
-var S4_BUDGET = 60;
+var S4_BUDGET = 100;
 var S4_SLOTS = 5;
-var S4_BASE = 5;
-var S4_INCREMENT = 1;
+var S4_BASE = 10;
+var S4_INCREMENT = 5;
 // players.group_name / captains.captain_group still exist in the database but
 // Season 4 does not use them. New players are written with this constant so the
 // column constraints keep passing.
@@ -46,6 +46,9 @@ function checkBid(wallet, soldPlayers, amount) {
   if (!isFinite(amount) || Math.floor(amount) !== amount) {
     return { allowed: false, reason: 'Bids are whole $M amounts.' };
   }
+  if ((amount - S4_BASE) % S4_INCREMENT !== 0 && amount >= S4_BASE) {
+    return { allowed: false, reason: 'Bids go up in ' + fmtM(S4_INCREMENT) + ' steps from the ' + fmtM(S4_BASE) + ' base.' };
+  }
   if (amount < S4_BASE) {
     return { allowed: false, reason: 'Below the ' + fmtM(S4_BASE) + ' base price.' };
   }
@@ -68,7 +71,7 @@ function budgetWarning(wallet, captainGroup, soldPlayers, activeGroup) {
   var reserve = (left - 1) * S4_BASE;
   var needed = [];
   for (var i = 0; i < left; i++) needed.push('spot');
-  var color = mb <= S4_BASE ? 'var(--red)' : mb <= 15 ? 'var(--groupB)' : 'var(--green)';
+  var color = mb <= S4_BASE ? 'var(--red)' : mb <= S4_BASE * 3 ? 'var(--groupB)' : 'var(--green)';
   return {
     color: color,
     reserveColor: 'var(--muted)',

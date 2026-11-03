@@ -24,15 +24,15 @@ A real-time PWA for managing the Brownish Premier League Dallas player auction, 
 ## Season 4 (Current) — Auction
 
 - 8 teams, 8 playing captains (captains are not charged against the purse)
-- Purse $60M per team, 5 auction players per captain, 6-player squads, 40 players in the auction
-- Base price $5M, minimum raise $1M, no player groups
-- **Max bid rule:** `max bid = remaining budget - (roster spots left after this purchase x $5M)`. Enforced when a sale is closed or assigned in Admin, and shown on the captain page and the board.
+- Purse $100M per team, 5 auction players per captain, 6-player squads, 40 players in the auction
+- Base price $10M, minimum raise $5M (sale prices must be base + a multiple of $5M), no player groups
+- **Max bid rule:** `max bid = remaining budget - (roster spots left after this purchase x $10M)`. Enforced when a sale is closed or assigned in Admin, and shown on the captain page and the board.
 - **Draw order:** Admin uses **Draw Next Player**. Players never offered are drawn at random. A player who goes unsold (Close Bidding with no bids) goes to the back of the queue and returns only after every fresh player has been offered, oldest-unsold first.
 - **Tournament format (Season 4):** 8 teams, 5v5, every game 10 minutes. Prelims: every team plays 4 games (16 total, draws allowed). Seeds #1-#8 from standings; tiebreakers: Points (W3 D1 L0), GD, GF, Head-to-Head (only when exactly 2 teams are tied), then TGT. Playoffs: all 8 qualify, double elimination, everyone starts in the Winners Bracket. Slot codes: W1A-W1D (#1v#8, #2v#7, #3v#6, #4v#5), W2A, W2B, WF, L1A, L1B, L2A, L2B, L3, LF, GF, RF (reset final, only if the Losers Bracket champion wins the Grand Final). Losers ranking: new entrants by GD in the game lost, goals in it, seed; existing LB teams by cumulative LB GD, LB goals, seed. Only bye: in Losers R3 (best-ranked of the 2 LB survivors). A playoff game level after 10 minutes goes to TGT and the TGT winner gets +1 goal (1-1 is entered as 2-1), so playoff scores are never level. 16 prelim + 14 playoff games (15 with a reset final).
 - **Bracket engine:** `bracket.js` derives the whole bracket from match rows (round = slot code). Admin > Matches shows one button that generates every fixture whose two teams are known. If a played result is edited so a fixture no longer matches the bracket, it is flagged and generation is blocked until that fixture is deleted and regenerated. Playoff games cannot end level: enter the winning score.
 - **Player photos (Live Board):** put one square headshot per player in `photos/`, named by the player's name in lowercase with dashes (`DJ` -> `photos/dj.jpg`, `Soham M` -> `photos/soham-m.jpg`). Shown on the Now Bidding card and the Just Sold banner (400px photo), and as small thumbnails (`photos/thumb/<slug>.jpg`, 96px) in the Player Pool and on captain cards (looked up by the captain's name). Anyone without a file shows initials. Tapping a photo opens it larger (tap anywhere or press Escape to close; it also closes when the player on the block changes). To prepare photos: `python3 scripts/make_photos.py <folder_of_originals>` (named after each player, e.g. `Soham M.jpeg`) writes 400px jpgs into `photos/` and 96px thumbnails into `photos/thumb/`; `python3 scripts/make_photos.py --thumbs` rebuilds just the thumbnails. Check every crop before committing. To replace a photo that people may have cached, bump `PHOTO_VERSION` in `js/board/auction.js`.
 - Run `S4_migration.sql` once in Supabase (adds `players.unsold_at`).
-- Purses are stored in whole $M (`captains.wallet = 60`). `players.group_name` is a legacy column; new players are written with `'1'`.
+- Purses are stored in whole $M (`captains.wallet = 100`). `players.group_name` is a legacy column; new players are written with `'1'`.
 
 ---
 
