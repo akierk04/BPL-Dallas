@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=2" />
-  <link rel="stylesheet" href="css/board.css?v=15" />
+  <link rel="stylesheet" href="css/board.css?v=17" />
 </head>
 <body>
 
@@ -157,6 +157,7 @@
       <div class="nb-text">
         <div class="now-bidding-name" id="nowBiddingName">—</div>
         <div id="nowBiddingBase" style="font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:0.04em;"></div>
+        <div id="nowBiddingWatch" class="watch-row" style="display:none;"></div>
       </div>
     </div>
     <div id="boardAuctionStatus" class="now-bidding-status live" style="display:none;"></div>
@@ -191,6 +192,7 @@
     <button class="filter-btn" onclick="setFilter('available',this)">Available</button>
     <button class="filter-btn" onclick="setFilter('unsold',this)">Unsold</button>
     <button class="filter-btn" onclick="setFilter('sold',this)">Sold</button>
+    <button class="filter-btn" onclick="setFilter('starred',this)">&#9733; Starred<span id="starredCount"></span></button>
   </div>
   <input type="search" id="poolSearch" class="pool-search" placeholder="Search players" autocomplete="off" oninput="setPoolSearch(this.value)" />
   <div class="pool-grid" id="boardPool"></div>
@@ -287,9 +289,9 @@
     <div id="photoLightbox" class="photo-lightbox" style="display:none;" onclick="closePhotoLightbox()" role="dialog" aria-label="Player photo">
     <div class="pl-card"><img id="plImg" alt=""><div id="plName" class="pl-name"></div></div>
   </div>
-  <script src="js/board/state.js?v=7"></script>
+  <script src="js/board/state.js?v=8"></script>
   <script src="js/board/data.js?v=10"></script>
-  <script src="js/board/auction.js?v=17"></script>
+  <script src="js/board/auction.js?v=19"></script>
   <script src="js/board/standings.js?v=7"></script>
   <script src="js/board/teams.js?v=2"></script>
   <script src="js/board/dues.js?v=3"></script>
