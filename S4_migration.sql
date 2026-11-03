@@ -15,10 +15,10 @@ alter table players add column if not exists unsold_at timestamptz;
 -- Run these only AFTER Season 3 is archived (hall_of_fame / archive_* tables),
 -- because they overwrite live auction data. Adjust to however you normally reset a season.
 --
--- Purse is stored in whole $M: 60 = $60M. Base price is 5 = $5M.
+-- Purse is stored in whole $M: 100 = $100M. Base price is 10 = $10M.
 -- group_name is a legacy column; S4 uses the constant '1' so constraints keep passing.
 --
--- update captains set wallet = 60;
--- update players set base_price = 5, group_name = '1',
+-- update captains set wallet = 100;
+-- update players set base_price = 10, group_name = '1',
 --   is_sold = false, captain_id = null, sold_price = null, sold_at = null, unsold_at = null;
 -- ─────────────────────────────────────────────────────────────
