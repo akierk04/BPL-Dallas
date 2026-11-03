@@ -84,13 +84,8 @@ function renderPlayersList() {
       return { fresh, returned: pool.length - fresh, total: pool.length };
     }
 
-    function drawMixEnabled() {
-      const el = document.getElementById('drawMixTop');
-      return !el || el.checked;
-    }
-
     function nextFromQueue() {
-      return pickNextPlayer(allPlayers, allCaptains, currentPlayerId, drawMixEnabled());
+      return pickNextPlayer(allPlayers, allCaptains, currentPlayerId, true);
     }
 
     function updateQueueStatus() {
@@ -105,11 +100,7 @@ function renderPlayersList() {
           ? '\uD83C\uDFB2 Queue empty'
           : '\uD83C\uDFB2 Draw Next Player \u00b7 ' + q.total + ' left' + (q.returned ? ' (' + q.returned + ' unsold)' : '');
       }
-      if (info) {
-        const topsLeft = allPlayers.filter(p => !p.is_sold && p.is_top && p.id !== currentPlayerId).length;
-        info.style.display = topsLeft ? '' : 'none';
-        info.textContent = topsLeft ? 'Top players still in the pool: ' + topsLeft : '';
-      }
+      if (info) info.style.display = 'none';
     }
 
     async function goLive(pid) {
@@ -132,8 +123,8 @@ function renderPlayersList() {
       const pick = draw.player;
       const err = await goLive(pick.id);
       if (err) { msg.textContent = 'Error: ' + err.message; return; }
-      msg.textContent = pick.name + ' is live' + (pick.unsold_at ? ' (back from unsold).' : draw.kind === 'top' ? ' (top player). ' + draw.note : '.');
-      setTimeout(() => msg.textContent = '', draw.kind === 'top' ? 9000 : 4000);
+      msg.textContent = pick.name + ' is live' + (pick.unsold_at ? ' (back from unsold).' : '.');
+      setTimeout(() => msg.textContent = '', 4000);
       await loadData();
       document.getElementById('consolePlayer').value = pick.id;
       updateConsoleWarning();
