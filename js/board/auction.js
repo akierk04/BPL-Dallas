@@ -57,10 +57,18 @@ function isPreAuctionMode() {
       if (prePanel) prePanel.style.display = preAuction ? 'block' : 'none';
       if (statsBar) statsBar.style.display = preAuction ? 'none' : 'block';
       if (waiting) waiting.style.display = preAuction ? 'none' : waiting.style.display;
-      if (poolFilters) poolFilters.style.display = preAuction ? 'none' : 'flex';
+      // Before the auction only "All" and "Starred" make sense (nothing is sold or unsold yet), so captains can
+      // build their watchlist; Available/Unsold/Sold appear once the auction starts.
+      if (poolFilters) {
+        poolFilters.style.display = 'flex';
+        poolFilters.querySelectorAll('.filter-btn').forEach(function(b) {
+          var f = b.getAttribute('data-filter');
+          b.style.display = (preAuction && f !== 'all' && f !== 'starred') ? 'none' : '';
+        });
+      }
       var poolSearchEl = document.getElementById('poolSearch');
-      if (poolSearchEl) poolSearchEl.style.display = preAuction ? 'none' : 'block';
-      if (playerPoolTitle) playerPoolTitle.style.display = preAuction ? 'none' : 'block';
+      if (poolSearchEl) poolSearchEl.style.display = 'block';
+      if (playerPoolTitle) playerPoolTitle.style.display = 'block';
 
       if (title) title.textContent = preAuction ? 'Auction Begins Soon' : 'Live Auction In Progress';
       // While a player is live the Now Bidding card says it all; keep the banner for the quiet moments
@@ -415,7 +423,7 @@ function isPreAuctionMode() {
       else if (currentFilter==='unsold') filtered=allPlayers.filter(p=>!p.is_sold && p.unsold_at);
       else if (currentFilter==='starred') filtered=allPlayers.filter(p=>isStarred(p.id));
       if (poolSearch) filtered=filtered.filter(p=>String(p.name||'').toLowerCase().includes(poolSearch));
-      if (!filtered.length) { grid.innerHTML='<div class="text-muted">' + (currentFilter==='starred' ? 'No starred players yet. Tap the star on a player to add them to your list.' : 'No players match this filter.') + '</div>'; return; }
+      if (!filtered.length) { grid.innerHTML='<div class="text-muted">' + (currentFilter==='starred' ? (Object.keys(watchlist).length ? 'No starred players match your search.' : 'No starred players yet. Tap the star on a player to add them to your list.') : 'No players match this filter.') + '</div>'; return; }
       grid.innerHTML=filtered.map(p=>{
         const cap=allCaptains.find(c=>c.id===p.captain_id), isCurrent=p.id===currentPlayerId&&!p.is_sold;
         return `
