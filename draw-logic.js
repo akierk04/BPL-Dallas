@@ -12,13 +12,18 @@
 //     prices have been running low and cash is piling up, so a top player comes out sooner.
 //     If cash per spot is tight, top players are spaced out.
 //   * Gap between top players = round(5 / pace ratio) regular draws, kept between 2 and 8.
-//   * The gap is also capped so every top player is offered before the pool runs out.
+//   * Momentum: if the last 3 sales averaged $15M or less, a top player is drawn next (needs 2+ regular draws since the last one).
+//   * Deadline: all top players are offered before the last 40% of the pool, so none is left for the end.
 //   * The first draw is always a regular player.
 // If no player is tagged is_top, or the mix is switched off, this is exactly the old random draw.
 
 var DRAW_BASE_GAP = 5;
 var DRAW_MIN_GAP = 2;
 var DRAW_MAX_GAP = 8;
+var DRAW_TAIL_SHARE = 0.4;      // the last 40% of the pool is regular-only; top players are offered before it
+var DRAW_RECENT_N = 3;          // momentum looks at the last 3 sales
+var DRAW_LOW_PRICE_MULT = 1.5;  // ...and triggers when they averaged at most 1.5x base ($15M)
+var DRAW_MOMENTUM_MIN = 2;      // but never two top players back to back from momentum alone
 
 // Cash per open roster spot across all teams that still have spots to fill.
 function drawPace(captains, players) {
@@ -47,6 +52,14 @@ function drawsSinceTop(players, excludeId) {
   return n;
 }
 
+// Average price of the last few sales (null until DRAW_RECENT_N players have been sold).
+function drawRecentAvg(players) {
+  var sold = (players || []).filter(function(p) { return p.is_sold && p.sold_at && p.sold_price != null; })
+    .sort(function(a, b) { return new Date(b.sold_at) - new Date(a.sold_at); }).slice(0, DRAW_RECENT_N);
+  if (sold.length < DRAW_RECENT_N) return null;
+  return sold.reduce(function(s, p) { return s + Number(p.sold_price); }, 0) / sold.length;
+}
+
 // Returns { player, kind: 'top' | 'regular' | 'returned', note } or null when nothing is left.
 function pickNextPlayer(players, captains, currentPlayerId, mixTop, rand) {
   rand = rand || Math.random;
@@ -66,9 +79,25 @@ function pickNextPlayer(players, captains, currentPlayerId, mixTop, rand) {
   var pace = drawPace(captains, players);
   var gap = Math.round(DRAW_BASE_GAP / (pace.ratio || 1));
   gap = Math.max(DRAW_MIN_GAP, Math.min(DRAW_MAX_GAP, gap));
-  gap = Math.min(gap, Math.max(1, Math.floor(fresh.length / (tops.length + 1))));
   var since = drawsSinceTop(players, currentPlayerId);
   var offered = (players || []).some(function(p) { return p.is_sold || p.unsold_at; });
+
+  // Deadline: every top player must be offered while most of the pool is still to come, so a top player is
+  // never left for the end when wallets are low. The last DRAW_TAIL_SHARE of the pool is regular-only; if we
+  // are inside that tail and tops remain, they come out back to back.
+  var tail = Math.ceil((players || []).length * DRAW_TAIL_SHARE);
+  var usable = fresh.length - tail;
+  if (usable <= 0) {
+    return { player: pickRandom(tops), kind: 'top', note: 'Top players are drawn before the last ' + tail + ' players so they go while teams still have money.' };
+  }
+  gap = Math.min(gap, Math.max(1, Math.floor(usable / tops.length)));
+
+  // Momentum: the last few sales went for close to base price, so bring a top player out now.
+  var recent = drawRecentAvg(players);
+  var momentum = recent !== null && recent <= S4_BASE * DRAW_LOW_PRICE_MULT && since >= DRAW_MOMENTUM_MIN;
+  if (offered && momentum) {
+    return { player: pickRandom(tops), kind: 'top', note: 'Last ' + DRAW_RECENT_N + ' sales averaged ' + fmtM(Math.round(recent * 10) / 10) + ', so a top player is next.' };
+  }
   if (offered && since >= gap) {
     var note = 'Teams hold ' + fmtM(Math.round(pace.perSpot * 10) / 10) + ' per open spot (start ' + fmtM(pace.start) + '). Top player every ' + gap + ' draws.';
     return { player: pickRandom(tops), kind: 'top', note: note };
