@@ -471,3 +471,15 @@
 .strip-bar i { display: block; height: 100%; width: 0; transition: width 0.4s ease; }
 .strip-bar .sb-sold { background: var(--accent); }
 .strip-bar .sb-queue { background: #ffb020; }
+
+/* Watchlist: stars, private limits and the live "On your list" tag. Per-phone only. */
+.star-btn{width:auto;flex:none;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:16px;line-height:1;padding:5px 8px;cursor:pointer;}
+.star-btn.on{color:var(--accent);border-color:var(--accent);background:rgba(240,192,64,0.08);}
+.star-btn.static{border-color:transparent;background:none;cursor:default;padding:5px 4px;}
+.pool-player-card{flex-wrap:wrap;}
+.limit-select{flex:0 0 100%;width:100%;max-width:none;min-width:0;font-size:11px;padding:3px 4px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;}
+.watch-row{margin-top:8px;font-size:12px;}
+.watch-tag{display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(240,192,64,0.12);border:1px solid rgba(240,192,64,0.4);color:var(--accent);font-weight:600;}
+.watch-limit{color:var(--muted);margin-left:6px;}
+.watch-limit.hit{color:var(--red);font-weight:600;}
+.watch-warn{margin-top:4px;color:var(--red);font-weight:500;}

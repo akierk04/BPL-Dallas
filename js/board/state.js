@@ -82,6 +82,25 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
       return rows.filter(function(r) { return idOf(r) === pinnedCaptainId; })
         .concat(rows.filter(function(r) { return idOf(r) !== pinnedCaptainId; }));
     }
+    // Watchlist: stars and an optional private limit per player, kept on this phone only (never sent to the server).
+    var watchlist = {};
+    try { watchlist = JSON.parse(localStorage.getItem('bplWatchlist') || '{}') || {}; } catch (e) { watchlist = {}; }
+    function saveWatchlist() { try { localStorage.setItem('bplWatchlist', JSON.stringify(watchlist)); } catch (e) {} }
+    function isStarred(id) { return Object.prototype.hasOwnProperty.call(watchlist, id); }
+    function watchLimit(id) { return isStarred(id) ? (Number(watchlist[id]) || 0) : 0; }
+    function toggleStar(id) {
+      if (isStarred(id)) delete watchlist[id]; else watchlist[id] = 0;
+      saveWatchlist(); renderPool(); renderCurrentPlayer(); updateStarredCount();
+    }
+    function setWatchLimit(id, v) {
+      if (!isStarred(id)) return;
+      watchlist[id] = Number(v) || 0;
+      saveWatchlist(); renderPool(); renderCurrentPlayer();
+    }
+    function updateStarredCount() {
+      var el = document.getElementById('starredCount');
+      if (el) el.textContent = Object.keys(watchlist).length ? ' (' + Object.keys(watchlist).length + ')' : '';
+    }
     function setPoolSearch(v) { poolSearch = String(v || '').trim().toLowerCase(); renderPool(); }
 
     function setFilter(f,btn) {

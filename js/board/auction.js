@@ -138,6 +138,24 @@ function isPreAuctionMode() {
     });
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePhotoLightbox(); });
 
+    // "On your list" tag on the Now Bidding card, with the private limit and a check against the pinned team's max bid.
+    function renderWatchTag(p, currentBid) {
+      var el = document.getElementById('nowBiddingWatch');
+      if (!el) return;
+      if (!isStarred(p.id)) { el.style.display = 'none'; el.innerHTML = ''; return; }
+      var lim = watchLimit(p.id), html = '<span class="watch-tag">\u2605 On your list</span>';
+      if (lim) {
+        html += ' <span class="watch-limit' + (currentBid >= lim ? ' hit' : '') + '">Your limit ' + fmtM(lim) + (currentBid >= lim ? ' \u00b7 reached' : '') + '</span>';
+        var team = pinnedCaptainId ? allCaptains.find(function(c) { return c.id === pinnedCaptainId; }) : null;
+        if (team) {
+          var roster = allPlayers.filter(function(x) { return x.captain_id === team.id && x.is_sold; });
+          var mb = maxBid(team.wallet, roster);
+          if (lim > mb) html += '<div class="watch-warn">Above your max bid of ' + fmtM(mb) + '</div>';
+        }
+      }
+      el.innerHTML = html; el.style.display = 'block';
+    }
+
     function renderCurrentPlayer() {
       if (lightboxForPlayer !== (currentPlayerId || null)) { lightboxForPlayer = currentPlayerId || null; closePhotoLightbox(); }
       const nb  = document.getElementById('nowBidding');
@@ -182,6 +200,7 @@ function isPreAuctionMode() {
             liveSection.style.display = 'none';
           }
 
+          renderWatchTag(p, currentBid);
           nb.style.display = 'block';
           wb.style.display = 'none';
           var stripName = document.getElementById('liveStripName');
@@ -394,8 +413,9 @@ function isPreAuctionMode() {
       if (currentFilter==='available') filtered=allPlayers.filter(p=>!p.is_sold);
       else if (currentFilter==='sold') filtered=allPlayers.filter(p=>p.is_sold);
       else if (currentFilter==='unsold') filtered=allPlayers.filter(p=>!p.is_sold && p.unsold_at);
+      else if (currentFilter==='starred') filtered=allPlayers.filter(p=>isStarred(p.id));
       if (poolSearch) filtered=filtered.filter(p=>String(p.name||'').toLowerCase().includes(poolSearch));
-      if (!filtered.length) { grid.innerHTML='<div class="text-muted">No players match this filter.</div>'; return; }
+      if (!filtered.length) { grid.innerHTML='<div class="text-muted">' + (currentFilter==='starred' ? 'No starred players yet. Tap the star on a player to add them to your list.' : 'No players match this filter.') + '</div>'; return; }
       grid.innerHTML=filtered.map(p=>{
         const cap=allCaptains.find(c=>c.id===p.captain_id), isCurrent=p.id===currentPlayerId&&!p.is_sold;
         return `
@@ -405,6 +425,20 @@ function isPreAuctionMode() {
               <div class="pool-player-card-name">${p.name}${isCurrent?' <span style="font-size:10px;color:var(--accent);">● Bidding</span>':''}</div>
               ${p.is_sold?`<div class="pool-player-card-sold">✓ ${cap?displayCaptainName(cap):'?'} · ${fmtM(p.sold_price)}</div>`:`<div style="font-size:11px;color:var(--muted);margin-top:4px;">${isCurrent?'Live now':(p.unsold_at?'Unsold · back in queue':'Available')}</div>`}
             </div>
+            ${watchControls(p)}
           </div>`;
       }).join('');
+    }
+
+    // Star button (and an optional private limit) on a pool card. Hidden once the player is sold.
+    function watchControls(p) {
+      if (p.is_sold) return isStarred(p.id) ? '<span class="star-btn on static" aria-hidden="true">\u2605</span>' : '';
+      var on = isStarred(p.id);
+      var out = '<button type="button" class="star-btn' + (on ? ' on' : '') + '" onclick="toggleStar(\'' + p.id + '\')" aria-label="' + (on ? 'Remove from my list' : 'Add to my list') + '">' + (on ? '\u2605' : '\u2606') + '</button>';
+      if (on) {
+        var cur = watchLimit(p.id), opts = '<option value="0">No limit</option>';
+        for (var v = S4_BASE; v <= S4_BUDGET * 0.6; v += S4_INCREMENT) opts += '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>Limit ' + fmtM(v) + '</option>';
+        out += '<select class="limit-select" aria-label="My limit for ' + String(p.name).replace(/"/g, '') + '" onchange="setWatchLimit(\'' + p.id + '\', this.value)">' + opts + '</select>';
+      }
+      return out;
     }
