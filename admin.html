@@ -43,6 +43,9 @@
           <button id="drawNextBtn" class="btn-primary" onclick="drawNextPlayer()" style="flex:2;">🎲 Draw Next Player</button>
           <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="clearBiddingPlayer()">Clear</button>
         </div>
+        <label class="text-muted" style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;cursor:pointer;">
+          <input type="checkbox" id="drawMixTop" checked /> Mix in top players between regular draws
+        </label>
         <p id="queueStatus" class="text-muted mt-8"></p>
         <details class="manual-pick">
           <summary>Pick a specific player instead</summary>
@@ -490,6 +493,7 @@
   <script src="supabase-config.js?v=3"></script>
 
   <script src="budget-warning.js?v=8"></script>
+  <script src="draw-logic.js?v=1"></script>
 
   <script src="standings.js?v=7"></script>
   <script src="bracket.js?v=2"></script>
@@ -498,7 +502,7 @@
   <script src="js/admin/data.js?v=5"></script>
   <script src="js/admin/auction.js?v=5"></script>
   <script src="js/admin/overview.js?v=4"></script>
-  <script src="js/admin/players.js?v=6"></script>
+  <script src="js/admin/players.js?v=7"></script>
   <script src="js/admin/matches.js?v=9"></script>
   <script src="js/admin/stats_schedule.js?v=5"></script>
   <script src="js/admin/payments.js?v=4"></script>

@@ -9,6 +9,9 @@
 
 alter table players add column if not exists unsold_at timestamptz;
 
+-- is_top marks top-skill players. Draw Next Player mixes them in between regular draws (see draw-logic.js).
+alter table players add column if not exists is_top boolean not null default false;
+
 
 -- ─────────────────────────────────────────────────────────────
 -- Season 4 data setup. COMMENTED OUT ON PURPOSE.
