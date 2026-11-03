@@ -84,12 +84,13 @@ function renderPlayersList() {
       return { fresh, returned: pool.length - fresh, total: pool.length };
     }
 
+    function drawMixEnabled() {
+      const el = document.getElementById('drawMixTop');
+      return !el || el.checked;
+    }
+
     function nextFromQueue() {
-      const pool = allPlayers.filter(p => !p.is_sold && p.id !== currentPlayerId);
-      if (!pool.length) return null;
-      const fresh = pool.filter(p => !p.unsold_at);
-      if (fresh.length) return fresh[Math.floor(Math.random() * fresh.length)];
-      return pool.slice().sort((a, b) => new Date(a.unsold_at) - new Date(b.unsold_at))[0];
+      return pickNextPlayer(allPlayers, allCaptains, currentPlayerId, drawMixEnabled());
     }
 
     function updateQueueStatus() {
@@ -104,7 +105,11 @@ function renderPlayersList() {
           ? '\uD83C\uDFB2 Queue empty'
           : '\uD83C\uDFB2 Draw Next Player \u00b7 ' + q.total + ' left' + (q.returned ? ' (' + q.returned + ' unsold)' : '');
       }
-      if (info) info.style.display = 'none';
+      if (info) {
+        const topsLeft = allPlayers.filter(p => !p.is_sold && p.is_top && p.id !== currentPlayerId).length;
+        info.style.display = topsLeft ? '' : 'none';
+        info.textContent = topsLeft ? 'Top players still in the pool: ' + topsLeft : '';
+      }
     }
 
     async function goLive(pid) {
@@ -122,12 +127,13 @@ function renderPlayersList() {
     async function drawNextPlayer() {
       const msg = document.getElementById('biddingMsg');
       if (liveUnsoldPlayer()) { msg.textContent = 'A player is already live. Close bidding or cancel first.'; return; }
-      const pick = nextFromQueue();
-      if (!pick) { msg.textContent = 'No players left in the queue.'; return; }
+      const draw = nextFromQueue();
+      if (!draw) { msg.textContent = 'No players left in the queue.'; return; }
+      const pick = draw.player;
       const err = await goLive(pick.id);
       if (err) { msg.textContent = 'Error: ' + err.message; return; }
-      msg.textContent = pick.name + ' is live' + (pick.unsold_at ? ' (back from unsold).' : '.');
-      setTimeout(() => msg.textContent = '', 4000);
+      msg.textContent = pick.name + ' is live' + (pick.unsold_at ? ' (back from unsold).' : draw.kind === 'top' ? ' (top player). ' + draw.note : '.');
+      setTimeout(() => msg.textContent = '', draw.kind === 'top' ? 9000 : 4000);
       await loadData();
       document.getElementById('consolePlayer').value = pick.id;
       updateConsoleWarning();
