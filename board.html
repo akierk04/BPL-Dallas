@@ -188,11 +188,11 @@
   <div class="board-grid" id="boardCaptains"></div>
   <div class="section-title" id="playerPoolSectionTitle" style="margin-top:8px;">Player Pool</div>
   <div class="pool-filters" id="poolFilters">
-    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-    <button class="filter-btn" onclick="setFilter('available',this)">Available</button>
-    <button class="filter-btn" onclick="setFilter('unsold',this)">Unsold</button>
-    <button class="filter-btn" onclick="setFilter('sold',this)">Sold</button>
-    <button class="filter-btn" onclick="setFilter('starred',this)">&#9733; Starred<span id="starredCount"></span></button>
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" data-filter="available" onclick="setFilter('available',this)">Available</button>
+    <button class="filter-btn" data-filter="unsold" onclick="setFilter('unsold',this)">Unsold</button>
+    <button class="filter-btn" data-filter="sold" onclick="setFilter('sold',this)">Sold</button>
+    <button class="filter-btn" data-filter="starred" onclick="setFilter('starred',this)">&#9733; Starred<span id="starredCount"></span></button>
   </div>
   <input type="search" id="poolSearch" class="pool-search" placeholder="Search players" autocomplete="off" oninput="setPoolSearch(this.value)" />
   <div class="pool-grid" id="boardPool"></div>
@@ -291,7 +291,7 @@
   </div>
   <script src="js/board/state.js?v=8"></script>
   <script src="js/board/data.js?v=10"></script>
-  <script src="js/board/auction.js?v=19"></script>
+  <script src="js/board/auction.js?v=20"></script>
   <script src="js/board/standings.js?v=7"></script>
   <script src="js/board/teams.js?v=2"></script>
   <script src="js/board/dues.js?v=3"></script>
