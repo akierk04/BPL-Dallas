@@ -13,16 +13,20 @@
 //     If cash per spot is tight, top players are spaced out.
 //   * Gap between top players = round(5 / pace ratio) regular draws, kept between 2 and 8.
 //   * Momentum: if the last 3 sales averaged $15M or less, a top player is drawn next (needs 2+ regular draws since the last one).
-//   * Deadline: all top players are offered before the last 40% of the pool, so none is left for the end.
+//   * Competition gate: outside the deadline, a top player is only offered while 4+ teams can bid $30M or more,
+//     so he is never drawn when only one or two teams have the money to push the price.
+//   * Deadline: all top players are offered before the last 60% of the pool, so none is left for the end.
 //   * The first draw is always a regular player.
 // If no player is tagged is_top, or the mix is switched off, this is exactly the old random draw.
 
 var DRAW_BASE_GAP = 5;
 var DRAW_MIN_GAP = 2;
 var DRAW_MAX_GAP = 8;
-var DRAW_TAIL_SHARE = 0.4;      // the last 40% of the pool is regular-only; top players are offered before it
+var DRAW_TAIL_SHARE = 0.6;      // the last 60% of the pool is regular-only; top players are offered in the first 40%
 var DRAW_RECENT_N = 3;          // momentum looks at the last 3 sales
 var DRAW_LOW_PRICE_MULT = 1.5;  // ...and triggers when they averaged at most 1.5x base ($15M)
+var DRAW_BIG_BID_MULT = 3;      // a team is a 'serious bidder' for a top player if its max bid is at least 3x base ($30M)
+var DRAW_MIN_BIDDERS = 4;       // do not offer a top player (outside the deadline) unless 4+ teams are serious bidders
 var DRAW_MOMENTUM_MIN = 2;      // but never two top players back to back from momentum alone
 
 // Cash per open roster spot across all teams that still have spots to fill.
@@ -49,6 +53,16 @@ function drawsSinceTop(players, excludeId) {
   offers.sort(function(a, b) { return b.t - a.t; });
   var n = 0;
   for (var i = 0; i < offers.length; i++) { if (offers[i].top) break; n++; }
+  return n;
+}
+
+// Teams that could still pay a top-player price: spots left and a max bid of at least 3x base.
+function drawBidders(captains, players) {
+  var n = 0;
+  (captains || []).forEach(function(c) {
+    var sold = (players || []).filter(function(p) { return p.captain_id === c.id && p.is_sold; });
+    if (maxBid(Number(c.wallet) || 0, sold) >= S4_BASE * DRAW_BIG_BID_MULT) n++;
+  });
   return n;
 }
 
@@ -94,11 +108,13 @@ function pickNextPlayer(players, captains, currentPlayerId, mixTop, rand) {
 
   // Momentum: the last few sales went for close to base price, so bring a top player out now.
   var recent = drawRecentAvg(players);
+  var bidders = drawBidders(captains, players);
+  var competitive = bidders >= DRAW_MIN_BIDDERS;
   var momentum = recent !== null && recent <= S4_BASE * DRAW_LOW_PRICE_MULT && since >= DRAW_MOMENTUM_MIN;
-  if (offered && momentum) {
+  if (offered && momentum && competitive) {
     return { player: pickRandom(tops), kind: 'top', note: 'Last ' + DRAW_RECENT_N + ' sales averaged ' + fmtM(Math.round(recent * 10) / 10) + ', so a top player is next.' };
   }
-  if (offered && since >= gap) {
+  if (offered && since >= gap && competitive) {
     var note = 'Teams hold ' + fmtM(Math.round(pace.perSpot * 10) / 10) + ' per open spot (start ' + fmtM(pace.start) + '). Top player every ' + gap + ' draws.';
     return { player: pickRandom(tops), kind: 'top', note: note };
   }
