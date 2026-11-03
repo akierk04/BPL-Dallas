@@ -371,7 +371,7 @@ function populateMatchDropdowns() {
       const msg = document.getElementById('matchMsg');
       if (!homeId || !awayId || isNaN(hs) || isNaN(as_)) { msg.textContent = 'Fill all fields.'; return; }
       if (homeId === awayId) { msg.textContent = 'Home and away must be different teams.'; return; }
-      if (isKoRound(round) && hs === as_) { msg.textContent = 'Playoff games cannot end level. Enter the winning score (e.g. 3–2 after extra time).'; return; }
+      if (isKoRound(round) && hs === as_) { msg.textContent = 'Playoff games cannot end level. If it went to TGT, the TGT winner gets +1 goal (1–1 becomes 2–1).'; return; }
 
       let data, error;
       if (selectedFixtureId) {
@@ -660,7 +660,7 @@ function populateMatchDropdowns() {
       const err = document.getElementById('editMatchError');
       if (isNaN(hs) || isNaN(as_) || hs < 0 || as_ < 0) { err.textContent = 'Enter valid scores.'; return; }
       const editing = allMatches.find(x => x.id === matchId);
-      if (editing && isKoRound(editing.round) && hs === as_) { err.textContent = 'Playoff games cannot end level. Enter the winning score.'; return; }
+      if (editing && isKoRound(editing.round) && hs === as_) { err.textContent = 'Playoff games cannot end level. TGT winner gets +1 goal (1–1 becomes 2–1).'; return; }
       await db.from('goals').delete().eq('match_id', matchId);
       if (editMatchState.goals.length) {
         const { error } = await db.from('goals').insert(

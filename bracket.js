@@ -1,4 +1,4 @@
-// ── BPL Dallas · Season 4 Playoff Bracket (double elimination, 7 teams) ──
+// ── BPL Dallas · Season 4 Playoff Bracket (double elimination, 8 teams) ──
 // Loaded after standings.js (uses computeStandings, detectDeadlocks, PLAYOFF_ROUNDS).
 //
 // Everything here is DERIVED from the matches table: seeds come from the prelim standings, and
@@ -6,23 +6,23 @@
 // match rows themselves (round = the slot code, e.g. 'W1A'). Admin's "Generate next playoff
 // round" button simply inserts rows for slots that have just become determinable.
 //
-// Rules implemented (from the S4 seeding and bracket rules):
-//  * Winners R1: #2 v #7, #3 v #6, #4 v #5, #1 has a bye.
-//  * Winners R2: reseeded by ORIGINAL prelim seed. Highest remaining v lowest remaining, other two meet.
-//  * Winners Final: winners of R2.
-//  * Losers entry (3 Winners R1 losers) ranked by: GD in the game lost, goals scored in that loss,
-//    original seed. Rank 1 gets a bye; rank 2 v rank 3.
-//  * Existing LB teams are ranked by cumulative Losers Bracket GD, then cumulative LB goals, then seed.
-//    New entrants (losers dropping from the Winners Bracket) are ranked by GD in the lost game, goals
-//    scored in it, then seed. The two groups are never compared with each other.
-//  * Losers R2 (2 existing + 2 new): best existing v LOWER-ranked new entrant; other existing v HIGHER-ranked new entrant.
+// Rules implemented (S4 tournament format, 8 teams, every game 10 minutes):
+//  * Winners R1: #1 v #8, #2 v #7, #3 v #6, #4 v #5. Everyone starts in the Winners Bracket. No byes here.
+//  * Winners R2: the 4 winners reseeded by ORIGINAL prelim seed. Highest remaining v lowest remaining, other two meet.
+//  * Winners Final: winners of R2. Winner goes to the Grand Final, loser drops to the Losers Bracket.
+//  * Losers R1: the 4 Winners R1 losers ranked by GD in the game lost, goals scored in that loss, original seed.
+//    LB#1 v LB#4, LB#2 v LB#3. Losers are eliminated.
+//  * Losers R2 (2 existing + 2 new): existing teams ranked by cumulative Losers Bracket GD, cumulative LB goals, seed.
+//    New entrants (Winners R2 losers) ranked by GD in the lost game, goals in it, seed. The groups are never compared.
+//    Best existing v LOWER-ranked new entrant; other existing v HIGHER-ranked new entrant.
 //  * Losers R3 (after the Winners Final): 2 LB survivors + WF loser. Better-ranked survivor gets the bye; the
 //    other survivor plays the WF loser. Winner meets the bye team in the Losers Final.
 //  * Grand Final: Winners champion (0 losses) v Losers champion (1 loss). If the Losers champion wins,
 //    a Reset Final is played. Two losses eliminates.
-//  * Playoff games cannot end level (admin enters a winning score).
+//  * Playoff games cannot end level. If level after 10 minutes the game goes to a TGT and the TGT winner
+//    gets +1 goal, so the admin enters the final score (a 1-1 game won on TGT is entered as 2-1).
 
-var PLAYOFF_TEAMS = 7;
+var PLAYOFF_TEAMS = 8;
 
 function roundMeta(code) {
   return PLAYOFF_ROUNDS.find(function(r) { return r.code === code; }) || null;
@@ -51,7 +51,7 @@ function computeBracket(captains, matches, tiebreaks) {
   function row(code) {
     return matches.find(function(m) { return m.round === code; }) || null;
   }
-  // A played playoff game with a winner. Level games are ignored (they are rejected on entry).
+  // A played playoff game with a winner. Level games have no result (they are rejected on entry).
   function res(code) {
     var m = row(code);
     if (!m || !m.played || m.home_score === m.away_score) return null;
@@ -91,22 +91,23 @@ function computeBracket(captains, matches, tiebreaks) {
 
   // ── Derive the teams for every slot ──
   var D = {};            // code -> [homeId, awayId] derived from results (or [null, null])
-  var byes = { W1: null, L1: null, L3: null };
-  if (seedsReady) byes.W1 = seeds[0];
+  var byes = { L3: null };
 
-  D.W1A = seedsReady ? [seeds[1], seeds[6]] : [null, null];
-  D.W1B = seedsReady ? [seeds[2], seeds[5]] : [null, null];
-  D.W1C = seedsReady ? [seeds[3], seeds[4]] : [null, null];
+  D.W1A = seedsReady ? [seeds[0], seeds[7]] : [null, null];
+  D.W1B = seedsReady ? [seeds[1], seeds[6]] : [null, null];
+  D.W1C = seedsReady ? [seeds[2], seeds[5]] : [null, null];
+  D.W1D = seedsReady ? [seeds[3], seeds[4]] : [null, null];
 
-  var w1Done = res('W1A') && res('W1B') && res('W1C');
-  D.W2A = [null, null]; D.W2B = [null, null]; D.L1 = [null, null];
+  var W1 = ['W1A', 'W1B', 'W1C', 'W1D'];
+  var w1Done = W1.every(function(c) { return res(c); });
+  D.W2A = [null, null]; D.W2B = [null, null]; D.L1A = [null, null]; D.L1B = [null, null];
   if (w1Done) {
-    var rem = [seeds[0], res('W1A').winner, res('W1B').winner, res('W1C').winner].sort(bySeed);
+    var rem = W1.map(function(c) { return res(c).winner; }).sort(bySeed);
     D.W2A = [rem[0], rem[3]];
     D.W2B = [rem[1], rem[2]];
-    var ranked = ['W1A', 'W1B', 'W1C'].map(lossRank).sort(cmpLoss);
-    byes.L1 = ranked[0].id;
-    D.L1 = [ranked[1].id, ranked[2].id];
+    var ranked = W1.map(lossRank).sort(cmpLoss);
+    D.L1A = [ranked[0].id, ranked[3].id];
+    D.L1B = [ranked[1].id, ranked[2].id];
   }
 
   D.WF = [null, null];
@@ -117,9 +118,9 @@ function computeBracket(captains, matches, tiebreaks) {
   }
 
   D.L2A = [null, null]; D.L2B = [null, null];
-  if (res('L1') && w2Done && byes.L1) {
-    var before2 = ['L1'];
-    var existing = [lbCum(byes.L1, before2), lbCum(res('L1').winner, before2)].sort(cmpExisting);
+  if (res('L1A') && res('L1B') && w2Done) {
+    var before2 = ['L1A', 'L1B'];
+    var existing = [lbCum(res('L1A').winner, before2), lbCum(res('L1B').winner, before2)].sort(cmpExisting);
     var entrants = [lossRank('W2A'), lossRank('W2B')].sort(cmpLoss); // [higher, lower]
     D.L2A = [existing[0].id, entrants[1].id]; // best existing v lower-ranked new
     D.L2B = [existing[1].id, entrants[0].id]; // other existing v higher-ranked new
@@ -127,7 +128,7 @@ function computeBracket(captains, matches, tiebreaks) {
 
   D.L3 = [null, null];
   if (res('L2A') && res('L2B') && res('WF')) {
-    var before3 = ['L1', 'L2A', 'L2B'];
+    var before3 = ['L1A', 'L1B', 'L2A', 'L2B'];
     var surv = [lbCum(res('L2A').winner, before3), lbCum(res('L2B').winner, before3)].sort(cmpExisting);
     byes.L3 = surv[0].id;
     D.L3 = [surv[1].id, res('WF').loser];
@@ -141,11 +142,12 @@ function computeBracket(captains, matches, tiebreaks) {
 
   // ── Slots ──
   var SRC = {
-    W1A: ['Seed #2', 'Seed #7'], W1B: ['Seed #3', 'Seed #6'], W1C: ['Seed #4', 'Seed #5'],
+    W1A: ['Seed #1', 'Seed #8'], W1B: ['Seed #2', 'Seed #7'], W1C: ['Seed #3', 'Seed #6'], W1D: ['Seed #4', 'Seed #5'],
     W2A: ['Highest remaining seed', 'Lowest remaining seed'],
     W2B: ['2nd-highest remaining seed', '3rd-highest remaining seed'],
     WF:  ['Winner of Winners R2 A', 'Winner of Winners R2 B'],
-    L1:  ['Losers rank 2', 'Losers rank 3'],
+    L1A: ['Losers rank 1', 'Losers rank 4'],
+    L1B: ['Losers rank 2', 'Losers rank 3'],
     L2A: ['Best-ranked Losers survivor', 'Lower-ranked new entrant'],
     L2B: ['Other Losers survivor', 'Higher-ranked new entrant'],
     L3:  ['Lower-ranked Losers survivor', 'Loser of Winners Final'],
@@ -233,7 +235,6 @@ function bracketHtml(captains, matches, tiebreaks) {
   function card(code) {
     var s = b.slots.find(function(x) { return x.code === code; });
     var note = '';
-    if (code === 'L1' && b.byes.L1) note = 'Bye: ' + (_bn(cap(b.byes.L1)) || '');
     if (code === 'L3' && b.byes.L3) note = 'Bye: ' + (_bn(cap(b.byes.L3)) || '');
     return '<div class="pb-card st-' + s.status + '">'
       + '<div class="pb-card-top"><span>' + s.label + '</span><span class="pb-min">' + s.minutes + ' min</span></div>'
@@ -253,12 +254,12 @@ function bracketHtml(captains, matches, tiebreaks) {
   var html = '';
   if (champ) html += '<div class="pb-champion">🏆 BPL S4 Champion<strong>' + _bn(champ) + '</strong></div>';
   html += '<div class="pb-section"><div class="pb-section-title">Winners Bracket</div><div class="pb-rounds">'
-    + roundBlock('Round 1', ['W1A', 'W1B', 'W1C'], b.byes.W1 ? '#1 seed ' + _bn(cap(b.byes.W1)) + ' has a bye' : '')
+    + roundBlock('Round 1', ['W1A', 'W1B', 'W1C', 'W1D'])
     + roundBlock('Round 2', ['W2A', 'W2B'])
     + roundBlock('Winners Final', ['WF'])
     + '</div></div>';
   html += '<div class="pb-section"><div class="pb-section-title">Losers Bracket</div><div class="pb-rounds">'
-    + roundBlock('Round 1', ['L1'])
+    + roundBlock('Round 1', ['L1A', 'L1B'])
     + roundBlock('Round 2', ['L2A', 'L2B'])
     + roundBlock('Round 3', ['L3'])
     + roundBlock('Losers Final', ['LF'])
