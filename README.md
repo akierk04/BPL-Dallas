@@ -25,7 +25,7 @@ A real-time PWA for managing the Brownish Premier League Dallas player auction, 
 
 - 8 teams, 8 playing captains (captains are not charged against the purse)
 - Purse $100M per team, 5 auction players per captain, 6-player squads, 40 players in the auction
-- Base price $10M, minimum raise $5M (sale prices must be base + a multiple of $5M), no player groups
+- Base price $10M, minimum raise $2M (sale prices must be base + a multiple of $2M, so $10M, $12M, $14M and so on), no player groups
 - **Max bid rule:** `max bid = remaining budget - (roster spots left after this purchase x $10M)`. Enforced when a sale is closed or assigned in Admin, and shown on the captain page and the board.
 - **Top players:** tag top-skill players with `update players set is_top = true where name in (...)`. Draw Next Player then mixes them in between regular draws, paced by spending (cash per open roster spot vs the starting $20M). Gap = round(5 / pace) regular draws, between 2 and 8, capped so every top player is offered. First draw is regular. It runs silently in Admin (no flag or message shown). Logic lives in `draw-logic.js`.
 - **Draw order:** Admin uses **Draw Next Player**. Players never offered are drawn at random. A player who goes unsold (Close Bidding with no bids) goes to the back of the queue and returns only after every fresh player has been offered, oldest-unsold first.
