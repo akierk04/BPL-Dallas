@@ -3,7 +3,7 @@
 // Purse: $100M per team, stored in captains.wallet as whole millions (100).
 // Squad: captain + 5 auction players. Captains play for their own team and are
 // NOT charged against the purse.
-// Base price $10M for every player, minimum raise $5M, no player groups.
+// Base price $10M for every player, minimum raise $2M, no player groups.
 //
 // MAXIMUM BID RULE
 //   Max Bid = Remaining Budget - (Remaining Roster Spots After This Purchase x $10M)
@@ -15,7 +15,7 @@
 var S4_BUDGET = 100;
 var S4_SLOTS = 5;
 var S4_BASE = 10;
-var S4_INCREMENT = 5;
+var S4_INCREMENT = 2;
 // players.group_name / captains.captain_group still exist in the database but
 // Season 4 does not use them. New players are written with this constant so the
 // column constraints keep passing.
