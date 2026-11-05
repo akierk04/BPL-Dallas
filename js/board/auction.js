@@ -338,10 +338,10 @@ function isPreAuctionMode() {
         if (soldBanner) soldBanner.style.display = 'none';
         if (eventBanner) eventBanner.style.display = 'none';
 
-        // Auto-switch to standings tab if still on auction tab
+        // Auto-switch to the Teams tab (final rosters) if still on the auction tab
         const activeTab = document.querySelector('.tab.active');
         if (!activeTab || activeTab.textContent === 'Auction') {
-          switchBoardTab('standings');
+          switchBoardTab('teams');
         }
       } else {
         tournamentBanner.style.display = 'none';

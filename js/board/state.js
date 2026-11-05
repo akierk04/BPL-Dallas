@@ -52,16 +52,23 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
     }
 
     // Season 4: while the auction is running (or has not started), the only tab people need is
-    // Auction, so the tab bar is hidden. It comes back automatically once every player is sold
-    // (match day). Set this to false to always show all tabs. Nothing is deleted or unloaded:
-    // Dues and Hall of Fame data were already fetched only when their tab is opened.
+    // Auction, so the tab bar is hidden. Once every player is sold the bar comes back, but only
+    // with the tabs listed in TABS_AFTER_AUCTION (final rosters + fixtures). Standings, Stats, Dues
+    // and Hall of Fame stay hidden; add their names to the list to bring them back for match day.
+    // Set HIDE_TABS_DURING_AUCTION to false to always show every tab.
     var HIDE_TABS_DURING_AUCTION = true;
+    var TABS_AFTER_AUCTION = ['auction', 'schedule', 'teams'];
     function applyTabVisibility() {
       var bar = document.querySelector('.tabs');
       if (!bar) return;
-      var hide = HIDE_TABS_DURING_AUCTION && typeof auctionInProgress === 'function' && auctionInProgress();
-      bar.style.display = hide ? 'none' : '';
-      if (hide && activeBoardTab !== 'auction') switchBoardTab('auction');
+      var inAuction = HIDE_TABS_DURING_AUCTION && typeof auctionInProgress === 'function' && auctionInProgress();
+      bar.style.display = inAuction ? 'none' : '';
+      document.querySelectorAll('.tabs .tab').forEach(function(btn) {
+        var name = btn.getAttribute('data-tab');
+        btn.style.display = (HIDE_TABS_DURING_AUCTION && TABS_AFTER_AUCTION.indexOf(name) === -1) ? 'none' : '';
+      });
+      var allowed = !HIDE_TABS_DURING_AUCTION || TABS_AFTER_AUCTION.indexOf(activeBoardTab) !== -1;
+      if ((inAuction && activeBoardTab !== 'auction') || !allowed) switchBoardTab('auction');
     }
 
     // Per-phone view preferences. Nothing here is sent to the server.
