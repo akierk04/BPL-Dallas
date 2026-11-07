@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=2" />
-  <link rel="stylesheet" href="css/board.css?v=17" />
+  <link rel="stylesheet" href="css/board.css?v=18" />
 </head>
 <body>
 
@@ -112,6 +112,24 @@
     <div class="tournament-mode-sub">The auction is complete. Let the games begin!</div>
   </div>
 
+  <div id="boardMatchDayBanner" style="display:none;margin-bottom:14px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.5);border-radius:var(--radius-lg);padding:16px 20px;">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">⚡ Now Playing</div>
+      <div id="boardNowPlayingTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+      <div id="boardNowPlayingMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;">Up Next</div>
+      <div id="boardUpNextTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
+      <div id="boardUpNextMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+    </div>
+  </div>
+</div>
+<div id="myTeamBar" class="myteam-bar" style="display:none;">
+  <div class="myteam-row"><label for="myTeamSelect">&#9733; My team</label><select id="myTeamSelect" onchange="setMyTeam(this.value)"></select></div>
+  <div id="myNextLine" class="myteam-next"></div>
+</div>
 <div class="tabs" style="flex-wrap:wrap;margin-bottom:20px;">
   <button class="tab active" data-tab="auction" onclick="switchBoardTab('auction')">Auction</button>
   <button class="tab" data-tab="standings" onclick="switchBoardTab('standings')">Standings</button>
@@ -200,24 +218,11 @@
 
 <!-- Standings tab -->
 <div id="btab-standings" style="display:none;">
-  <div id="boardMatchDayBanner" style="display:none;margin-bottom:20px;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div style="background:linear-gradient(135deg,rgba(240,192,64,0.12),rgba(240,192,64,0.04));border:1px solid rgba(240,192,64,0.5);border-radius:var(--radius-lg);padding:16px 20px;">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">⚡ Now Playing</div>
-        <div id="boardNowPlayingTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
-        <div id="boardNowPlayingMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;">Up Next</div>
-        <div id="boardUpNextTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
-        <div id="boardUpNextMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
-      </div>
-    </div>
-  </div>
   <div class="section-title">Team Standings</div>
   <div class="form-card" style="padding:0 0.5rem;">
     <div id="boardStandings"></div>
   </div>
+  <div id="boardSeedPreview"></div>
 </div>
 
 <!-- Stats tab -->
@@ -283,17 +288,17 @@
 
   <script src="budget-warning.js?v=9"></script>
 
-  <script src="standings.js?v=7"></script>
+  <script src="standings.js?v=8"></script>
   <script src="bracket.js?v=2"></script>
 
     <div id="photoLightbox" class="photo-lightbox" style="display:none;" onclick="closePhotoLightbox()" role="dialog" aria-label="Player photo">
     <div class="pl-card"><img id="plImg" alt=""><div id="plName" class="pl-name"></div></div>
   </div>
-  <script src="js/board/state.js?v=9"></script>
+  <script src="js/board/state.js?v=10"></script>
   <script src="js/board/data.js?v=10"></script>
   <script src="js/board/auction.js?v=21"></script>
-  <script src="js/board/standings.js?v=7"></script>
-  <script src="js/board/teams.js?v=2"></script>
+  <script src="js/board/standings.js?v=8"></script>
+  <script src="js/board/teams.js?v=3"></script>
   <script src="js/board/dues.js?v=3"></script>
   <script src="js/board/halloffame.js?v=2"></script>
   <script src="js/board/realtime.js?v=6"></script>

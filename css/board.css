@@ -483,3 +483,10 @@
 .watch-limit{color:var(--muted);margin-left:6px;}
 .watch-limit.hit{color:var(--red);font-weight:600;}
 .watch-warn{margin-top:4px;color:var(--red);font-weight:500;}
+
+/* Post-auction "My team" bar */
+.myteam-bar { margin-bottom: 14px; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+.myteam-row { display: flex; align-items: center; gap: 10px; }
+.myteam-row label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 600; white-space: nowrap; }
+.myteam-row select { flex: 1; min-width: 0; font-size: 15px; padding: 8px 10px; }
+.myteam-next { font-size: 13px; color: var(--text); margin-top: 8px; }

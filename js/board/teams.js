@@ -12,7 +12,8 @@ function renderTeams() {
               '</div>'
             ).join('')
           : '<div class="board-empty">No players signed yet</div>';
-        return '<div class="board-captain-card">' +
+        const mine = c.id === pinnedCaptainId;
+        return '<div class="board-captain-card' + (mine ? ' pinned' : '') + '">' +
           '<div class="board-captain-header" style="padding-bottom:12px;">' +
           '<div style="flex:1;min-width:0;">' +
           '<div style="font-family:var(--font-display);font-size:1.5rem;letter-spacing:0.06em;color:var(--text);line-height:1;">' + teamFlag(teamName) + ' ' + teamName + '</div>' +
