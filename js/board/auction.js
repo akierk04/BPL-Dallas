@@ -327,7 +327,7 @@ function isPreAuctionMode() {
       } else if (auctionDone) {
         // #10 Tournament mode: hide auction UI, show tournament banner, auto-switch to standings
         el.textContent = 'Tournament mode · auction complete';
-        tournamentBanner.style.display = 'block';
+        tournamentBanner.style.display = 'none';   // the big banner pushes the tabs off screen on phones; the header line below says the auction is complete
 
         // Hide the auction-specific elements
         const nowBidding = document.getElementById('nowBidding');
