@@ -53,11 +53,11 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
 
     // Season 4: while the auction is running (or has not started), the only tab people need is
     // Auction, so the tab bar is hidden. Once every player is sold the bar comes back, but only
-    // with the tabs listed in TABS_AFTER_AUCTION (fixtures, standings, bracket, rosters). Stats, Dues and Hall of
+    // with the tabs listed in TABS_AFTER_AUCTION (fixtures, standings, bracket, stats). Teams, Dues and Hall of
     // Fame stay hidden; add their names to the list to bring them back for match day.
     // Set HIDE_TABS_DURING_AUCTION to false to always show every tab.
     var HIDE_TABS_DURING_AUCTION = true;
-    var TABS_AFTER_AUCTION = ['schedule', 'standings', 'bracket', 'teams'];
+    var TABS_AFTER_AUCTION = ['schedule', 'standings', 'bracket', 'stats'];
     var HOME_TAB_AFTER_AUCTION = 'schedule';   // where a fresh page load lands once the auction is over
     function applyTabVisibility() {
       var bar = document.querySelector('.tabs');
