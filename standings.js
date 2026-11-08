@@ -30,6 +30,11 @@ const KO_ROUNDS = PLAYOFF_ROUNDS.map(r => r.code);
 function isKoRound(round)     { return KO_ROUNDS.includes(String(round)); }
 function isLeagueRound(round) { return !isKoRound(round); }
 
+// The viewer's own team (Live Board only: a per-phone choice kept in localStorage). Admin has no such variable.
+function _myTeamId() {
+  try { return (typeof pinnedCaptainId !== 'undefined' && pinnedCaptainId) || null; } catch (e) { return null; }
+}
+
 // ── Compute standings (single flat table, all captains) ──
 function computeStandings(captains, matches, tiebreakResults) {
   tiebreakResults = tiebreakResults || [];
@@ -179,11 +184,13 @@ function standingsTableHtml(captains, matches, tiebreakResults) {
     const deadlockBadge = partner
       ? `<span style="font-size:10px;background:rgba(240,192,64,0.15);color:var(--accent);padding:2px 6px;border-radius:4px;margin-left:6px;" title="Tied with ${partner.team_name || partner.name} on every tiebreaker -- needs a shootout">⚠ Shootout Pending</span>`
       : '';
-    const rowBg = i < PLAYOFF_TEAMS_COUNT ? 'background:rgba(62,207,142,0.04);' : 'background:rgba(224,90,43,0.03);';
+    const mine = r.captain.id === _myTeamId();
+    const rowBg = mine ? 'background:rgba(240,192,64,0.12);box-shadow:inset 3px 0 0 var(--accent);'
+      : (i < PLAYOFF_TEAMS_COUNT ? 'background:rgba(62,207,142,0.04);' : 'background:rgba(224,90,43,0.03);');
     return `
       <tr style="border-bottom:0.5px solid var(--border);${rowBg}">
         <td style="padding:10px 10px;color:var(--muted);">${i+1}</td>
-        <td style="padding:10px 10px;font-weight:500;color:var(--text);">${r.captain.team_name || r.captain.name}${qualBadge(i)}${tbBadge}${deadlockBadge}</td>
+        <td style="padding:10px 10px;font-weight:500;color:var(--text);">${mine ? '<span style="color:var(--accent);">&#9733;</span> ' : ''}${r.captain.team_name || r.captain.name}${qualBadge(i)}${tbBadge}${deadlockBadge}</td>
         <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.p}</td>
         <td style="padding:10px 6px;text-align:center;color:var(--green);">${r.w}</td>
         <td style="padding:10px 6px;text-align:center;color:var(--muted);">${r.d}</td>
@@ -306,8 +313,10 @@ function matchScheduleHtml(matches, captains, players, standings) {
       ? (players.find(p => p.id === m.mvp_player_id) || captains.find(c => c.id === m.mvp_player_id))
       : null;
     const winner = m.home_score > m.away_score ? 'home' : m.home_score < m.away_score ? 'away' : 'draw';
+    const my = _myTeamId();
+    const mineCard = my && (m.home_captain_id === my || m.away_captain_id === my);
     return `
-      <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
+      <div style="background:var(--surface2);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;${mineCard ? 'border-left:3px solid var(--accent);' : ''}">
         ${label ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>` : ''}
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="flex:1;text-align:right;font-weight:${winner==='home'?'600':'400'};color:${winner==='home'?'var(--text)':'var(--muted)'};">${cname(h)}</span>
@@ -319,8 +328,10 @@ function matchScheduleHtml(matches, captains, players, standings) {
   }
 
   function upcomingCard(homeC, awayC, label) {
+    const my = _myTeamId();
+    const mineCard = my && ((homeC && homeC.id === my) || (awayC && awayC.id === my));
     return `
-      <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
+      <div style="background:var(--surface);border:${mineCard ? '1px solid var(--accent)' : '0.5px solid var(--border)'};border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;">
         ${label ? `<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:6px;">${label}</div>` : ''}
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="flex:1;text-align:right;color:var(--text);font-weight:500;">${cname(homeC)}</span>
@@ -373,4 +384,34 @@ function matchScheduleHtml(matches, captains, players, standings) {
   }
 
   return html || '<div class="text-muted">No fixtures loaded yet.</div>';
+}
+
+
+// ── Playoff preview: what Round 1 would look like if the prelims ended now ──
+// Only while prelims are in progress (at least one played, at least one left). Once the last prelim game
+// is in, the real bracket takes over on the Schedule tab.
+function seedPreviewHtml(captains, matches, tiebreakResults) {
+  const league = (matches || []).filter(m => isLeagueRound(m.round));
+  const played = league.filter(m => m.played).length;
+  if (!league.length || !played || played === league.length) return '';
+  const rows = computeStandings(captains, matches, tiebreakResults || []);
+  if (rows.length < PLAYOFF_TEAMS_COUNT) return '';
+  const my = _myTeamId();
+  function team(i) {
+    const c = rows[i].captain, mine = c.id === my;
+    return '<span style="font-weight:' + (mine ? '700' : '500') + ';color:' + (mine ? 'var(--accent)' : 'var(--text)') + ';">'
+      + (mine ? '&#9733; ' : '') + (c.team_name || c.name) + '</span>';
+  }
+  const pairs = [[0, 7], [1, 6], [2, 5], [3, 4]];
+  const lines = pairs.map(p =>
+    '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border);">'
+    + '<span style="flex:1;text-align:right;"><i style="color:var(--muted);font-style:normal;font-size:11px;">#' + (p[0] + 1) + '</i> ' + team(p[0]) + '</span>'
+    + '<span style="color:var(--muted);font-size:12px;min-width:24px;text-align:center;">vs</span>'
+    + '<span style="flex:1;"><i style="color:var(--muted);font-style:normal;font-size:11px;">#' + (p[1] + 1) + '</i> ' + team(p[1]) + '</span></div>').join('');
+  return '<div class="section-title" style="margin-top:20px;">Playoff Preview</div>'
+    + '<div class="form-card" style="padding:12px 14px;">'
+    + '<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">If the prelims ended now, Winners Round 1 would be:</div>'
+    + lines
+    + '<div style="font-size:11px;color:var(--muted);margin-top:10px;">Not final. ' + played + ' of ' + league.length + ' prelim games played. Seeds lock after the last one.</div>'
+    + '</div>';
 }

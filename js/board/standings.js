@@ -1,11 +1,13 @@
 function renderBoardStandings() {
       renderBoardMatchDayBanner();
       document.getElementById('boardStandings').innerHTML = standingsTableHtml(allCaptains, allMatches, allTiebreaks);
+      const prev = document.getElementById('boardSeedPreview');
+      if (prev) prev.innerHTML = seedPreviewHtml(allCaptains, allMatches, allTiebreaks);
     }
 
-    function renderBoardMatchDayBanner() {
-      const banner = document.getElementById('boardMatchDayBanner');
-      const upcoming = [...allMatches]
+    // Unplayed games in running order (same ordering the schedule uses).
+    function upcomingMatches() {
+      return [...allMatches]
         .filter(m => !m.played)
         .sort((a, b) => {
           const av = Number(a.display_order), bv = Number(b.display_order);
@@ -13,7 +15,14 @@ function renderBoardStandings() {
           if (an !== bn) return an - bn;
           return new Date(a.created_at||0) - new Date(b.created_at||0);
         });
-      if (!upcoming.length) { banner.style.display = 'none'; return; }
+    }
+
+    function renderBoardMatchDayBanner() {
+      const banner = document.getElementById('boardMatchDayBanner');
+      if (!banner) return;
+      const upcoming = upcomingMatches();
+      // Only once the auction is over: during the auction nobody needs a game strip.
+      if (!upcoming.length || (typeof auctionInProgress === 'function' && auctionInProgress())) { banner.style.display = 'none'; return; }
       banner.style.display = 'block';
       const now = upcoming[0], next = upcoming[1] || null;
       function teamLine(m) {
