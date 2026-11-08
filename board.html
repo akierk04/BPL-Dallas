@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=2" />
-  <link rel="stylesheet" href="css/board.css?v=18" />
+  <link rel="stylesheet" href="css/board.css?v=19" />
 </head>
 <body>
 
@@ -125,10 +125,6 @@
       <div id="boardUpNextMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
     </div>
   </div>
-</div>
-<div id="myTeamBar" class="myteam-bar" style="display:none;">
-  <div class="myteam-row"><label for="myTeamSelect">&#9733; My team</label><select id="myTeamSelect" onchange="setMyTeam(this.value)"></select></div>
-  <div id="myNextLine" class="myteam-next"></div>
 </div>
 <div class="tabs" style="flex-wrap:wrap;margin-bottom:20px;">
   <button class="tab active" data-tab="auction" onclick="switchBoardTab('auction')">Auction</button>
@@ -294,10 +290,10 @@
     <div id="photoLightbox" class="photo-lightbox" style="display:none;" onclick="closePhotoLightbox()" role="dialog" aria-label="Player photo">
     <div class="pl-card"><img id="plImg" alt=""><div id="plName" class="pl-name"></div></div>
   </div>
-  <script src="js/board/state.js?v=10"></script>
+  <script src="js/board/state.js?v=11"></script>
   <script src="js/board/data.js?v=10"></script>
   <script src="js/board/auction.js?v=21"></script>
-  <script src="js/board/standings.js?v=8"></script>
+  <script src="js/board/standings.js?v=9"></script>
   <script src="js/board/teams.js?v=3"></script>
   <script src="js/board/dues.js?v=3"></script>
   <script src="js/board/halloffame.js?v=2"></script>

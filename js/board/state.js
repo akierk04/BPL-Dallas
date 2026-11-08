@@ -70,7 +70,6 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
       var allowed = !HIDE_TABS_DURING_AUCTION || TABS_AFTER_AUCTION.indexOf(activeBoardTab) !== -1;
       if ((inAuction && activeBoardTab !== 'auction') || !allowed) switchBoardTab('auction');
       if (typeof renderBoardMatchDayBanner === 'function') renderBoardMatchDayBanner();
-      if (typeof renderMyTeamBar === 'function') renderMyTeamBar();
     }
 
     // Per-phone view preferences. Nothing here is sent to the server.
@@ -85,16 +84,6 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
       } catch (e) {}
       renderBudgetBoard();
       renderCaptains();
-    }
-    // Post-auction "My team" picker: same stored choice as the pin, so it carries over from the auction.
-    function setMyTeam(id) {
-      pinnedCaptainId = id || null;
-      try {
-        if (pinnedCaptainId) localStorage.setItem('bplPinnedCaptain', pinnedCaptainId);
-        else localStorage.removeItem('bplPinnedCaptain');
-      } catch (e) {}
-      renderMyTeamBar(); renderBoardStandings(); renderBoardSchedule(); renderTeams();
-      if (typeof renderBudgetBoard === 'function') { renderBudgetBoard(); renderCaptains(); }
     }
     function pinFirst(rows, idOf) {
       if (!pinnedCaptainId) return rows;
