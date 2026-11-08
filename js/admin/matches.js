@@ -375,6 +375,8 @@ function populateMatchDropdowns() {
 
       let data, error;
       if (selectedFixtureId) {
+        const orig = allMatches.find(m => m.id === selectedFixtureId);
+        if (orig && !(orig.id === pendingMatchId && pendingBackup)) pendingBackup = { home_captain_id: orig.home_captain_id, away_captain_id: orig.away_captain_id, round: orig.round };
         ({ data, error } = await db.from('matches').update({
           home_captain_id: homeId, away_captain_id: awayId,
           home_score: hs, away_score: as_, played: false,
@@ -389,7 +391,10 @@ function populateMatchDropdowns() {
       if (error) { msg.textContent = 'Error: ' + error.message; return; }
 
       pendingMatchId = data.id; pendingHomeId = homeId; pendingAwayId = awayId; pendingHS = hs; pendingAS = as_;
-      pendingGoals = [];
+      if (!selectedFixtureId) pendingBackup = null;
+      // Goals are saved the moment they are tapped, so re-opening a half-entered game brings them back.
+      const { data: savedGoals } = await db.from('goals').select('*').eq('match_id', data.id);
+      pendingGoals = (savedGoals || []).map(g => ({ dbId: g.id, player_id: g.player_id, captain_id: g.captain_id, match_id: g.match_id, isCaptain: allCaptains.some(c => c.id === g.player_id) }));
 
       const totalGoals = hs + as_;
       const homeCap = allCaptains.find(c => c.id === homeId), awayCap = allCaptains.find(c => c.id === awayId);
@@ -400,7 +405,7 @@ function populateMatchDropdowns() {
       renderPlayerGrid();
       populateMvpDropdown();
       document.getElementById('goalScorerSection').style.display = 'block';
-      document.getElementById('goalsList').innerHTML = '';
+      renderPendingGoals();
     }
 
     function updateScorerPlayers() { renderPlayerGrid(); }
@@ -433,11 +438,19 @@ function populateMatchDropdowns() {
       document.getElementById('awayPlayerGrid').innerHTML = awayHtml || '<div class="text-muted">No players</div>';
     }
 
-    function addGoalDirect(pid, teamId, isCaptain) {
-      pendingGoals.push({ player_id: pid, captain_id: teamId, match_id: pendingMatchId, isCaptain: !!isCaptain });
-      renderPendingGoals();
-      renderPlayerGrid();
-      document.getElementById('scorerMsg').textContent = '';
+    let _goalBusy = false;
+    async function addGoalDirect(pid, teamId, isCaptain) {
+      if (_goalBusy || !pendingMatchId) return;
+      _goalBusy = true;
+      const msg = document.getElementById('scorerMsg');
+      try {
+        const { data, error } = await db.from('goals').insert({ player_id: pid, captain_id: teamId, match_id: pendingMatchId }).select().single();
+        if (error || !data) { msg.textContent = 'Goal NOT saved: ' + (error ? error.message : 'no response') + '. Tap again.'; return; }
+        pendingGoals.push({ dbId: data.id, player_id: pid, captain_id: teamId, match_id: pendingMatchId, isCaptain: !!isCaptain });
+        renderPendingGoals();
+        renderPlayerGrid();
+        msg.textContent = '';
+      } finally { _goalBusy = false; }
     }
 
     function addGoal() { /* legacy — no-op, replaced by addGoalDirect */ }
@@ -460,7 +473,15 @@ function populateMatchDropdowns() {
       updateGoalCountWarning();
     }
 
-    function removeGoal(i) { pendingGoals.splice(i, 1); renderPendingGoals(); renderPlayerGrid(); }
+    async function removeGoal(i) {
+      const g = pendingGoals[i];
+      if (!g) return;
+      if (g.dbId) {
+        const { error } = await db.from('goals').delete().eq('id', g.dbId);
+        if (error) { document.getElementById('scorerMsg').textContent = 'Goal NOT removed: ' + error.message; return; }
+      }
+      pendingGoals.splice(i, 1); renderPendingGoals(); renderPlayerGrid();
+    }
 
     function updateGoalCountWarning() {
       const warn = document.getElementById('goalCountWarning');
@@ -490,17 +511,17 @@ function populateMatchDropdowns() {
           : `${pendingGoals.length} goal(s) entered but score is ${pendingHS}–${pendingAS} (${totalGoals} expected). Save anyway?`;
         if (!confirm(msg)) return;
       }
-      if (pendingGoals.length) {
-        const goalsToInsert = pendingGoals.map(({ player_id, captain_id, match_id }) => ({ player_id, captain_id, match_id }));
-        const { error } = await db.from('goals').insert(goalsToInsert);
-        if (error) { alert('Error saving goals: ' + error.message); return; }
-      }
-      const mvpId = document.getElementById('mvpPlayer').value || null;
-      await db.from('matches').update({ played: true, mvp_player_id: mvpId }).eq('id', pendingMatchId);
+      // MVP is needed for the Tournament MVP table: pick a player or say there is none.
+      const mvpRaw = document.getElementById('mvpPlayer').value;
+      if (!mvpRaw) { document.getElementById('scorerMsg').textContent = 'Pick the match MVP, or choose "No MVP for this game", then confirm.'; return; }
+      const mvpId = mvpRaw === 'none' ? null : mvpRaw;
+      // Goals were already saved when tapped. Confirming just marks the game played.
+      const { error: confirmErr } = await db.from('matches').update({ played: true, mvp_player_id: mvpId }).eq('id', pendingMatchId);
+      if (confirmErr) { document.getElementById('scorerMsg').textContent = 'NOT confirmed: ' + confirmErr.message + '. Nothing was lost. Press Confirm again.'; return; }
 
       // Remember next fixture before clearing state
       const justFinishedId = pendingMatchId;
-      pendingMatchId = null; pendingGoals = [];
+      pendingMatchId = null; pendingGoals = []; pendingBackup = null;
       selectedFixtureId = null;
       document.getElementById('goalScorerSection').style.display = 'none';
       document.getElementById('goalCountWarning').style.display = 'none';
@@ -526,21 +547,79 @@ function populateMatchDropdowns() {
       setTimeout(() => { const el = document.getElementById('matchMsg'); if (el) el.innerHTML = ''; }, 8000);
     }
 
+    // Cancel: throw away this entry (its goals), but never destroy a scheduled fixture. A fixture goes back to unplayed 0-0;
+    // a match that was created by hand is deleted.
     async function cancelMatch() {
-      if (pendingMatchId) await db.from('matches').delete().eq('id', pendingMatchId);
-      pendingMatchId = null; pendingGoals = [];
+      const msg = document.getElementById('matchMsg');
+      if (pendingMatchId) {
+        const id = pendingMatchId;
+        const { error: gErr } = await db.from('goals').delete().eq('match_id', id);
+        if (gErr) { msg.textContent = 'Cancel failed (goals): ' + gErr.message; return; }
+        if (selectedFixtureId) {
+          const back = pendingBackup || {};
+          const { error } = await db.from('matches').update(Object.assign({ home_score: 0, away_score: 0, played: false, mvp_player_id: null },
+            back.home_captain_id ? { home_captain_id: back.home_captain_id, away_captain_id: back.away_captain_id, round: back.round } : {})).eq('id', id);
+          if (error) { msg.textContent = 'Cancel failed: ' + error.message; return; }
+        } else {
+          const { error } = await db.from('matches').delete().eq('id', id);
+          if (error) { msg.textContent = 'Cancel failed: ' + error.message; return; }
+        }
+      }
+      pendingMatchId = null; pendingGoals = []; pendingBackup = null;
       selectedFixtureId = null;
       document.getElementById('goalScorerSection').style.display = 'none';
-      selectedFixtureId = null;
       document.getElementById('matchPrefillHint').textContent = '';
-      document.getElementById('matchMsg').textContent = '';
+      msg.textContent = '';
       document.getElementById('matchHome').value = '';
       document.getElementById('matchAway').value = '';
       document.getElementById('matchHomeScore').value = '';
       document.getElementById('matchAwayScore').value = '';
+      await loadData();
+    }
+
+    // ── Half-entered games: scores saved, goals tapped, but never confirmed ──
+    function pendingConfirmMatches() {
+      return allMatches.filter(m => !m.played && m.id !== pendingMatchId &&
+        ((Number(m.home_score) || 0) + (Number(m.away_score) || 0) > 0 || allGoals.some(g => g.match_id === m.id)));
+    }
+    function renderPendingConfirm() {
+      const wrap = document.getElementById('pendingConfirmWrap');
+      if (!wrap) return;
+      const rows = pendingConfirmMatches();
+      if (!rows.length) { wrap.innerHTML = ''; return; }
+      wrap.innerHTML = '<div class="form-card" style="border-color:var(--accent);margin-bottom:16px;">'
+        + '<div style="font-weight:600;color:var(--accent);margin-bottom:8px;">&#9888; Awaiting confirmation</div>'
+        + rows.map(m => {
+          const h = allCaptains.find(c => c.id === m.home_captain_id), a = allCaptains.find(c => c.id === m.away_captain_id);
+          const n = allGoals.filter(g => g.match_id === m.id).length;
+          return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;flex-wrap:wrap;">'
+            + '<span>' + (h ? displayCaptainName(h) : '?') + ' ' + m.home_score + ' &ndash; ' + m.away_score + ' ' + (a ? displayCaptainName(a) : '?')
+            + ' <span class="text-muted">&middot; ' + n + ' goal(s) entered, not confirmed</span></span>'
+            + '<button class="btn-sm" onclick="resumeMatch(\'' + m.id + '\')" style="width:auto;">Resume</button></div>';
+        }).join('') + '</div>';
+    }
+    async function resumeMatch(matchId) {
+      loadFixture(matchId);
+      await saveMatch();   // re-opens the scorer panel with the goals already saved
+      const el = document.getElementById('goalScorerSection');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    // "Enter result" on the Now Playing card: open the first unplayed game (or resume it if half-entered).
+    function enterNowPlaying() {
+      const next = sortMatchesForDisplay(allMatches.filter(m => !m.played))[0];
+      if (!next) return;
+      const half = (Number(next.home_score) || 0) + (Number(next.away_score) || 0) > 0 || allGoals.some(g => g.match_id === next.id);
+      if (half) resumeMatch(next.id); else loadFixtureForResult(next.id);
+    }
+    function bumpScore(id, d) {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const v = parseInt(sel.value);
+      sel.value = String(Math.max(0, Math.min(25, (isNaN(v) ? 0 : v) + d)));
     }
 
     function renderMatchesList() {
+      renderPendingConfirm();
       const list = document.getElementById('matchesList');
       const played = allMatches.filter(m => m.played);
       if (!played.length) { list.innerHTML = '<div class="text-muted">No matches played yet.</div>'; return; }

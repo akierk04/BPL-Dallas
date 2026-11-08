@@ -25,3 +25,8 @@ alter table players add column if not exists is_top boolean not null default fal
 -- update players set base_price = 10, group_name = '1',
 --   is_sold = false, captain_id = null, sold_price = null, sold_at = null, unsold_at = null;
 -- ─────────────────────────────────────────────────────────────
+
+-- Match Day: captains play too, so a captain can be the match MVP.
+-- matches.mvp_player_id referenced players(id) only, which made a captain MVP fail.
+-- Applied to the live database on 2026-11-07. Safe to re-run.
+alter table public.matches drop constraint if exists matches_mvp_player_id_fkey;

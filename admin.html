@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=2" />
+  <link rel="stylesheet" href="style.css?v=4" />
   <link rel="stylesheet" href="css/admin.css?v=8" />
 </head>
 <body>
@@ -160,6 +160,7 @@
         <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--accent);margin-bottom:6px;">⚡ Now Playing</div>
         <div id="nowPlayingTeams" style="font-family:var(--font-display);font-size:1.4rem;color:var(--text);letter-spacing:0.04em;line-height:1.2;"></div>
         <div id="nowPlayingMeta" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+        <button class="btn-primary" onclick="enterNowPlaying()" style="width:auto;margin-top:10px;padding:8px 16px;">Enter result</button>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;">
         <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px;">Up Next</div>
@@ -192,6 +193,8 @@
       </div>
     </div>
   </div>
+
+  <div id="pendingConfirmWrap"></div>
 
   <div class="section-title">Enter Match Result</div>
   <div class="form-card">
@@ -227,9 +230,9 @@
     <div class="form-row">
       <select id="matchHome" style="flex:2;"><option value="">Home team...</option></select>
       <div class="score-shell">
-        <select id="matchHomeScore" style="width:70px;min-width:70px;"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option></select>
+        <button type="button" class="btn-sm score-step" onclick="bumpScore('matchHomeScore',-1)" aria-label="minus">&minus;</button><select id="matchHomeScore" style="width:70px;min-width:70px;"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option></select><button type="button" class="btn-sm score-step" onclick="bumpScore('matchHomeScore',1)" aria-label="plus">+</button>
         <span style="align-self:center;color:var(--muted);font-size:14px;padding:0 4px;">vs</span>
-        <select id="matchAwayScore" style="width:70px;min-width:70px;"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option></select>
+        <button type="button" class="btn-sm score-step" onclick="bumpScore('matchAwayScore',-1)" aria-label="minus">&minus;</button><select id="matchAwayScore" style="width:70px;min-width:70px;"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option></select><button type="button" class="btn-sm score-step" onclick="bumpScore('matchAwayScore',1)" aria-label="plus">+</button>
       </div>
       <select id="matchAway" style="flex:2;"><option value="">Away team...</option></select>
       <button class="btn-primary" onclick="saveMatch()">Save</button>
@@ -492,16 +495,16 @@
   <script src="budget-warning.js?v=9"></script>
   <script src="draw-logic.js?v=1"></script>
 
-  <script src="standings.js?v=8"></script>
+  <script src="standings.js?v=9"></script>
   <script src="bracket.js?v=4"></script>
 
-  <script src="js/admin/state.js?v=5"></script>
+  <script src="js/admin/state.js?v=6"></script>
   <script src="js/admin/data.js?v=5"></script>
   <script src="js/admin/auction.js?v=5"></script>
   <script src="js/admin/overview.js?v=4"></script>
   <script src="js/admin/players.js?v=8"></script>
-  <script src="js/admin/matches.js?v=9"></script>
-  <script src="js/admin/stats_schedule.js?v=5"></script>
+  <script src="js/admin/matches.js?v=10"></script>
+  <script src="js/admin/stats_schedule.js?v=6"></script>
   <script src="js/admin/payments.js?v=4"></script>
   <script src="js/admin/halloffame.js?v=3"></script>
   <script src="js/admin/realtime.js?v=3"></script>

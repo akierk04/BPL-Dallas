@@ -229,7 +229,13 @@ function standingsTableHtml(captains, matches, tiebreakResults) {
 }
 
 // ── Top scorers ──
-function computeTopScorers(players, goals, captains) {
+// matches (optional): when given, only goals from CONFIRMED (played) matches count, so goals entered for a game that
+// is still being entered never show up early.
+function computeTopScorers(players, goals, captains, matches) {
+  if (matches) {
+    const done = new Set(matches.filter(m => m.played).map(m => m.id));
+    goals = goals.filter(g => done.has(g.match_id));
+  }
   const scored = {};
   goals.forEach(g => {
     if (!scored[g.player_id]) scored[g.player_id] = 0;
@@ -266,7 +272,9 @@ function topScorersHtml(scorers) {
 }
 
 // ── MVP leaderboard ──
-function computeMvpLeaderboard(players, matches) {
+// captains (optional): captains play too, so a captain can be MVP. matches.mvp_player_id holds a player id OR a captain id.
+function computeMvpLeaderboard(players, matches, captains) {
+  captains = captains || [];
   const counts = {};
   matches.filter(m => m.played && m.mvp_player_id).forEach(m => {
     counts[m.mvp_player_id] = (counts[m.mvp_player_id] || 0) + 1;
@@ -274,7 +282,9 @@ function computeMvpLeaderboard(players, matches) {
   return Object.entries(counts)
     .map(([pid, awards]) => {
       const p = players.find(x => x.id === pid);
-      return { player: p, awards };
+      if (p) return { player: p, awards };
+      const c = captains.find(x => x.id === pid);
+      return c ? { player: { id: c.id, name: c.name + ' (C)', captain_id: c.id }, awards } : { player: null, awards };
     })
     .filter(x => x.player)
     .sort((a, b) => b.awards - a.awards);
