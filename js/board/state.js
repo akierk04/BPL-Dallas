@@ -39,7 +39,7 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
     let previousSoldKey = '';
     
 
-    const BTABS=['auction','standings','stats','schedule','teams','dues','hall'];
+    const BTABS=['auction','schedule','standings','bracket','teams','stats','dues','hall'];
 
     function switchBoardTab(tab) {
       activeBoardTab = tab;
@@ -53,11 +53,11 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
 
     // Season 4: while the auction is running (or has not started), the only tab people need is
     // Auction, so the tab bar is hidden. Once every player is sold the bar comes back, but only
-    // with the tabs listed in TABS_AFTER_AUCTION (rosters, fixtures, standings, stats). Dues and Hall of
+    // with the tabs listed in TABS_AFTER_AUCTION (fixtures, standings, bracket, rosters). Stats, Dues and Hall of
     // Fame stay hidden; add their names to the list to bring them back for match day.
     // Set HIDE_TABS_DURING_AUCTION to false to always show every tab.
     var HIDE_TABS_DURING_AUCTION = true;
-    var TABS_AFTER_AUCTION = ['standings', 'stats', 'schedule', 'teams'];
+    var TABS_AFTER_AUCTION = ['schedule', 'standings', 'bracket', 'teams'];
     var HOME_TAB_AFTER_AUCTION = 'schedule';   // where a fresh page load lands once the auction is over
     function applyTabVisibility() {
       var bar = document.querySelector('.tabs');
@@ -86,6 +86,12 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
       } catch (e) {}
       renderBudgetBoard();
       renderCaptains();
+    }
+    // Bracket tab: show Winners, Losers or Grand Final only (CSS hides the other sections).
+    function setBracketView(view, btn) {
+      var el = document.getElementById('boardBracket');
+      if (el) el.setAttribute('data-view', view);
+      document.querySelectorAll('#bracketChips .filter-btn').forEach(function(b) { b.classList.toggle('active', b === btn); });
     }
     function pinFirst(rows, idOf) {
       if (!pinnedCaptainId) return rows;
