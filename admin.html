@@ -261,7 +261,8 @@
       <div id="goalsList" style="margin-top:4px;"></div>
       <div style="margin-top:16px;border-top:0.5px solid var(--border);padding-top:14px;">
         <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px;">⭐ Match MVP</div>
-        <select id="mvpPlayer" style="width:100%;"><option value="">Select MVP (optional)...</option></select>
+        <select id="mvpPlayer" style="display:none;"><option value="">Select MVP (required)...</option></select>
+        <div id="mvpGrid"></div>
       </div>
       <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
         <button class="btn-cancel" style="width:auto;padding:9px 16px;" onclick="cancelMatch()">Cancel</button>
@@ -504,7 +505,7 @@
   <script src="js/admin/overview.js?v=4"></script>
   <script src="js/admin/players.js?v=8"></script>
   <script src="js/admin/matches.js?v=10"></script>
-  <script src="js/admin/stats_schedule.js?v=6"></script>
+  <script src="js/admin/stats_schedule.js?v=7"></script>
   <script src="js/admin/payments.js?v=4"></script>
   <script src="js/admin/halloffame.js?v=3"></script>
   <script src="js/admin/realtime.js?v=3"></script>
