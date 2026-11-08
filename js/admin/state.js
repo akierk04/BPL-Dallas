@@ -8,6 +8,7 @@ if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'inde
     let paymentLoadError = '';
     function displayCaptainName(c) { return c ? (c.team_name || c.name) : '—'; }
     let pendingMatchId = null;
+    let pendingBackup = null;   // original fixture teams/round, so Cancel can restore a scheduled fixture
     let selectedFixtureId = null;
     let selectedFixtureForEditId = null;
     let fixtureConflictState = null;

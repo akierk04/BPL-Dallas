@@ -41,9 +41,9 @@ function renderBoardStandings() {
     }
 
     function renderBoardStats() {
-      const scorers=computeTopScorers(allPlayers,allGoals,allCaptains);
+      const scorers=computeTopScorers(allPlayers,allGoals,allCaptains,allMatches);
       document.getElementById('boardTopScorers').innerHTML=topScorersHtml(scorers);
-      const mvps=computeMvpLeaderboard(allPlayers,allMatches);
+      const mvps=computeMvpLeaderboard(allPlayers,allMatches,allCaptains);
       document.getElementById('boardMvp').innerHTML=mvpLeaderboardHtml(mvps,allMatches,allPlayers,allCaptains);
     }
 

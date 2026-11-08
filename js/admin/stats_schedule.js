@@ -32,10 +32,10 @@ function renderStandings() {
     }
 
     function renderStats() {
-      const scorers = computeTopScorers(allPlayers, allGoals, allCaptains);
+      const scorers = computeTopScorers(allPlayers, allGoals, allCaptains, allMatches);
       const el = document.getElementById('topScorers');
       if (el) el.innerHTML = topScorersHtml(scorers);
-      const mvps = computeMvpLeaderboard(allPlayers, allMatches);
+      const mvps = computeMvpLeaderboard(allPlayers, allMatches, allCaptains);
       const el2 = document.getElementById('mvpLeaderboard');
       if (el2) el2.innerHTML = mvpLeaderboardHtml(mvps, allMatches, allPlayers, allCaptains);
     }
@@ -86,7 +86,7 @@ function renderStandings() {
       const teamPlayers = allPlayers.filter(p => p.captain_id === pendingHomeId || p.captain_id === pendingAwayId);
       const captainOpts = [homeCap, awayCap].filter(Boolean)
         .map(c => `<option value="${c.id}">${c.name} (C) (${displayCaptainName(c)})</option>`).join('');
-      sel.innerHTML = '<option value="">Select MVP (optional)...</option>' +
+      sel.innerHTML = '<option value="">Select MVP (required)...</option><option value="none">No MVP for this game</option>' +
         captainOpts +
         teamPlayers.map(p => {
           const cap = allCaptains.find(c => c.id === p.captain_id);
