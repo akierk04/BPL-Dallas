@@ -78,6 +78,8 @@ function renderStandings() {
       document.getElementById('upNextMeta').textContent      = next ? metaLine(next) : 'No more fixtures';
     }
 
+    // The MVP is picked from buttons, the same way goal scorers are. The hidden <select id="mvpPlayer"> still holds the value
+    // ('' = not chosen yet, 'none' = no MVP, otherwise a player id or a captain id) so finalizeMatch reads it as before.
     function populateMvpDropdown() {
       const sel = document.getElementById('mvpPlayer');
       if (!sel) return;
@@ -92,4 +94,42 @@ function renderStandings() {
           const cap = allCaptains.find(c => c.id === p.captain_id);
           return `<option value="${p.id}">${p.name} (${cap ? displayCaptainName(cap) : '?'})</option>`;
         }).join('');
+      sel.value = '';
+      renderMvpGrid();
+    }
+
+    function renderMvpGrid() {
+      const grid = document.getElementById('mvpGrid'), sel = document.getElementById('mvpPlayer');
+      if (!grid || !sel) return;
+      const chosen = sel.value;
+      function btn(id, label, isCap) {
+        const on = chosen === id;
+        return '<button type="button" data-mvp="' + id + '" onclick="pickMvp(this.dataset.mvp)" style="width:100%;text-align:left;'
+          + 'background:' + (on ? 'rgba(240,192,64,0.14)' : 'var(--surface2)') + ';border:1px solid ' + (on ? 'var(--accent)' : 'var(--border)') + ';border-radius:8px;'
+          + 'padding:9px 12px;cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--text);display:flex;align-items:center;justify-content:space-between;">'
+          + '<span>' + label + (isCap ? ' <span style="font-size:10px;color:#888;">(C)</span>' : '') + '</span>'
+          + (on ? '<span style="color:var(--accent);">&#11088;</span>' : '') + '</button>';
+      }
+      function col(capId) {
+        const cap = allCaptains.find(c => c.id === capId);
+        if (!cap) return '<div class="text-muted">—</div>';
+        return btn(cap.id, cap.name, true)
+          + allPlayers.filter(p => p.captain_id === capId && p.is_sold).map(p => btn(p.id, p.name, false)).join('');
+      }
+      const homeCap = allCaptains.find(c => c.id === pendingHomeId), awayCap = allCaptains.find(c => c.id === pendingAwayId);
+      const lbl = c => '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;font-weight:500;">' + (c ? displayCaptainName(c) : '—') + '</div>';
+      grid.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+        + '<div>' + lbl(homeCap) + '<div style="display:flex;flex-direction:column;gap:6px;">' + col(pendingHomeId) + '</div></div>'
+        + '<div>' + lbl(awayCap) + '<div style="display:flex;flex-direction:column;gap:6px;">' + col(pendingAwayId) + '</div></div>'
+        + '</div>'
+        + '<div style="margin-top:8px;">' + btn('none', 'No MVP for this game', false) + '</div>';
+    }
+
+    function pickMvp(id) {
+      const sel = document.getElementById('mvpPlayer');
+      if (!sel) return;
+      sel.value = sel.value === id ? '' : id;   // tap again to un-pick
+      renderMvpGrid();
+      const msg = document.getElementById('scorerMsg');
+      if (msg) msg.textContent = '';
     }
