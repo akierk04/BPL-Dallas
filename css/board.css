@@ -490,3 +490,8 @@
 #boardBracket[data-view="lb"] .pb-section:not([data-sec="lb"]),
 #boardBracket[data-view="gf"] .pb-section:not([data-sec="gf"]) { display: none; }
 #bracketChips { gap: 8px; flex-wrap: wrap; }
+
+/* Projected bracket (before the prelims end) */
+.pb-projected { font-size: 12px; color: var(--muted); border: 1px dashed var(--accent); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 14px; line-height: 1.5; }
+.pb-projected b { color: var(--accent); }
+.pb-card.pb-proj { border-style: dashed; }

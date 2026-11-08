@@ -57,7 +57,7 @@ function renderBoardStandings() {
       const container = document.getElementById('boardBracket');
       const chips = document.getElementById('bracketChips');
       if (!container) return;
-      const html = bracketHtml(allCaptains, allMatches, allTiebreaks);
-      container.innerHTML = html || '<div class="text-muted" style="padding:14px 4px;">The bracket appears after the last prelim game.</div>';
+      const html = bracketHtml(allCaptains, allMatches, allTiebreaks, { provisional: true });
+      container.innerHTML = html || '<div class="text-muted" style="padding:14px 4px;">The bracket appears after the first prelim result.</div>';
       if (chips) chips.style.display = html ? 'flex' : 'none';
     }
