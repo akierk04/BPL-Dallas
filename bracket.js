@@ -36,8 +36,11 @@ function roundMinutes(code) {
   return m ? m.minutes : 10;
 }
 
-function computeBracket(captains, matches, tiebreaks) {
+// opts.provisional (Live Board only): before the real bracket exists, fill Winners Round 1 from the CURRENT
+// standings so people can see where things stand. Admin never passes it, so generation is unaffected.
+function computeBracket(captains, matches, tiebreaks, opts) {
   tiebreaks = tiebreaks || [];
+  opts = opts || {};
   var standings = computeStandings(captains, matches, tiebreaks);
   var seeds = standings.map(function(r) { return r.captain.id; });
   var seedNo = {};
@@ -47,6 +50,13 @@ function computeBracket(captains, matches, tiebreaks) {
   var leagueDone = league.length > 0 && league.every(function(m) { return m.played; });
   var deadlocks = detectDeadlocks(standings, matches, tiebreaks);
   var seedsReady = leagueDone && !deadlocks.length && seeds.length === PLAYOFF_TEAMS;
+  var projected = false;
+  if (opts.provisional && !seedsReady && seeds.length === PLAYOFF_TEAMS
+      && !matches.some(function(m) { return isKoRound(m.round); })
+      && league.some(function(m) { return m.played; })) {
+    seedsReady = true;
+    projected = true;
+  }
 
   function row(code) {
     return matches.find(function(m) { return m.round === code; }) || null;
@@ -191,6 +201,7 @@ function computeBracket(captains, matches, tiebreaks) {
 
   return {
     standings: standings, seeds: seeds, seedNo: seedNo, seedsReady: seedsReady, deadlocks: deadlocks,
+    projected: projected, leaguePlayed: league.filter(function(m) { return m.played; }).length, leagueTotal: league.length,
     slots: slots, byes: byes, losses: losses, champion: champion, mismatches: mismatches,
     hasPlayoffMatches: matches.some(function(m) { return isKoRound(m.round); })
   };
@@ -217,8 +228,8 @@ function playoffReadiness(captains, matches, tiebreaks) {
 // ── Display ──
 function _bn(c) { return c ? (c.team_name || c.name) : null; }
 
-function bracketHtml(captains, matches, tiebreaks) {
-  var b = computeBracket(captains, matches, tiebreaks);
+function bracketHtml(captains, matches, tiebreaks, opts) {
+  var b = computeBracket(captains, matches, tiebreaks, opts);
   if (!b.seedsReady && !b.hasPlayoffMatches) return '';
   function cap(id) { return captains.find(function(c) { return c.id === id; }) || null; }
 
@@ -236,7 +247,7 @@ function bracketHtml(captains, matches, tiebreaks) {
     var s = b.slots.find(function(x) { return x.code === code; });
     var note = '';
     if (code === 'L3' && b.byes.L3) note = 'Bye: ' + (_bn(cap(b.byes.L3)) || '');
-    return '<div class="pb-card st-' + s.status + '">'
+    return '<div class="pb-card st-' + s.status + (b.projected && s.stage === 'WB' && s.code.indexOf('W1') === 0 ? ' pb-proj' : '') + '">'
       + '<div class="pb-card-top"><span>' + s.label + '</span><span class="pb-min">' + s.minutes + ' min</span></div>'
       + teamRow(s.home, s.srcHome, s, 'home')
       + teamRow(s.away, s.srcAway, s, 'away')
@@ -252,6 +263,10 @@ function bracketHtml(captains, matches, tiebreaks) {
 
   var champ = b.champion ? cap(b.champion) : null;
   var html = '';
+  if (b.projected) {
+    html += '<div class="pb-projected"><b>Projected</b>. Based on the current standings (' + b.leaguePlayed + ' of ' + b.leagueTotal
+      + ' prelim games played). Seeds can change until the last prelim game. Later rounds fill in as results come.</div>';
+  }
   if (champ) html += '<div class="pb-champion">🏆 BPL S4 Champion<strong>' + _bn(champ) + '</strong></div>';
   html += '<div class="pb-section" data-sec="wb"><div class="pb-section-title">Winners Bracket</div><div class="pb-rounds">'
     + roundBlock('Round 1', ['W1A', 'W1B', 'W1C', 'W1D'])
