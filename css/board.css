@@ -484,3 +484,9 @@
 .watch-limit.hit{color:var(--red);font-weight:600;}
 .watch-warn{margin-top:4px;color:var(--red);font-weight:500;}
 
+
+/* Bracket tab view switch */
+#boardBracket[data-view="wb"] .pb-section:not([data-sec="wb"]),
+#boardBracket[data-view="lb"] .pb-section:not([data-sec="lb"]),
+#boardBracket[data-view="gf"] .pb-section:not([data-sec="gf"]) { display: none; }
+#bracketChips { gap: 8px; flex-wrap: wrap; }

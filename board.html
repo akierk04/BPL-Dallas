@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=2" />
-  <link rel="stylesheet" href="css/board.css?v=19" />
+  <link rel="stylesheet" href="css/board.css?v=20" />
 </head>
 <body>
 
@@ -128,10 +128,11 @@
 </div>
 <div class="tabs" style="flex-wrap:wrap;margin-bottom:20px;">
   <button class="tab active" data-tab="auction" onclick="switchBoardTab('auction')">Auction</button>
-  <button class="tab" data-tab="standings" onclick="switchBoardTab('standings')">Standings</button>
-  <button class="tab" data-tab="stats" onclick="switchBoardTab('stats')">Stats</button>
   <button class="tab" data-tab="schedule" onclick="switchBoardTab('schedule')">Schedule</button>
+  <button class="tab" data-tab="standings" onclick="switchBoardTab('standings')">Standings</button>
+  <button class="tab" data-tab="bracket" onclick="switchBoardTab('bracket')">Bracket</button>
   <button class="tab" data-tab="teams" onclick="switchBoardTab('teams')">Teams</button>
+  <button class="tab" data-tab="stats" onclick="switchBoardTab('stats')">Stats</button>
   <button class="tab" data-tab="dues" onclick="switchBoardTab('dues')">Dues</button>
   <button class="tab" data-tab="hall" onclick="switchBoardTab('hall')">Hall of Fame</button>
 </div>
@@ -233,14 +234,21 @@
   </div>
 </div>
 
+<!-- Bracket tab -->
+<div id="btab-bracket" style="display:none;">
+  <div id="bracketChips" class="filter-row" style="display:none;margin-bottom:14px;">
+    <button class="filter-btn active" data-view="all" onclick="setBracketView('all',this)">All</button>
+    <button class="filter-btn" data-view="wb" onclick="setBracketView('wb',this)">Winners</button>
+    <button class="filter-btn" data-view="lb" onclick="setBracketView('lb',this)">Losers</button>
+    <button class="filter-btn" data-view="gf" onclick="setBracketView('gf',this)">Grand Final</button>
+  </div>
+  <div class="form-card">
+    <div id="boardBracket" data-view="all"></div>
+  </div>
+</div>
+
 <!-- Schedule tab -->
 <div id="btab-schedule" style="display:none;">
-  <div id="boardBracketCard" style="display:none;margin-bottom:20px;">
-    <div class="section-title">Knockout Bracket</div>
-    <div class="form-card">
-      <div id="boardBracket"></div>
-    </div>
-  </div>
   <div class="section-title">Match Schedule</div>
   <div class="form-card">
     <div id="boardSchedule"></div>
@@ -285,14 +293,14 @@
   <script src="budget-warning.js?v=9"></script>
 
   <script src="standings.js?v=8"></script>
-  <script src="bracket.js?v=2"></script>
+  <script src="bracket.js?v=3"></script>
 
     <div id="photoLightbox" class="photo-lightbox" style="display:none;" onclick="closePhotoLightbox()" role="dialog" aria-label="Player photo">
     <div class="pl-card"><img id="plImg" alt=""><div id="plName" class="pl-name"></div></div>
   </div>
-  <script src="js/board/state.js?v=13"></script>
+  <script src="js/board/state.js?v=14"></script>
   <script src="js/board/data.js?v=10"></script>
-  <script src="js/board/auction.js?v=22"></script>
+  <script src="js/board/auction.js?v=23"></script>
   <script src="js/board/standings.js?v=9"></script>
   <script src="js/board/teams.js?v=3"></script>
   <script src="js/board/dues.js?v=3"></script>

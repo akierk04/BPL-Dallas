@@ -253,18 +253,18 @@ function bracketHtml(captains, matches, tiebreaks) {
   var champ = b.champion ? cap(b.champion) : null;
   var html = '';
   if (champ) html += '<div class="pb-champion">🏆 BPL S4 Champion<strong>' + _bn(champ) + '</strong></div>';
-  html += '<div class="pb-section"><div class="pb-section-title">Winners Bracket</div><div class="pb-rounds">'
+  html += '<div class="pb-section" data-sec="wb"><div class="pb-section-title">Winners Bracket</div><div class="pb-rounds">'
     + roundBlock('Round 1', ['W1A', 'W1B', 'W1C', 'W1D'])
     + roundBlock('Round 2', ['W2A', 'W2B'])
     + roundBlock('Winners Final', ['WF'])
     + '</div></div>';
-  html += '<div class="pb-section"><div class="pb-section-title">Losers Bracket</div><div class="pb-rounds">'
+  html += '<div class="pb-section" data-sec="lb"><div class="pb-section-title">Losers Bracket</div><div class="pb-rounds">'
     + roundBlock('Round 1', ['L1A', 'L1B'])
     + roundBlock('Round 2', ['L2A', 'L2B'])
     + roundBlock('Round 3', ['L3'])
     + roundBlock('Losers Final', ['LF'])
     + '</div></div>';
-  html += '<div class="pb-section"><div class="pb-section-title">Grand Final</div><div class="pb-rounds">'
+  html += '<div class="pb-section" data-sec="gf"><div class="pb-section-title">Grand Final</div><div class="pb-rounds">'
     + roundBlock('Grand Final', ['GF', 'RF'])
     + '</div></div>';
   return html;

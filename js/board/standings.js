@@ -55,10 +55,9 @@ function renderBoardStandings() {
 
     function renderBoardBracket() {
       const container = document.getElementById('boardBracket');
-      const card = document.getElementById('boardBracketCard');
+      const chips = document.getElementById('bracketChips');
       if (!container) return;
       const html = bracketHtml(allCaptains, allMatches, allTiebreaks);
-      if (!html) { if (card) card.style.display = 'none'; return; }
-      if (card) card.style.display = 'block';
-      container.innerHTML = html;
+      container.innerHTML = html || '<div class="text-muted" style="padding:14px 4px;">The bracket appears after the last prelim game.</div>';
+      if (chips) chips.style.display = html ? 'flex' : 'none';
     }
