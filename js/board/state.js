@@ -57,7 +57,8 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
     // Fame stay hidden; add their names to the list to bring them back for match day.
     // Set HIDE_TABS_DURING_AUCTION to false to always show every tab.
     var HIDE_TABS_DURING_AUCTION = true;
-    var TABS_AFTER_AUCTION = ['auction', 'standings', 'stats', 'schedule', 'teams'];
+    var TABS_AFTER_AUCTION = ['standings', 'stats', 'schedule', 'teams'];
+    var HOME_TAB_AFTER_AUCTION = 'schedule';   // where a fresh page load lands once the auction is over
     function applyTabVisibility() {
       var bar = document.querySelector('.tabs');
       if (!bar) return;
@@ -68,7 +69,8 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
         btn.style.display = (HIDE_TABS_DURING_AUCTION && TABS_AFTER_AUCTION.indexOf(name) === -1) ? 'none' : '';
       });
       var allowed = !HIDE_TABS_DURING_AUCTION || TABS_AFTER_AUCTION.indexOf(activeBoardTab) !== -1;
-      if ((inAuction && activeBoardTab !== 'auction') || !allowed) switchBoardTab('auction');
+      if (inAuction && activeBoardTab !== 'auction') switchBoardTab('auction');
+      else if (!inAuction && !allowed) switchBoardTab(HOME_TAB_AFTER_AUCTION);
       if (typeof renderBoardMatchDayBanner === 'function') renderBoardMatchDayBanner();
     }
 
