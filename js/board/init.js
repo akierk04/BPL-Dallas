@@ -46,27 +46,27 @@ function manualRefresh() {
 }
 
 // Phones lock and background tabs lose their websocket, and realtime does not replay what
-// was missed. During the auction, refetch once when the page becomes visible again.
+// was missed. Refetch once when the page becomes visible again.
 var _lastWake = 0;
 function wakeRefresh() {
   if (document.visibilityState !== 'visible') return;
-  if (!auctionInProgress()) return;
+  if (!allPlayers.length) return; // first load not finished yet
   var now = Date.now();
   if (now - _lastWake < 5000) return;
   _lastWake = now;
-  loadBiddingData();
+  refreshForPhase(); // auction: bidding data; after the auction: matches + goals
 }
 document.addEventListener('visibilitychange', wakeRefresh);
 window.addEventListener('pageshow', function(e) { if (e.persisted) wakeRefresh(); });
 window.addEventListener('online', wakeRefresh);
 
 // Safety net: if a broadcast is ever missed, refetch quietly every ~45s while the page is visible
-// during the auction. Random start offset so phones do not all query at the same instant.
+// (auction and Match Day). Random start offset so phones do not all query at the same instant.
 var _polling = false;
 function backupPoll() {
-  if (document.visibilityState === 'visible' && auctionInProgress() && !_polling) {
+  if (document.visibilityState === 'visible' && allPlayers.length && !_polling) {
     _polling = true;
-    Promise.resolve(loadBiddingData()).catch(function() { rtDown = true; }).finally(function() { _polling = false; updateFreshness(); });
+    Promise.resolve(refreshForPhase()).catch(function() { rtDown = true; }).finally(function() { _polling = false; updateFreshness(); });
   }
   setTimeout(backupPoll, 40000 + Math.random() * 10000);
 }
