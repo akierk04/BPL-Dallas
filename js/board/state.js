@@ -57,7 +57,7 @@ let allCaptains=[], allPlayers=[], allMatches=[], allGoals=[], allPayments=[], p
     // Fame stay hidden; add their names to the list to bring them back for match day.
     // Set HIDE_TABS_DURING_AUCTION to false to always show every tab.
     var HIDE_TABS_DURING_AUCTION = true;
-    var TABS_AFTER_AUCTION = ['schedule', 'standings', 'bracket', 'stats'];
+    var TABS_AFTER_AUCTION = ['auction', 'schedule', 'standings', 'bracket', 'stats'];
     var HOME_TAB_AFTER_AUCTION = 'schedule';   // where a fresh page load lands once the auction is over
     function applyTabVisibility() {
       var bar = document.querySelector('.tabs');

@@ -338,9 +338,11 @@ function isPreAuctionMode() {
         if (soldBanner) soldBanner.style.display = 'none';
         if (eventBanner) eventBanner.style.display = 'none';
 
-        // Auto-switch off the auction tab (it is hidden now) to the post-auction home tab
+        // Land on the post-auction home tab once per page load. The Auction tab stays available
+        // afterwards, so a manual visit to it must not be switched away again.
         const activeTab = document.querySelector('.tab.active');
-        if (!activeTab || activeTab.textContent === 'Auction') {
+        if (!window._homeSwitched && (!activeTab || activeTab.textContent === 'Auction')) {
+          window._homeSwitched = true;
           switchBoardTab(typeof HOME_TAB_AFTER_AUCTION === 'string' ? HOME_TAB_AFTER_AUCTION : 'teams');
         }
       } else {
