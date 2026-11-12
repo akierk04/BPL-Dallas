@@ -2,7 +2,9 @@
 // Extracted from admin.html during Admin refactor.
 
 if (sessionStorage.getItem('bpl_role') !== 'admin') window.location.href = 'index.html';
-    function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
+// The real protection is RLS; this just sends anyone without a live admin session back to login.
+db.auth.getSession().then(({ data }) => { if (!data.session) { sessionStorage.clear(); window.location.href = 'index.html'; } });
+    function logout() { sessionStorage.clear(); db.auth.signOut().finally(() => { window.location.href = 'index.html'; }); }
 
     let allCaptains = [], allPlayers = [], allMatches = [], allGoals = [], allPayments = [], paymentSummary = [], topPayers = [], hofEntries = [], currentPlayerId = null, bidState = null, allTiebreaks = [], duesSpent = 0;
     let paymentLoadError = '';

@@ -1,5 +1,4 @@
 // Auth
-const ADMIN = { username: 'Admin', password: 'bpladmin123' };
 
 async function handleLogin() {
   const username = document.getElementById('username').value.trim();
@@ -11,8 +10,15 @@ async function handleLogin() {
   btn.disabled = true;
   btn.textContent = 'Signing in...';
 
-  // Admin check
-  if (username === ADMIN.username && password === ADMIN.password) {
+  // Admin login: Supabase Auth (type the admin email in the username field)
+  if (username.includes('@')) {
+    const { data, error } = await db.auth.signInWithPassword({ email: username, password });
+    if (error || !data.session) {
+      err.textContent = 'Invalid username or password.';
+      btn.disabled = false;
+      btn.textContent = 'Enter';
+      return;
+    }
     sessionStorage.setItem('bpl_role', 'admin');
     sessionStorage.setItem('bpl_user', JSON.stringify({ name: 'Admin', role: 'admin' }));
     window.location.href = 'admin.html';

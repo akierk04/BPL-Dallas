@@ -17,7 +17,6 @@ A real-time PWA for managing the Brownish Premier League Dallas player auction, 
 | Captain | https://www.bpldallas.team/captain.html | Captains (login required) |
 | Live Board | https://www.bpldallas.team/board.html | Public — no login |
 
-**Admin credentials:** Username `Admin` / Password `bpladmin123`
 
 ---
 
