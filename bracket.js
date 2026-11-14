@@ -142,6 +142,15 @@ function computeBracket(captains, matches, tiebreaks, opts) {
     var surv = [lbCum(res('L2A').winner, before3), lbCum(res('L2B').winner, before3)].sort(cmpExisting);
     byes.L3 = surv[0].id;
     D.L3 = [surv[1].id, res('WF').loser];
+    // Organizer override: if the saved L3 fixture pairs two of these three teams differently, honour it
+    // and give the bye to the third team.
+    var trio = [surv[0].id, surv[1].id, res('WF').loser];
+    var l3 = row('L3');
+    if (l3 && l3.home_captain_id !== l3.away_captain_id
+        && trio.indexOf(l3.home_captain_id) >= 0 && trio.indexOf(l3.away_captain_id) >= 0) {
+      D.L3 = [l3.home_captain_id, l3.away_captain_id];
+      byes.L3 = trio.filter(function(t) { return t !== l3.home_captain_id && t !== l3.away_captain_id; })[0];
+    }
   }
 
   D.LF = (res('L3') && byes.L3) ? [byes.L3, res('L3').winner] : [null, null];
