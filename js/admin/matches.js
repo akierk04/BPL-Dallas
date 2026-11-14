@@ -373,6 +373,14 @@ function populateMatchDropdowns() {
       if (homeId === awayId) { msg.textContent = 'Home and away must be different teams.'; return; }
       if (isKoRound(round) && hs === as_) { msg.textContent = 'Playoff games cannot end level. If it went to TGT, the TGT winner gets +1 goal (1–1 becomes 2–1).'; return; }
 
+      // Entered through the form, not a fixture button: attach to the scheduled game instead of creating a duplicate
+      // (games played out of order used to leave the real fixture showing "not played").
+      if (!selectedFixtureId) {
+        const samePair = m => (m.home_captain_id === homeId && m.away_captain_id === awayId) || (m.home_captain_id === awayId && m.away_captain_id === homeId);
+        const fx = allMatches.find(m => !m.played && m.id !== pendingMatchId && m.round === round && (isKoRound(round) || samePair(m)));
+        if (fx) selectedFixtureId = fx.id;
+      }
+
       let data, error;
       if (selectedFixtureId) {
         const orig = allMatches.find(m => m.id === selectedFixtureId);
