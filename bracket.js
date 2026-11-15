@@ -17,8 +17,7 @@
 //    Best existing v LOWER-ranked new entrant; other existing v HIGHER-ranked new entrant.
 //  * Losers R3 (after the Winners Final): 2 LB survivors + WF loser. Better-ranked survivor gets the bye; the
 //    other survivor plays the WF loser. Winner meets the bye team in the Losers Final.
-//  * Grand Final: Winners champion (0 losses) v Losers champion (1 loss). If the Losers champion wins,
-//    a Reset Final is played. Two losses eliminates.
+//  * Grand Final: Winners champion v Losers champion. A single game, no reset: the winner is the champion.
 //  * Playoff games cannot end level. If level after 10 minutes the game goes to a TGT and the TGT winner
 //    gets +1 goal, so the admin enters the final score (a 1-1 game won on TGT is entered as 2-1).
 
@@ -156,8 +155,6 @@ function computeBracket(captains, matches, tiebreaks, opts) {
   D.LF = (res('L3') && byes.L3) ? [byes.L3, res('L3').winner] : [null, null];
   D.GF = (res('WF') && res('LF')) ? [res('WF').winner, res('LF').winner] : [null, null];
 
-  var needReset = !!(res('GF') && res('LF') && res('GF').winner === res('LF').winner);
-  D.RF = needReset ? [res('WF').winner, res('LF').winner] : [null, null];
 
   // ── Slots ──
   var SRC = {
@@ -171,8 +168,7 @@ function computeBracket(captains, matches, tiebreaks, opts) {
     L2B: ['Other Losers survivor', 'Higher-ranked new entrant'],
     L3:  ['Lower-ranked Losers survivor', 'Loser of Winners Final'],
     LF:  ['Team with the bye', 'Winner of Losers R3'],
-    GF:  ['Winners Bracket champion', 'Losers Bracket champion'],
-    RF:  ['Winners Bracket champion', 'Losers Bracket champion']
+    GF:  ['Winners Bracket champion', 'Losers Bracket champion']
   };
 
   var losses = {};
@@ -186,7 +182,6 @@ function computeBracket(captains, matches, tiebreaks, opts) {
     var known = !!(d[0] && d[1]);
     var r = res(code);
     var status = m ? (m.played ? 'played' : 'scheduled') : (known ? 'ready' : 'tbd');
-    if (code === 'RF' && !needReset && !m) status = res('GF') ? 'na' : 'tbd';
     return {
       code: code, label: meta.label, stage: meta.stage, minutes: meta.minutes,
       match: m, home: home, away: away, derivedHome: d[0], derivedAway: d[1],
@@ -196,9 +191,8 @@ function computeBracket(captains, matches, tiebreaks, opts) {
   });
 
   slots.forEach(function(s) { if (s.loser) losses[s.loser] = (losses[s.loser] || 0) + 1; });
-  var gf = res('GF'), rf = res('RF');
-  if (gf && res('WF') && gf.winner === res('WF').winner) champion = gf.winner;
-  else if (rf) champion = rf.winner;
+  var gf = res('GF');
+  if (gf) champion = gf.winner;
 
   // Fixtures whose teams no longer match what the results imply (e.g. a result was edited later).
   var mismatches = slots.filter(function(s) {
@@ -289,7 +283,7 @@ function bracketHtml(captains, matches, tiebreaks, opts) {
     + roundBlock('Losers Final', ['LF'])
     + '</div></div>';
   html += '<div class="pb-section" data-sec="gf"><div class="pb-section-title">Grand Final</div><div class="pb-rounds">'
-    + roundBlock('Grand Final', ['GF', 'RF'])
+    + roundBlock('Grand Final', ['GF'])
     + '</div></div>';
   return html;
 }

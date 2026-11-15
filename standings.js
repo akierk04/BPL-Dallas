@@ -22,8 +22,7 @@ const PLAYOFF_ROUNDS = [
   { code: 'WF',  stage: 'WB', minutes: 10, label: 'Winners Final' },
   { code: 'L3',  stage: 'LB', minutes: 10, label: 'Losers Round 3' },
   { code: 'LF',  stage: 'LB', minutes: 10, label: 'Losers Final' },
-  { code: 'GF',  stage: 'GF', minutes: 10, label: 'Grand Final' },
-  { code: 'RF',  stage: 'GF', minutes: 10, label: 'Reset Final' }
+  { code: 'GF',  stage: 'GF', minutes: 10, label: 'Grand Final' }
 ];
 const KO_ROUNDS = PLAYOFF_ROUNDS.map(r => r.code);
 
